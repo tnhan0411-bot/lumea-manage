@@ -1,0 +1,6 @@
+{
+  "name": "AziManager - Quản Lý Căn Hộ",
+  "description": "Ứng dụng quản lý 10 căn hộ/phòng trọ với các chức năng theo dõi phòng, hóa đơn, bảo trì và cổng thông tin người thuê.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
