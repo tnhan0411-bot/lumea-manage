@@ -25,7 +25,7 @@ export function CardContent({ className, children }: { className?: string; child
   return <div className={cn("p-6", className)}>{children}</div>;
 }
 
-export function Badge({ children, variant = 'default' }: { children: React.ReactNode, variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' }) {
+export function Badge({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'default' | 'success' | 'warning' | 'danger' | 'info', className?: string }) {
   const variants = {
     default: "bg-[#334155] text-[#f8fafc]",
     success: "bg-emerald-500/10 text-[#10b981]",
@@ -34,7 +34,7 @@ export function Badge({ children, variant = 'default' }: { children: React.React
     info: "bg-sky-400/10 text-[#38bdf8]",
   };
   return (
-    <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium", variants[variant])}>
+    <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium", variants[variant], className)}>
       {children}
     </span>
   );

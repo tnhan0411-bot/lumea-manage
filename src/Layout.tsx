@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, LogOut, FileText, Bell } from 'lucide-react';
+import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, LogOut, FileText, Bell, User, BarChart } from 'lucide-react';
 import { useAppContext } from './lib/context';
 import { Dashboard } from './components/Dashboard';
 import { RoomList } from './components/Rooms';
 import { Maintenance } from './components/Maintenance';
 import { Billing } from './components/Billing';
+import { Reports } from './components/Reports';
+import { Contracts } from './components/Contracts';
+import { Profile } from './components/Profile';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
 
@@ -15,15 +18,17 @@ export function Layout() {
   const navItems = role === 'landlord' ? [
     { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
     { id: 'rooms', label: 'Quản lý phòng', icon: Building2 },
-    { id: 'tenants', label: 'Người thuê & Hợp đồng', icon: Users },
-    { id: 'maintenance', label: 'Bảo trì & Sự cố', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved').length },
+    { id: 'contracts', label: 'Hợp đồng & Hồ sơ', icon: Users },
+    { id: 'maintenance', label: 'Bảo trì & Dọn dẹp', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved').length },
     { id: 'billing', label: 'Hóa đơn & Thu chi', icon: Receipt },
-    { id: 'settings', label: 'Cài đặt', icon: Settings },
+    { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
+    { id: 'profile', label: 'Hồ sơ của tôi', icon: Settings },
   ] : [
     { id: 'dashboard', label: 'Trang chủ của tôi', icon: LayoutDashboard },
+    { id: 'contracts', label: 'Hợp đồng của tôi', icon: FileText },
     { id: 'billing', label: 'Thanh toán & Hóa đơn', icon: Receipt, badge: invoices.filter(i => i.tenantId === 't1' && i.status !== 'paid').length },
-    { id: 'maintenance', label: 'Báo cáo sự cố', icon: Wrench },
-    { id: 'contract', label: 'Hợp đồng của tôi', icon: FileText },
+    { id: 'maintenance', label: 'Yêu cầu hỗ trợ', icon: Wrench },
+    { id: 'profile', label: 'Hồ sơ cá nhân', icon: User },
   ];
 
   const renderScreen = () => {
@@ -32,7 +37,10 @@ export function Layout() {
       case 'rooms': return <RoomList />;
       case 'maintenance': return <Maintenance />;
       case 'billing': return <Billing />;
-      default: return <div className="p-8 text-center text-gray-500">Tính năng "{navItems.find(i=>i.id === activeScreen)?.label}" đang được phát triển...</div>;
+      case 'reports': return <Reports />;
+      case 'contracts': return <Contracts />;
+      case 'profile': return <Profile />;
+      default: return <div className="p-8 text-center text-gray-500">Đang tải...</div>;
     }
   };
 

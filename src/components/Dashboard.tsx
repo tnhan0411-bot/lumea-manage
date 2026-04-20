@@ -1,8 +1,9 @@
 import React from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
-import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle } from 'lucide-react';
+import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { cn } from '../lib/utils';
 
 export function Dashboard() {
   const { role, rooms, tenants, issues, invoices, currentTenantId } = useAppContext();
@@ -15,16 +16,16 @@ export function Dashboard() {
 
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-[#f8fafc]">Tổng quan của tôi - Phòng {myRoom?.number}</h1>
+        <h1 className="text-2xl font-bold text-[#f8fafc]">Chào mừng quay trở lại, {tenants.find(t=>t.id === currentTenantId)?.name}!</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
+          <Card className="bg-[#38bdf8]/5 border-[#38bdf8]/20">
             <CardContent className="p-6 flex items-center space-x-4">
               <div className="p-3 bg-[#38bdf8]/10 text-[#38bdf8] rounded-lg">
                 <DollarSign size={24} />
               </div>
               <div>
-                <p className="text-sm font-medium text-[#94a3b8] uppercase tracking-wider text-[11px]">Tiền nhà chưa thanh toán</p>
+                <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Tiền phòng tháng này</p>
                 <p className="text-2xl font-bold text-[#f8fafc] mt-1">
                   {pendingInvoices.reduce((sum, inv) => sum + inv.total, 0).toLocaleString()}đ
                 </p>
@@ -38,9 +39,23 @@ export function Dashboard() {
                 <Wrench size={24} />
               </div>
               <div>
-                <p className="text-sm font-medium text-[#94a3b8] uppercase tracking-wider text-[11px]">Sự cố đang xử lý</p>
+                <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Yêu cầu đang xử lý</p>
                 <p className="text-2xl font-bold text-[#f8fafc] mt-1">
                   {myIssues.filter(i => i.status !== 'resolved').length}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6 flex items-center space-x-4">
+              <div className="p-3 bg-[#10b981]/10 text-[#10b981] rounded-lg">
+                <Calendar size={24} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Ngày dọn phòng tiếp theo</p>
+                <p className="text-lg font-bold text-[#f8fafc] mt-1">
+                  {myRoom?.cleaningSchedule[0] || 'Chưa có lịch'}
                 </p>
               </div>
             </CardContent>
@@ -49,42 +64,50 @@ export function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
-            <CardHeader title="Thông báo mới nhất" />
+            <CardHeader title="Thông báo & Nhắc nhở" />
             <CardContent>
               <div className="space-y-4">
                 {pendingInvoices.length > 0 && (
                    <div className="p-4 bg-[#ef4444]/5 hover:bg-[#ef4444]/10 transition-colors rounded-lg border border-[#ef4444]/20 flex items-start gap-3">
                      <AlertCircle className="w-5 h-5 text-[#ef4444] mt-0.5" />
                      <div>
-                       <p className="font-medium text-[#f8fafc]">Bạn có hóa đơn chưa thanh toán!</p>
-                       <p className="text-sm text-[#94a3b8] mt-1">Vui lòng thanh toán hóa đơn tháng {pendingInvoices[0].month} trước hạn.</p>
+                       <p className="font-medium text-[#f8fafc]">Vui lòng thanh toán tiền phòng!</p>
+                       <p className="text-sm text-[#94a3b8] mt-1">Hạn thanh toán là ngày 05/05. Tổng tiền: {pendingInvoices[0].total.toLocaleString()}đ</p>
+                       <Button size="sm" className="mt-3">Thanh toán ngay</Button>
                      </div>
                    </div>
                 )}
-                <div className="p-4 bg-[#38bdf8]/5 hover:bg-[#38bdf8]/10 transition-colors rounded-lg border border-[#38bdf8]/20 flex items-start gap-3">
-                     <Calendar className="w-5 h-5 text-[#38bdf8] mt-0.5" />
-                     <div>
-                       <p className="font-medium text-[#f8fafc]">Lịch kiểm tra PCCC</p>
-                       <p className="text-sm text-[#94a3b8] mt-1">Chủ nhà sẽ kiểm tra PCCC vào cuối tuần này. Vui lòng có mặt ở nhà.</p>
-                     </div>
-                </div>
+                {myIssues.filter(i => i.status === 'in-progress').length > 0 && (
+                  <div className="p-4 bg-[#f59e0b]/5 hover:bg-[#f59e0b]/10 transition-colors rounded-lg border border-[#f59e0b]/20 flex items-start gap-3">
+                    <Wrench className="w-5 h-5 text-[#f59e0b] mt-0.5" />
+                    <div>
+                      <p className="font-medium text-[#f8fafc]">Cập nhật báo cáo sự cố</p>
+                      <p className="text-sm text-[#94a3b8] mt-1">Kỹ thuật viên đang xử lý yêu cầu "{myIssues.find(i=>i.status==='in-progress')?.title}".</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <Card>
-             <CardHeader title="Sự cố gần đây" action={<Button variant="outline" size="sm">Báo thêm sự cố</Button>} />
+             <CardHeader title="Hoạt động gần đây" />
              <CardContent>
                 <div className="space-y-3">
-                  {myIssues.length === 0 ? <p className="text-[#94a3b8]">Không có sự cố nào.</p> : 
-                    myIssues.map(issue => (
-                      <div key={issue.id} className="flex justify-between items-center py-3 border-b last:border-0 border-[#334155]/50">
-                        <div>
-                          <p className="font-medium text-sm text-[#f8fafc]">{issue.title}</p>
-                          <p className="text-xs text-[#94a3b8] mt-0.5">{issue.createdAt}</p>
+                  {myIssues.length === 0 ? <p className="text-[#94a3b8] italic text-sm">Chưa có lịch sử hoạt động.</p> : 
+                    myIssues.slice(0, 5).map(issue => (
+                      <div key={issue.id} className="flex justify-between items-center py-3 border-b last:border-0 border-[#334155]/30">
+                        <div className="flex items-center gap-3">
+                          <div className={cn("p-2 rounded-lg", issue.type === 'cleaning' ? "bg-[#10b981]/10 text-[#10b981]" : "bg-[#38bdf8]/10 text-[#38bdf8]")}>
+                            {issue.type === 'cleaning' ? <Sparkles size={14} /> : <Wrench size={14} />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-[#f8fafc]">{issue.title}</p>
+                            <p className="text-[10px] text-[#94a3b8] mt-0.5">{issue.createdAt}</p>
+                          </div>
                         </div>
                         <Badge variant={issue.status === 'resolved' ? 'success' : issue.status === 'in-progress' ? 'info' : 'warning'}>
-                          {issue.status === 'resolved' ? 'Đã xong' : issue.status === 'in-progress' ? 'Đang xử lý' : 'Mới'}
+                          {issue.status === 'resolved' ? 'Xong' : issue.status === 'in-progress' ? 'Đang làm' : 'Mới'}
                         </Badge>
                       </div>
                     ))
@@ -106,11 +129,9 @@ export function Dashboard() {
   const pendingRevenue = invoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
 
   const chartData = [
-    { name: 'Tháng 6', revenue: 45000000 },
-    { name: 'Tháng 7', revenue: 47000000 },
-    { name: 'Tháng 8', revenue: 46000000 },
-    { name: 'Tháng 9', revenue: 52000000 },
-    { name: 'Tháng 10', revenue: 48000000 }, // Current
+    { name: 'T2', revenue: 45000000 },
+    { name: 'T3', revenue: 48000000 },
+    { name: 'T4', revenue: totalRevenue }, 
   ];
 
   return (
