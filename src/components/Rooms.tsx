@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
-import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip } from 'lucide-react';
+import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut } from 'lucide-react';
 import { Room, cn, Attachment } from '../lib/utils';
 
 export function RoomList() {
-  const { rooms, tenants, issues, updateRoom, updateTenant, addRoom, deleteRoom, role } = useAppContext();
+  const { rooms, tenants, issues, updateRoom, updateTenant, addRoom, deleteRoom, checkoutRoom, role } = useAppContext();
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [tempRoom, setTempRoom] = useState<Room | null>(null);
   const [tempTenantName, setTempTenantName] = useState('');
@@ -32,7 +32,7 @@ export function RoomList() {
         leaseEnd: tempRoom.leaseEnd
       });
       const tenant = tenants.find(t => t.roomId === tempRoom.id);
-      if (tenant) {
+      if (tenant && tenant.name !== tempTenantName) {
         updateTenant(tenant.id, { name: tempTenantName });
       }
     }
@@ -40,10 +40,16 @@ export function RoomList() {
   };
 
   const handleAddNewRoom = () => {
-    const newId = `r${rooms.length + 1}`;
+    const maxId = rooms.reduce((max, r) => {
+      const num = parseInt(r.id.replace('r', ''));
+      return num > max ? num : max;
+    }, 0);
+    const newId = `r${maxId + 1}`;
+    const nextRoomNum = rooms.length > 0 ? (Math.max(...rooms.map(r => parseInt(r.number))) + 1).toString() : "101";
+
     addRoom({
       id: newId,
-      number: `${100 + rooms.length + 1}`,
+      number: nextRoomNum,
       status: 'available',
       price: 5000000,
       features: [],
@@ -52,8 +58,15 @@ export function RoomList() {
     });
   };
 
+  const handleCheckout = (id: string) => {
+    if (window.confirm('Xác nhận trả phòng? Dữ liệu người thuê và thời hạn thuê sẽ được xóa để sẵn sàng cho khách mới.')) {
+      checkoutRoom(id);
+      setEditingRoomId(null);
+    }
+  };
+
   const handleDeleteRoom = (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa phòng này khỏi hệ thống?')) {
       deleteRoom(id);
       setEditingRoomId(null);
     }
@@ -273,14 +286,24 @@ export function RoomList() {
             </div>
 
             <div className="mt-8 pt-6 border-t border-[#334155] flex justify-between items-center">
-              {role === 'landlord' && (
-                <button 
-                  onClick={() => handleDeleteRoom(tempRoom.id)}
-                  className="text-[#ef4444] text-sm font-bold flex items-center gap-2 hover:underline"
-                >
-                  <Trash2 size={18} /> Xóa phòng này
-                </button>
-              )}
+              <div className="flex gap-4">
+                {role === 'landlord' && (
+                  <button 
+                    onClick={() => handleDeleteRoom(tempRoom.id)}
+                    className="text-[#ef4444] text-xs font-bold flex items-center gap-2 hover:underline"
+                  >
+                    <Trash2 size={18} /> Xóa phòng
+                  </button>
+                )}
+                {role === 'landlord' && tempRoom.status === 'occupied' && (
+                  <button 
+                    onClick={() => handleCheckout(tempRoom.id)}
+                    className="text-[#f59e0b] text-xs font-bold flex items-center gap-2 hover:underline border-l border-[#334155] pl-4"
+                  >
+                    <LogOut size={18} /> Trả phòng
+                  </button>
+                )}
+              </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setEditingRoomId(null)}>Hủy</Button>
                 <Button onClick={handleSave} className="gap-2 px-8">

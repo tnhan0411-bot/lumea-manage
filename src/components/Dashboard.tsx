@@ -190,17 +190,65 @@ export function Dashboard() {
   // Landlord Dashboard
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
-  const availableRooms = rooms.filter(r => r.status === 'available').length;
   
-  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
-  const pendingRevenue = invoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
+  // Refined Revenue Calculation based on Period
+  const getInvoicesForPeriod = (periodStr: string) => {
+    return invoices.filter(inv => {
+      // Use inv.month (YYYY-MM) for matching period
+      if (periodStr.includes('Q')) {
+        const year = periodStr.split('-')[0];
+        const quarter = periodStr.split('-')[1];
+        const monthPart = inv.month.split('-')[1];
+        const invYear = inv.month.split('-')[0];
+        if (invYear !== year) return false;
+        if (quarter === 'Q1') return ['01', '02', '03'].includes(monthPart);
+        if (quarter === 'Q2') return ['04', '05', '06'].includes(monthPart);
+        if (quarter === 'Q3') return ['07', '08', '09'].includes(monthPart);
+        if (quarter === 'Q4') return ['10', '11', '12'].includes(monthPart);
+      } else {
+        // Month format: YYYY-MM explicitly matches inv.month
+        return inv.month === periodStr;
+      }
+      return false;
+    });
+  };
 
-  const chartData = [
-    { name: 'T1', revenue: 42000000 },
-    { name: 'T2', revenue: 45000000 },
-    { name: 'T3', revenue: 48000000 },
-    { name: 'T4', revenue: totalRevenue }, 
-  ];
+  const currentPeriodInvoices = getInvoicesForPeriod(period);
+  const totalRevenue = currentPeriodInvoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
+  const pendingRevenue = currentPeriodInvoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
+
+  // Dynamic Chart Data based on period
+  const getChartData = () => {
+    if (period.includes('Q')) {
+      const year = period.split('-')[0];
+      const quarter = period.split('-')[1];
+      const months = quarter === 'Q1' ? ['01', '02', '03'] : quarter === 'Q2' ? ['04', '05', '06'] : quarter === 'Q3' ? ['07', '08', '09'] : ['10', '11', '12'];
+      return months.map(m => {
+        const p = `${year}-${m}`;
+        const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
+        return { name: `T${parseInt(m)}`, revenue: rev };
+      });
+    } else {
+      // Show last 4 months up to current selection
+      const [year, month] = period.split('-').map(Number);
+      const data = [];
+      for (let i = 3; i >= 0; i--) {
+        let m = month - i;
+        let y = year;
+        if (m <= 0) {
+          m += 12;
+          y -= 1;
+        }
+        const mStr = m < 10 ? `0${m}` : `${m}`;
+        const p = `${y}-${mStr}`;
+        const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
+        data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev });
+      }
+      return data;
+    }
+  };
+
+  const chartData = getChartData();
 
   return (
     <div className="space-y-6">

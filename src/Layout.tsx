@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap } from 'lucide-react';
+import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText } from 'lucide-react';
 import { useAppContext } from './lib/context';
 import { Dashboard } from './components/Dashboard';
 import { RoomList } from './components/Rooms';
@@ -14,8 +14,19 @@ import { cn } from './lib/utils';
 import { Badge } from './components/ui';
 
 export function Layout() {
-  const { user, role, logout, issues, invoices } = useAppContext();
+  const { user, role, logout, issues, invoices, isLoaded } = useAppContext();
   const [activeScreen, setActiveScreen] = useState('dashboard');
+
+  if (!isLoaded) {
+    return (
+      <div className="h-screen bg-[#0f172a] flex items-center justify-center text-[#f8fafc]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#38bdf8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm font-bold uppercase tracking-widest text-[#94a3b8]">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Login />;
@@ -44,7 +55,7 @@ export function Layout() {
       case 'tenant':
         return [
           { id: 'dashboard', label: 'Trang chủ của tôi', icon: LayoutDashboard },
-          { id: 'contracts', label: 'Hợp đồng của tôi', icon: FileTextIcon },
+          { id: 'contracts', label: 'Hợp đồng của tôi', icon: FileText },
           { id: 'billing', label: 'Thanh toán & Hóa đơn', icon: Receipt, badge: invoices.filter(i => i.tenantId === 't1' && i.status !== 'paid').length },
           { id: 'maintenance', label: 'Yêu cầu hỗ trợ', icon: Wrench },
           { id: 'profile', label: 'Hồ sơ cá nhân', icon: User },
@@ -151,5 +162,3 @@ export function Layout() {
     </div>
   );
 }
-
-function FileTextIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 7.5 20 7.5"/></svg>; }
