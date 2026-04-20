@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText } from 'lucide-react';
+import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard } from 'lucide-react';
 import { useAppContext } from './lib/context';
 import { Dashboard } from './components/Dashboard';
 import { RoomList } from './components/Rooms';
 import { Maintenance } from './components/Maintenance';
+import { Cleaning } from './components/Cleaning';
 import { Billing } from './components/Billing';
 import { Reports } from './components/Reports';
 import { Contracts } from './components/Contracts';
 import { Profile } from './components/Profile';
 import { Utilities } from './components/Utilities';
+import { Expenses } from './components/Expenses';
 import { Login } from './components/Login';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
@@ -39,16 +41,19 @@ export function Layout() {
           { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
           { id: 'rooms', label: 'Quản lý phòng', icon: Building2 },
           { id: 'contracts', label: 'Hợp đồng & Hồ sơ', icon: Users },
-          { id: 'maintenance', label: 'Bảo trì & Dọn dẹp', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved').length },
+          { id: 'maintenance', label: 'Bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
+          { id: 'cleaning', label: 'Vệ sinh phòng', icon: Zap },
           { id: 'billing', label: 'Hóa đơn & Thu chi', icon: Receipt },
           { id: 'utilities', label: 'Điện, Nước & Rác', icon: Zap },
           { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
+          { id: 'expenses', label: 'Quản lý chi phí', icon: CreditCard },
           { id: 'profile', label: 'Hồ sơ của tôi', icon: Settings },
         ];
       case 'technician':
         return [
           { id: 'dashboard', label: 'Trạng thái chung', icon: LayoutDashboard },
-          { id: 'maintenance', label: 'Lịch bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved').length },
+          { id: 'maintenance', label: 'Lịch bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
+          { id: 'cleaning', label: 'Lịch dọn vệ sinh', icon: Zap },
           { id: 'rooms', label: 'Xem phòng', icon: Building2 },
           { id: 'profile', label: 'Hồ sơ kỹ thuật', icon: User },
         ];
@@ -57,7 +62,8 @@ export function Layout() {
           { id: 'dashboard', label: 'Trang chủ của tôi', icon: LayoutDashboard },
           { id: 'contracts', label: 'Hợp đồng của tôi', icon: FileText },
           { id: 'billing', label: 'Thanh toán & Hóa đơn', icon: Receipt, badge: invoices.filter(i => i.tenantId === 't1' && i.status !== 'paid').length },
-          { id: 'maintenance', label: 'Yêu cầu hỗ trợ', icon: Wrench },
+          { id: 'maintenance', label: 'Yêu cầu bảo trì', icon: Wrench },
+          { id: 'cleaning', label: 'Lịch vệ sinh', icon: Zap },
           { id: 'profile', label: 'Hồ sơ cá nhân', icon: User },
         ];
       default:
@@ -72,11 +78,13 @@ export function Layout() {
       case 'dashboard': return <Dashboard />;
       case 'rooms': return <RoomList />;
       case 'maintenance': return <Maintenance />;
+      case 'cleaning': return <Cleaning />;
       case 'billing': return <Billing />;
       case 'reports': return <Reports />;
       case 'contracts': return <Contracts />;
       case 'profile': return <Profile />;
       case 'utilities': return <Utilities />;
+      case 'expenses': return <Expenses />;
       default: return <div className="p-8 text-center text-gray-500">Đang tải...</div>;
     }
   };
@@ -88,9 +96,8 @@ export function Layout() {
         <div className="p-6">
           <div className="flex items-center gap-3 font-bold text-xl mb-1 text-[#38bdf8]">
             <Building2 size={24} />
-            Lumea Nest
+            Lumea Nest Serviced Apartment
           </div>
-          <p className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-widest leading-tight">Serviced Apartment</p>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">

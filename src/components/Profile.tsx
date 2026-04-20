@@ -1,20 +1,44 @@
 import React from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Button, Badge } from './ui';
-import { User, Mail, Phone, MapPin, Shield, Settings, LogOut, Key, Building2, Users } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Shield, Settings, LogOut, Key, Building2, Users, X, Plus, Trash2 } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 export function Profile() {
-  const { user, role, logout, contracts, rooms } = useAppContext();
+  const { user, role, logout, contracts, rooms, usersList, addUser, updateUser, deleteUser, tenants } = useAppContext();
   
-  // Building settings (mock state for now within component or could be in context)
+  // Building settings
   const [apartmentName, setApartmentName] = React.useState('Lumea Nest Serviced Apartment');
   const [isEditingName, setIsEditingName] = React.useState(false);
 
-  // Mock staff list for landlord (Technicians, other admins)
-  const staff = [
-    { id: 's1', name: 'Trần Kỹ Thuật', role: 'technician', email: 'tech@lumea.vn', phone: '0922002200' },
-    { id: 's2', name: 'Lê Quản Lý', role: 'landlord', email: 'admin2@lumea.vn', phone: '0911001122' }
-  ];
+  // New Staff form state
+  const [showAddStaff, setShowAddStaff] = React.useState(false);
+  const [newStaffName, setNewStaffName] = React.useState('');
+  const [newStaffEmail, setNewStaffEmail] = React.useState('');
+  const [newStaffPhone, setNewStaffPhone] = React.useState('');
+  const [newStaffRole, setNewStaffRole] = React.useState<'landlord' | 'technician'>('technician');
+
+  const staff = usersList.filter(u => u.role === 'landlord' || u.role === 'technician');
+  
+  const handleAddStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    addUser({
+      id: `u-${Date.now()}`,
+      name: newStaffName,
+      email: newStaffEmail,
+      phone: newStaffPhone,
+      role: newStaffRole,
+      password: 'password123'
+    });
+    setShowAddStaff(false);
+    setNewStaffName('');
+    setNewStaffEmail('');
+    setNewStaffPhone('');
+  };
+
+  const currentTenant = role === 'tenant' ? tenants.find(t => t.email === user?.email) : null;
+  const currentRoom = currentTenant ? rooms.find(r => r.id === currentTenant.roomId) : null;
+  const currentContract = currentTenant ? contracts.find(c => c.tenantId === currentTenant.id) : null;
 
   if (!user) return null;
 
@@ -124,40 +148,130 @@ export function Profile() {
           )}
 
           {role === 'landlord' ? (
-            <Card>
-              <div className="px-6 py-4 border-b border-[#334155] flex justify-between items-center">
-                 <div className="flex items-center gap-2 font-bold text-[#f8fafc]">
-                  <Users size={18} className="text-[#38bdf8]" /> Quản lý Nhân sự / Kỹ thuật
-                </div>
-                <Button variant="ghost" size="sm" className="text-[#38bdf8] font-bold">+ Thêm thành viên</Button>
-              </div>
-              <CardContent className="p-0">
-                <div className="divide-y divide-[#334155]">
-                  {staff.map((s) => (
-                    <div key={s.id} className="px-6 py-4 flex justify-between items-center hover:bg-[#334155]/10 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-[#334155] rounded-xl flex items-center justify-center font-bold text-[#94a3b8] uppercase">
-                          {s.name.charAt(0)}
+            <div className="space-y-6">
+              {showAddStaff && (
+                <Card className="border-[#38bdf8] border-2">
+                  <div className="px-6 py-4 border-b border-[#334155] flex justify-between items-center bg-[#38bdf8]/5">
+                    <h3 className="font-bold text-[#f8fafc]">Thêm nhân sự mới</h3>
+                    <button onClick={() => setShowAddStaff(false)} className="text-[#94a3b8] hover:text-[#f8fafc]">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <CardContent className="p-6">
+                    <form onSubmit={handleAddStaff} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-[#94a3b8] tracking-widest">Họ và tên</label>
+                          <input 
+                            required
+                            type="text" 
+                            value={newStaffName} 
+                            onChange={e => setNewStaffName(e.target.value)}
+                            className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-2.5 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                            placeholder="Nguyễn Văn A"
+                          />
                         </div>
-                        <div>
-                          <p className="font-bold text-[#f8fafc]">{s.name}</p>
-                          <Badge variant={s.role === 'technician' ? 'warning' : 'info'} className="text-[8px] tracking-widest h-auto py-0">{s.role}</Badge>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-[#94a3b8] tracking-widest">Vai trò</label>
+                          <select 
+                            value={newStaffRole}
+                            onChange={e => setNewStaffRole(e.target.value as any)}
+                            className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-2.5 text-[#f8fafc] outline-none"
+                          >
+                            <option value="technician">Kỹ thuật viên</option>
+                            <option value="landlord">Quản lý / Chủ nhà</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-[#94a3b8] tracking-widest">Email</label>
+                          <input 
+                            required
+                            type="email" 
+                            value={newStaffEmail} 
+                            onChange={e => setNewStaffEmail(e.target.value)}
+                            className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-2.5 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                            placeholder="email@example.com"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-[#94a3b8] tracking-widest">Số điện thoại</label>
+                          <input 
+                            required
+                            type="tel" 
+                            value={newStaffPhone} 
+                            onChange={e => setNewStaffPhone(e.target.value)}
+                            className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-2.5 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                            placeholder="09xx..."
+                          />
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-xs text-[#f8fafc]">{s.phone}</p>
-                          <p className="text-[10px] text-[#64748b]">{s.email}</p>
-                        </div>
-                        <button className="p-2 text-[#ef4444] hover:bg-[#ef4444]/10 rounded-lg transition-colors">
-                          <LogOut size={16} />
-                        </button>
+                      <div className="flex justify-end pt-2">
+                        <Button type="submit" className="gap-2">Xác nhận thêm</Button>
                       </div>
-                    </div>
-                  ))}
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <div className="px-6 py-4 border-b border-[#334155] flex justify-between items-center">
+                   <div className="flex items-center gap-2 font-bold text-[#f8fafc]">
+                    <Users size={18} className="text-[#38bdf8]" /> Quản lý Nhân sự / Kỹ thuật
+                  </div>
+                  {!showAddStaff && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowAddStaff(true)}
+                      className="text-[#38bdf8] font-bold"
+                    >
+                      + Thêm thành viên
+                    </Button>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-[#334155]">
+                    {staff.map((s) => (
+                      <div key={s.id} className="px-6 py-4 flex justify-between items-center hover:bg-[#334155]/10 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white uppercase",
+                            s.role === 'landlord' ? "bg-gradient-to-br from-[#38bdf8] to-[#0ea5e9]" : "bg-gradient-to-br from-[#f59e0b] to-[#d97706]"
+                          )}>
+                            {s.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-[#f8fafc]">{s.name}</p>
+                            <Badge variant={s.role === 'technician' ? 'warning' : 'info'} className="text-[8px] tracking-widest h-auto py-0">{s.role}</Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-xs text-[#f8fafc]">{s.phone}</p>
+                            <p className="text-[10px] text-[#64748b]">{s.email}</p>
+                          </div>
+                          {s.id !== user.id && (
+                            <button 
+                              onClick={() => {
+                                if(window.confirm('Xóa nhân viên này?')) deleteUser(s.id);
+                              }}
+                              className="p-2 text-[#ef4444] hover:bg-[#ef4444]/10 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {staff.length === 0 && (
+                      <div className="p-8 text-center text-[#94a3b8]">
+                        Chưa có nhân sự nào.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <>
               {/* Tenant Contract Summary */}
@@ -168,19 +282,21 @@ export function Profile() {
                 <CardContent className="p-6 grid grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest">Phòng đang thuê</p>
-                    <p className="text-[#f8fafc] font-bold text-lg">P.101</p>
+                    <p className="text-[#f8fafc] font-bold text-lg">P.{currentRoom?.number || '—'}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest">Ngày dời vào</p>
-                    <p className="text-[#f8fafc] font-bold text-lg">01/01/2026</p>
+                    <p className="text-[#f8fafc] font-bold text-lg">{currentContract?.startDate || '—'}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest">Tiền cọc giữ chỗ</p>
-                    <p className="text-[#10b981] font-bold text-lg">10.000.000đ</p>
+                    <p className="text-[#10b981] font-bold text-lg">{currentContract?.deposit.toLocaleString() || 0}đ</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest">Trạng thái</p>
-                    <Badge variant="success">Hợp lệ</Badge>
+                    <Badge variant={currentContract?.status === 'active' ? 'success' : 'warning'}>
+                      {currentContract?.status === 'active' ? 'Hợp lệ' : 'Hết hạn'}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>

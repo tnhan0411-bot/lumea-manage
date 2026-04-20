@@ -25,13 +25,14 @@ export function CardContent({ className, children }: { className?: string; child
   return <div className={cn("p-6", className)}>{children}</div>;
 }
 
-export function Badge({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'default' | 'success' | 'warning' | 'danger' | 'info', className?: string }) {
+export function Badge({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'ghost', className?: string }) {
   const variants = {
     default: "bg-[#334155] text-[#f8fafc]",
     success: "bg-emerald-500/10 text-[#10b981]",
     warning: "bg-amber-500/10 text-[#f59e0b]",
     danger: "bg-rose-500/10 text-[#ef4444]",
     info: "bg-sky-400/10 text-[#38bdf8]",
+    ghost: "bg-slate-500/5 text-[#94a3b8]",
   };
   return (
     <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium", variants[variant], className)}>

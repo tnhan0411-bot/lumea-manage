@@ -6,10 +6,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn } from '../lib/utils';
 
 export function Dashboard() {
-  const { user, role, rooms, tenants, issues, invoices, currentTenantId } = useAppContext();
+  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling } = useAppContext();
   const [period, setPeriod] = React.useState('2026-Q2');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
+  const billingStatus = role === 'landlord' ? checkMonthlyBilling() : { pendingRooms: [], generateAll: () => {} };
+
   // Technician View
   if (role === 'technician') {
     const techIssues = issues.filter(i => i.status !== 'resolved');
@@ -270,10 +272,21 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#f8fafc]">Tổng quan hệ thống</h1>
-          <p className="text-sm text-[#94a3b8]">Chào mừng bạn trở lại, {user?.name}</p>
+          <h1 className="text-2xl font-bold text-[#f8fafc]">Lumea Nest Serviced Apartment</h1>
+          <p className="text-sm text-[#94a3b8]">Báo cáo hiệu suất kinh doanh • Chào {user?.name}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {billingStatus.pendingRooms.length > 0 && (
+            <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-3 py-1.5 rounded-xl flex items-center gap-3 animate-pulse">
+              <AlertCircle size={16} className="text-[#f59e0b]" />
+              <p className="text-[12px] font-bold text-[#f59e0b]">
+                {billingStatus.pendingRooms.length} phòng tới hạn thu tiền
+              </p>
+              <Button size="sm" variant="warning" className="h-6 text-[9px] px-2" onClick={billingStatus.generateAll}>
+                Tạo nhanh
+              </Button>
+            </div>
+          )}
           <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1">
              <span className="text-[10px] uppercase font-bold text-[#64748b]">Từ</span>
              <input 

@@ -5,7 +5,7 @@ import { Zap, Droplets, Trash2, Search, Plus, Save, History, FileText, ChevronRi
 import { cn } from '../lib/utils';
 
 export function Utilities() {
-  const { rooms, utilities, addUtility, role } = useAppContext();
+  const { rooms, utilities, tenants, addUtility, role, invoices, addInvoice, updateInvoice, updateRoom } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
 
@@ -25,7 +25,7 @@ export function Utilities() {
     // Simple calculation logic
     const eAmount = Number(eIndex) * Number(electricityPrice);
     const wAmount = Number(wIndex) * Number(waterPrice);
-    const total = eAmount + wAmount + Number(trashPrice);
+    const totalUtilities = eAmount + wAmount + Number(trashPrice);
 
     addUtility({
       id: `ut-${Date.now()}`,
@@ -34,9 +34,39 @@ export function Utilities() {
       electricity: { index: Number(eIndex), pricePerUnit: Number(electricityPrice), amount: eAmount },
       water: { index: Number(wIndex), pricePerUnit: Number(waterPrice), amount: wAmount },
       trash: Number(trashPrice),
-      total,
+      total: totalUtilities,
       recordedAt: new Date().toISOString().split('T')[0]
     });
+
+    // Sync with Invoices
+    const room = rooms.find(r => r.id === activeRoomId);
+    if (room) {
+      const existingInvoice = invoices.find(inv => inv.roomId === activeRoomId && inv.month === month);
+      
+      if (existingInvoice) {
+        updateInvoice(existingInvoice.id, {
+          electricity: eAmount,
+          water: wAmount,
+          other: Number(trashPrice),
+          total: existingInvoice.rent + totalUtilities
+        });
+      } else {
+        // Create new invoice with rent + utilities
+        addInvoice({
+          id: `inv-${activeRoomId}-${Date.now()}`,
+          roomId: activeRoomId,
+          tenantId: tenants.find(t => t.roomId === activeRoomId)?.id || 'unknown',
+          month,
+          rent: room.price,
+          electricity: eAmount,
+          water: wAmount,
+          other: Number(trashPrice),
+          total: room.price + totalUtilities,
+          status: 'pending',
+          dueDate: `${month}-05`
+        });
+      }
+    }
 
     setActiveRoomId(null);
     setEIndex('');

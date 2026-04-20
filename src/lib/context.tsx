@@ -15,9 +15,13 @@ interface AppState {
   contracts: Contract[];
   expenses: Expense[];
   utilities: UtilityRecord[];
+  usersList: User[];
   isLoaded: boolean;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
+  addUser: (user: User) => void;
+  updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
   addIssue: (issue: Issue) => void;
   updateIssue: (id: string, status: Issue['status']) => void;
   payInvoice: (id: string) => void;
@@ -32,6 +36,15 @@ interface AppState {
   addUtility: (record: UtilityRecord) => void;
   updateUtility: (id: string, updates: Partial<UtilityRecord>) => void;
   addTenant: (tenant: Tenant) => void;
+  deleteTenant: (id: string) => void;
+  updateExpense: (id: string, updates: Partial<Expense>) => void;
+  deleteExpense: (id: string) => void;
+  addContract: (contract: Contract) => void;
+  deleteContract: (id: string) => void;
+  updateInvoice: (id: string, updates: Partial<Invoice>) => void;
+  deleteInvoice: (id: string) => void;
+  deleteIssue: (id: string) => void;
+  checkMonthlyBilling: () => { pendingRooms: Room[], generateAll: () => void };
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -46,7 +59,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [contracts, setContracts] = useState<Contract[]>(INITIAL_CONTRACTS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [utilities, setUtilities] = useState<UtilityRecord[]>(INITIAL_UTILITIES);
-
+  const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
+ 
   // Persistence: Load from localStorage on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('lumea_user');
@@ -57,7 +71,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const savedContracts = localStorage.getItem('lumea_contracts');
     const savedExpenses = localStorage.getItem('lumea_expenses');
     const savedUtilities = localStorage.getItem('lumea_utilities');
-
+    const savedUsersList = localStorage.getItem('lumea_users_list');
+ 
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedRooms) setRooms(JSON.parse(savedRooms));
     if (savedTenants) setTenants(JSON.parse(savedTenants));
@@ -66,10 +81,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (savedContracts) setContracts(JSON.parse(savedContracts));
     if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
     if (savedUtilities) setUtilities(JSON.parse(savedUtilities));
+    if (savedUsersList) setUsersList(JSON.parse(savedUsersList));
     
     setIsLoaded(true);
   }, []);
-
+ 
   // Persistence: Save to localStorage on change
   useEffect(() => {
     if (!isLoaded) return;
@@ -81,30 +97,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('lumea_contracts', JSON.stringify(contracts));
     localStorage.setItem('lumea_expenses', JSON.stringify(expenses));
     localStorage.setItem('lumea_utilities', JSON.stringify(utilities));
-  }, [user, rooms, tenants, issues, invoices, contracts, expenses, utilities, isLoaded]);
-
+    localStorage.setItem('lumea_users_list', JSON.stringify(usersList));
+  }, [user, rooms, tenants, issues, invoices, contracts, expenses, utilities, usersList, isLoaded]);
+ 
   const login = (email: string, pass: string) => {
-    const foundUser = INITIAL_USERS.find(u => u.email === email && u.password === pass);
+    const foundUser = usersList.find(u => u.email === email && u.password === pass);
     if (foundUser) {
       setUser(foundUser);
       return true;
     }
     return false;
   };
-
+ 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('lumea_user');
   };
 
+  const addUser = (u: User) => setUsersList([...usersList, u]);
+  const updateUser = (id: string, updates: Partial<User>) => {
+    setUsersList(usersList.map(u => u.id === id ? { ...u, ...updates } : u));
+    if (user?.id === id) {
+      setUser({ ...user, ...updates });
+    }
+  };
+  const deleteUser = (id: string) => setUsersList(usersList.filter(u => u.id !== id));
+
   const addIssue = (issue: Issue) => setIssues([issue, ...issues]);
   const updateIssue = (id: string, status: Issue['status']) => {
     setIssues(issues.map(i => i.id === id ? { ...i, status } : i));
+  };
+  const deleteIssue = (id: string) => {
+    setIssues(issues.filter(i => i.id !== id));
   };
   const payInvoice = (id: string) => {
     setInvoices(invoices.map(i => i.id === id ? { ...i, status: 'paid' as const } : i));
   };
   const addInvoice = (invoice: Invoice) => setInvoices([invoice, ...invoices]);
+  const updateInvoice = (id: string, updates: Partial<Invoice>) => {
+    setInvoices(invoices.map(i => i.id === id ? { ...i, ...updates } : i));
+  };
+  const deleteInvoice = (id: string) => {
+    setInvoices(invoices.filter(i => i.id !== id));
+  };
 
   const updateRoom = (id: string, updates: Partial<Room>) => {
     setRooms(rooms.map(r => r.id === id ? { ...r, ...updates } : r));
@@ -129,17 +164,69 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addTenant = (tenant: Tenant) => setTenants([...tenants, tenant]);
+  const deleteTenant = (id: string) => setTenants(tenants.filter(t => t.id !== id));
 
   const addExpense = (expense: Expense) => setExpenses([expense, ...expenses]);
+  const updateExpense = (id: string, updates: Partial<Expense>) => {
+    setExpenses(expenses.map(e => e.id === id ? { ...e, ...updates } : e));
+  };
+  const deleteExpense = (id: string) => setExpenses(expenses.filter(e => e.id !== id));
   
+  const addContract = (contract: Contract) => setContracts([contract, ...contracts]);
   const updateContract = (id: string, updates: Partial<Contract>) => {
     setContracts(contracts.map(c => c.id === id ? { ...c, ...updates } : c));
   };
+  const deleteContract = (id: string) => setContracts(contracts.filter(c => c.id !== id));
 
   const addUtility = (record: UtilityRecord) => setUtilities([record, ...utilities]);
   const updateUtility = (id: string, updates: Partial<UtilityRecord>) => {
     setUtilities(utilities.map(u => u.id === id ? { ...u, ...updates } : u));
   };
+
+  const checkMonthlyBilling = () => {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    const pendingBillingRooms = rooms.filter(room => {
+      if (room.status !== 'occupied') return false;
+      return !invoices.some(inv => inv.roomId === room.id && inv.month === currentMonth);
+    });
+
+    const generateAll = () => {
+      const newInvoices: Invoice[] = pendingBillingRooms.map(room => {
+        const tenant = tenants.find(t => t.roomId === room.id);
+        return {
+          id: `inv-${room.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          roomId: room.id,
+          tenantId: tenant?.id || 'unknown',
+          month: currentMonth,
+          rent: room.price,
+          electricity: 0,
+          water: 0,
+          other: 0,
+          total: room.price,
+          status: 'pending',
+          dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`
+        };
+      });
+      setInvoices([...newInvoices, ...invoices]);
+    };
+
+    return { pendingRooms: pendingBillingRooms, generateAll };
+  };
+
+  const role = user?.role || null;
+
+  useEffect(() => {
+    // Initial check for monthly billing
+    if (isLoaded && role === 'landlord') {
+      const { pendingRooms } = checkMonthlyBilling();
+      if (pendingRooms.length > 0) {
+        // We could auto-show a notification or just rely on the dashboard
+        console.log(`There are ${pendingRooms.length} rooms pending billing for this month.`);
+      }
+    }
+  }, [isLoaded, role, rooms.length, invoices.length]);
 
   return (
     <AppContext.Provider value={{
@@ -153,11 +240,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       contracts,
       expenses,
       utilities,
+      usersList,
       isLoaded,
       login,
       logout,
+      addUser,
+      updateUser,
+      deleteUser,
       addIssue,
       updateIssue,
+      deleteIssue,
       payInvoice,
       addInvoice,
       updateRoom,
@@ -166,10 +258,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       checkoutRoom,
       updateTenant,
       addTenant,
+      deleteTenant,
       addExpense,
+      updateExpense,
+      deleteExpense,
+      addContract,
       updateContract,
+      deleteContract,
       addUtility,
       updateUtility,
+      updateInvoice,
+      deleteInvoice,
+      checkMonthlyBilling,
     }}>
       {children}
     </AppContext.Provider>

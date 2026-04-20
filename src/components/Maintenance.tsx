@@ -13,8 +13,8 @@ export function Maintenance() {
   const [type, setType] = useState<'repair' | 'cleaning'>('repair');
 
   const displayIssues = role === 'tenant' 
-    ? issues.filter(i => i.roomId === 'r1') // Mock current tenant room
-    : issues;
+    ? issues.filter(i => i.roomId === 'r1' && i.type === 'repair') // Mock current tenant room
+    : issues.filter(i => i.type === 'repair');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +27,7 @@ export function Maintenance() {
       description: desc,
       status: 'open',
       createdAt: maintenanceDate,
-      type
+      type: 'repair'
     });
     
     setShowForm(false);
@@ -39,15 +39,15 @@ export function Maintenance() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#f8fafc]">
-          {role === 'landlord' ? 'Lịch Bảo trì & Dọn dẹp' : 'Yêu cầu Hỗ trợ'}
+          {role === 'landlord' ? 'Lệnh Yêu cầu Bảo trì' : 'Báo cáo sự cố bảo trì'}
         </h1>
         <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Hủy' : role === 'landlord' ? '+ Lên lịch bảo trì' : '+ Đặt lịch / Báo cáo'}
+          {showForm ? 'Hủy' : role === 'landlord' ? '+ Tạo lệnh bảo trì' : '+ Báo cáo sự cố'}
         </Button>
       </div>
 
       {showForm && (
-        <Card className="bg-[#38bdf8]/5 border-[#38bdf8]/20">
+        <Card className="bg-[#ef4444]/5 border-[#ef4444]/20 border-dashed">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
               <h3 className="font-semibold text-lg text-[#f8fafc]">
@@ -60,7 +60,7 @@ export function Maintenance() {
                     <select 
                       value={roomId}
                       onChange={e => setRoomId(e.target.value)}
-                      className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
+                      className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#ef4444] focus:ring-[#ef4444] border p-2 text-sm"
                     >
                       {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.number}</option>)}
                     </select>
@@ -72,43 +72,32 @@ export function Maintenance() {
                     type="date" 
                     value={maintenanceDate}
                     onChange={e => setMaintenanceDate(e.target.value)}
-                    className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
+                    className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#ef4444] focus:ring-[#ef4444] border p-2 text-sm"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Loại yêu cầu</label>
-                  <select 
-                    value={type}
-                    onChange={e => setType(e.target.value as 'repair' | 'cleaning')}
-                    className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
-                  >
-                    <option value="repair">Sửa chữa / Bảo trì</option>
-                    <option value="cleaning">Dọn dẹp vệ sinh</option>
-                  </select>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Vấn đề / Tiêu đề</label>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Thiết bị / Vấn đề</label>
                 <input 
                   type="text" 
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
-                  placeholder="Ví dụ: Kiểm tra điều hòa định kỳ..."
+                  className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#ef4444] focus:ring-[#ef4444] border p-2 text-sm"
+                  placeholder="Ví dụ: Thay bóng đèn, Sửa vòi rò rỉ..."
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ghi chú chi tiết</label>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Mô tả tình trạng</label>
                 <textarea 
                   value={desc}
                   onChange={e => setDesc(e.target.value)}
-                  className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
+                  className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#ef4444] focus:ring-[#ef4444] border p-2 text-sm"
                   rows={3}
-                  placeholder="Mô tả cụ thể nội dung bảo trì..."
+                  placeholder="Mô tả cụ thể nội dung cần bảo trì..."
                 ></textarea>
               </div>
-              <Button type="submit">Xác nhận lên lịch</Button>
+              <Button type="submit" variant="danger">Xác nhận tạo lệnh</Button>
             </form>
           </CardContent>
         </Card>
@@ -118,15 +107,15 @@ export function Maintenance() {
         {displayIssues.length === 0 ? (
           <div className="text-center py-12 bg-[#1e293b]/50 rounded-xl border border-dashed border-[#334155]">
             <CheckCircle className="mx-auto h-12 w-12 text-[#334155] mb-3" />
-            <p className="text-[#94a3b8] font-medium">Không có sự cố nào.</p>
+            <p className="text-[#94a3b8] font-medium">Không có sự cố bảo trì nào.</p>
           </div>
         ) : (
           displayIssues.map(issue => (
-            <Card key={issue.id} className="hover:border-[#38bdf8]/50 transition-colors">
+            <Card key={issue.id} className="hover:border-[#ef4444]/50 transition-colors border-l-4 border-l-[#ef4444]">
               <CardContent className="p-5 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                 <div className="flex gap-4 items-start">
-                  <div className={`p-3 rounded-xl shrink-0 ${issue.type === 'cleaning' ? 'bg-[#10b981]/10 text-[#10b981]' : 'bg-[#ef4444]/10 text-[#ef4444]'}`}>
-                    {issue.type === 'cleaning' ? <Sparkles size={24} /> : <Wrench size={24} />}
+                  <div className={`p-3 rounded-xl shrink-0 bg-[#ef4444]/10 text-[#ef4444]`}>
+                    <Wrench size={24} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -137,8 +126,10 @@ export function Maintenance() {
                     </div>
                     <p className="text-[#94a3b8] text-sm mb-2">{issue.description}</p>
                     <div className="flex gap-3 text-xs text-[#64748b] font-medium">
-                      <span>Ngày tạo: {issue.createdAt}</span>
-                      {role === 'landlord' && <span>• Phòng: {rooms.find(r => r.id === issue.roomId)?.number}</span>}
+                      <span>Ngày: {issue.createdAt}</span>
+                      {role === 'landlord' && (
+                        <Badge variant="info" className="text-[9px] px-1 py-0 h-4 uppercase">Phòng {rooms.find(r => r.id === issue.roomId)?.number}</Badge>
+                      )}
                     </div>
                   </div>
                 </div>

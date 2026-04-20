@@ -6,31 +6,41 @@ import { TrendingUp, TrendingDown, DollarSign, Wrench, Sparkles, Receipt, FileBa
 
 export function Reports() {
   const { invoices, expenses, issues, rooms } = useAppContext();
+  const [period, setPeriod] = React.useState('2026-04');
 
-  // Calculate monthly stats (Mocking some values for trending if data is thin)
-  const monthlyRevenue = invoices
+  // Filter data based on selected period
+  const filteredInvoices = invoices.filter(inv => inv.month === period);
+  const filteredExpenses = expenses.filter(exp => exp.date.startsWith(period));
+
+  const monthlyRevenue = filteredInvoices
     .filter(inv => inv.status === 'paid')
     .reduce((acc, inv) => acc + inv.total, 0);
 
-  const monthlyExpenses = expenses.reduce((acc, exp) => acc + exp.amount, 0);
+  const monthlyExpenses = filteredExpenses.reduce((acc, exp) => acc + exp.amount, 0);
   
   const profit = monthlyRevenue - monthlyExpenses;
 
-  // Chart Data
-  const financialData = [
-    { name: 'T2', thu: 45000000, chi: 12000000 },
-    { name: 'T3', thu: 48000000, chi: 15000000 },
-    { name: 'T4', thu: monthlyRevenue, chi: monthlyExpenses },
-  ];
+  // Chart Data (showing a range near the selected period)
+  const getFinancialData = () => {
+    const months = ['2026-02', '2026-03', '2026-04', '2026-05'];
+    return months.map(m => ({
+      name: `T${parseInt(m.split('-')[1])}`,
+      thu: invoices.filter(i => i.month === m && i.status === 'paid').reduce((a, b) => a + b.total, 0),
+      chi: expenses.filter(e => e.date.startsWith(m)).reduce((a, b) => a + b.amount, 0),
+    }));
+  };
+
+  const financialData = getFinancialData();
 
   const expenseCategoryData = [
-    { name: 'Điện', value: expenses.filter(e => e.category === 'electricity').reduce((a, b) => a + b.amount, 0) },
-    { name: 'Nước', value: expenses.filter(e => e.category === 'water').reduce((a, b) => a + b.amount, 0) },
-    { name: 'Bảo trì', value: expenses.filter(e => e.category === 'maintenance').reduce((a, b) => a + b.amount, 0) },
-    { name: 'Nhân sự', value: expenses.filter(e => e.category === 'staff').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Lương', value: filteredExpenses.filter(e => e.category === 'salary').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Vệ sinh', value: filteredExpenses.filter(e => e.category === 'cleaning').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Công cụ', value: filteredExpenses.filter(e => e.category === 'tools').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Vận hành', value: filteredExpenses.filter(e => e.category === 'operation').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Bảo trì', value: filteredExpenses.filter(e => e.category === 'maintenance').reduce((a, b) => a + b.amount, 0) },
   ].filter(d => d.value > 0);
 
-  const COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444'];
+  const COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   const maintenanceHistory = issues.filter(i => i.status === 'resolved' && i.type === 'repair');
   const cleaningHistory = issues.filter(i => i.status === 'resolved' && i.type === 'cleaning');
@@ -42,6 +52,17 @@ export function Reports() {
           <FileBarChart className="text-[#38bdf8]" /> Báo cáo Tổng hợp
         </h1>
         <div className="flex gap-2">
+          <select 
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-1.5 text-xs text-[#f8fafc] outline-none"
+          >
+             <option value="2026-01">Tháng 1 / 2026</option>
+             <option value="2026-02">Tháng 2 / 2026</option>
+             <option value="2026-03">Tháng 3 / 2026</option>
+             <option value="2026-04">Tháng 4 / 2026</option>
+             <option value="2026-05">Tháng 5 / 2026</option>
+          </select>
           <Button variant="outline" size="sm">Xuất PDF</Button>
           <Button variant="outline" size="sm">Xuất Excel</Button>
         </div>
@@ -53,7 +74,7 @@ export function Reports() {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-[#94a3b8]">Tổng Doanh thu (Tháng này)</p>
+                <p className="text-sm font-medium text-[#94a3b8]">Tổng Doanh thu (Kỳ này)</p>
                 <h3 className="text-2xl font-bold text-[#10b981] mt-1">{monthlyRevenue.toLocaleString()}đ</h3>
               </div>
               <div className="p-2 bg-[#10b981]/10 rounded-lg text-[#10b981]"><TrendingUp size={20} /></div>
@@ -64,7 +85,7 @@ export function Reports() {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-[#94a3b8]">Tổng Chi phí (Tháng này)</p>
+                <p className="text-sm font-medium text-[#94a3b8]">Tổng Chi phí (Kỳ này)</p>
                 <h3 className="text-2xl font-bold text-[#ef4444] mt-1">{monthlyExpenses.toLocaleString()}đ</h3>
               </div>
               <div className="p-2 bg-[#ef4444]/10 rounded-lg text-[#ef4444]"><TrendingDown size={20} /></div>
@@ -75,7 +96,7 @@ export function Reports() {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-[#94a3b8]">Lợi nhuận Thuần</p>
+                <p className="text-sm font-medium text-[#94a3b8]">Lợi nhuận ròng</p>
                 <h3 className="text-2xl font-bold text-[#38bdf8] mt-1">{profit.toLocaleString()}đ</h3>
               </div>
               <div className="p-2 bg-[#38bdf8]/10 rounded-lg text-[#38bdf8]"><DollarSign size={20} /></div>
