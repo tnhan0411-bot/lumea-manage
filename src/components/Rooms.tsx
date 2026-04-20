@@ -5,7 +5,7 @@ import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Papercli
 import { Room, cn, Attachment } from '../lib/utils';
 
 export function RoomList() {
-  const { rooms, tenants, issues, updateRoom, updateTenant, addRoom, deleteRoom, checkoutRoom, role } = useAppContext();
+  const { rooms, tenants, issues, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role } = useAppContext();
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [tempRoom, setTempRoom] = useState<Room | null>(null);
   const [tempTenantName, setTempTenantName] = useState('');
@@ -31,9 +31,41 @@ export function RoomList() {
         leaseStart: tempRoom.leaseStart,
         leaseEnd: tempRoom.leaseEnd
       });
+      
       const tenant = tenants.find(t => t.roomId === tempRoom.id);
-      if (tenant && tenant.name !== tempTenantName) {
-        updateTenant(tenant.id, { name: tempTenantName });
+      if (tempRoom.status === 'occupied') {
+        if (tenant) {
+          updateTenant(tenant.id, { name: tempTenantName });
+        } else if (tempTenantName) {
+          // If no tenant exists but name is provided, create one
+          const newTenantId = `t-${Date.now()}`;
+          addTenant({
+            id: newTenantId,
+            name: tempTenantName,
+            roomId: tempRoom.id,
+            phone: '',
+            email: '',
+            contractStart: tempRoom.leaseStart || new Date().toISOString().split('T')[0],
+            contractEnd: tempRoom.leaseEnd || ''
+          });
+
+          // Auto-generate invoice for the new stay
+          const now = new Date();
+          const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          addInvoice({
+            id: `inv-${Date.now()}`,
+            roomId: tempRoom.id,
+            tenantId: newTenantId,
+            month: currentMonth,
+            rent: tempRoom.price,
+            electricity: 0,
+            water: 0,
+            other: 0,
+            total: tempRoom.price,
+            status: 'pending',
+            dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`
+          });
+        }
       }
     }
     setEditingRoomId(null);

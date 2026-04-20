@@ -1,13 +1,14 @@
 import React from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
-import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon } from 'lucide-react';
+import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '../lib/utils';
 
 export function Dashboard() {
   const { user, role, rooms, tenants, issues, invoices, currentTenantId } = useAppContext();
-  const [period, setPeriod] = React.useState('2026-Q2'); // Example period filter
+  const [period, setPeriod] = React.useState('2026-Q2');
+  const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
   // Technician View
   if (role === 'technician') {
@@ -191,13 +192,23 @@ export function Dashboard() {
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
   
-  // Refined Revenue Calculation based on Period
-  const getInvoicesForPeriod = (periodStr: string) => {
+  // Refined Revenue Calculation based on Period or Date Range
+  const getInvoicesForPeriod = () => {
+    if (dateRange.start && dateRange.end) {
+      return invoices.filter(inv => {
+        // inv.month is YYYY-MM
+        const invMonth = inv.month;
+        const startMonth = dateRange.start.slice(0, 7);
+        const endMonth = dateRange.end.slice(0, 7);
+        return invMonth >= startMonth && invMonth <= endMonth;
+      });
+    }
+
     return invoices.filter(inv => {
       // Use inv.month (YYYY-MM) for matching period
-      if (periodStr.includes('Q')) {
-        const year = periodStr.split('-')[0];
-        const quarter = periodStr.split('-')[1];
+      if (period.includes('Q')) {
+        const year = period.split('-')[0];
+        const quarter = period.split('-')[1];
         const monthPart = inv.month.split('-')[1];
         const invYear = inv.month.split('-')[0];
         if (invYear !== year) return false;
@@ -207,18 +218,23 @@ export function Dashboard() {
         if (quarter === 'Q4') return ['10', '11', '12'].includes(monthPart);
       } else {
         // Month format: YYYY-MM explicitly matches inv.month
-        return inv.month === periodStr;
+        return inv.month === period;
       }
       return false;
     });
   };
 
-  const currentPeriodInvoices = getInvoicesForPeriod(period);
+  const currentPeriodInvoices = getInvoicesForPeriod();
   const totalRevenue = currentPeriodInvoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
   const pendingRevenue = currentPeriodInvoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
 
-  // Dynamic Chart Data based on period
+  // Dynamic Chart Data based on period/range
   const getChartData = () => {
+    if (dateRange.start && dateRange.end) {
+      // For date range, show last 4 months in chart anyway or try to fit?
+      // Let's show the months within the range or last 4
+    }
+
     if (period.includes('Q')) {
       const year = period.split('-')[0];
       const quarter = period.split('-')[1];
@@ -230,7 +246,7 @@ export function Dashboard() {
       });
     } else {
       // Show last 4 months up to current selection
-      const [year, month] = period.split('-').map(Number);
+      const [year, month] = (dateRange.end || period).split('-').map(Number);
       const data = [];
       for (let i = 3; i >= 0; i--) {
         let m = month - i;
@@ -257,11 +273,34 @@ export function Dashboard() {
           <h1 className="text-2xl font-bold text-[#f8fafc]">Tổng quan hệ thống</h1>
           <p className="text-sm text-[#94a3b8]">Chào mừng bạn trở lại, {user?.name}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1">
+             <span className="text-[10px] uppercase font-bold text-[#64748b]">Từ</span>
+             <input 
+              type="date" 
+              value={dateRange.start}
+              onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+              className="bg-transparent text-xs text-[#f8fafc] outline-none"
+             />
+             <span className="text-[10px] uppercase font-bold text-[#64748b]">Đến</span>
+             <input 
+              type="date" 
+              value={dateRange.end}
+              onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+              className="bg-transparent text-xs text-[#f8fafc] outline-none"
+             />
+             {(dateRange.start || dateRange.end) && (
+               <button onClick={() => setDateRange({start: '', end: ''})} className="text-[#ef4444] hover:text-[#ef4444]/80 ml-1">
+                 <X size={14} />
+               </button>
+             )}
+          </div>
+
           <select 
             value={period}
+            disabled={!!(dateRange.start && dateRange.end)}
             onChange={(e) => setPeriod(e.target.value)}
-            className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors"
+            className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors disabled:opacity-50"
           >
             <option value="2026-Q1">Quý I / 2026</option>
             <option value="2026-Q2">Quý II / 2026</option>
@@ -326,7 +365,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader title={`Biểu đồ doanh thu - ${period}`} />
+          <CardHeader title={`Biểu đồ doanh thu - ${dateRange.start && dateRange.end ? `${dateRange.start} đến ${dateRange.end}` : period}`} />
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>

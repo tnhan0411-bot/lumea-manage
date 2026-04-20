@@ -31,6 +31,7 @@ interface AppState {
   updateContract: (id: string, updates: Partial<Contract>) => void;
   addUtility: (record: UtilityRecord) => void;
   updateUtility: (id: string, updates: Partial<UtilityRecord>) => void;
+  addTenant: (tenant: Tenant) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -127,6 +128,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTenants(tenants.map(t => t.id === id ? { ...t, ...updates } : t));
   };
 
+  const addTenant = (tenant: Tenant) => setTenants([...tenants, tenant]);
+
   const addExpense = (expense: Expense) => setExpenses([expense, ...expenses]);
   
   const updateContract = (id: string, updates: Partial<Contract>) => {
@@ -162,6 +165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteRoom,
       checkoutRoom,
       updateTenant,
+      addTenant,
       addExpense,
       updateContract,
       addUtility,
