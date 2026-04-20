@@ -9,6 +9,36 @@ export function cn(...inputs: ClassValue[]) {
 export type RoomStatus = 'available' | 'occupied' | 'maintenance';
 export type IssueStatus = 'open' | 'in-progress' | 'resolved';
 export type InvoiceStatus = 'pending' | 'paid' | 'overdue';
+export type UserRole = 'landlord' | 'tenant' | 'technician';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  phone: string;
+  avatar?: string;
+  password?: string; // For mock login
+}
+
+export interface UtilityRecord {
+  id: string;
+  roomId: string;
+  month: string; // YYYY-MM
+  electricity: {
+    index: number; // Meter reading
+    pricePerUnit: number;
+    amount: number;
+  };
+  water: {
+    index: number;
+    pricePerUnit: number;
+    amount: number;
+  };
+  trash: number;
+  total: number;
+  recordedAt: string;
+}
 
 export interface Attachment {
   id: string;
@@ -47,6 +77,8 @@ export interface Room {
   features: string[];
   cleaningSchedule: string[]; // Historical or upcoming cleaning dates
   attachments: Attachment[];
+  leaseStart?: string;
+  leaseEnd?: string;
 }
 
 export interface Tenant {
@@ -93,8 +125,30 @@ export const INITIAL_ROOMS: Room[] = Array.from({ length: 10 }, (_, i) => ({
   cleaningSchedule: ['2026-04-15', '2026-04-01'],
   attachments: [
     { id: `ra${i}`, name: 'Mặt bằng phòng.pdf', url: '#', type: 'other', uploadedAt: '2026-01-10' }
-  ]
+  ],
+  leaseStart: i < 7 ? '2026-01-01' : undefined,
+  leaseEnd: i < 7 ? '2027-01-01' : undefined,
 }));
+
+export const INITIAL_USERS: User[] = [
+  { id: 'u1', name: 'Landlord Admin 1', email: 'admin1@lumea.vn', role: 'landlord', phone: '0911001100', password: 'password123' },
+  { id: 'u2', name: 'Landlord Admin 2', email: 'admin2@lumea.vn', role: 'landlord', phone: '0911001122', password: 'password123' },
+  { id: 'u3', name: 'Kỹ thuật viên Tùng', email: 'tech@lumea.vn', role: 'technician', phone: '0922002200', password: 'password123' },
+  { id: 'u4', name: 'Nguyễn Văn A', email: 'tenant1@example.com', role: 'tenant', phone: '0933003300', password: 'password123' },
+];
+
+export const INITIAL_UTILITIES: UtilityRecord[] = [
+  {
+    id: 'ut1',
+    roomId: 'r1',
+    month: '2026-04',
+    electricity: { index: 1250, pricePerUnit: 3500, amount: 350000 },
+    water: { index: 85, pricePerUnit: 15000, amount: 150000 },
+    trash: 50000,
+    total: 550000,
+    recordedAt: '2026-04-05'
+  }
+];
 
 export const INITIAL_TENANTS: Tenant[] = [
   { id: 't1', name: 'Nguyễn Văn A', phone: '0901234567', email: 'nva@example.com', roomId: 'r1', contractStart: '2026-01-01', contractEnd: '2027-01-01', avatar: 'https://picsum.photos/seed/user1/100/100' },

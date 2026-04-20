@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useState } from 'react';
 import { 
-  Room, Tenant, Issue, Invoice, Contract, Expense, 
-  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES 
+  Room, Tenant, Issue, Invoice, Contract, Expense, User, UtilityRecord,
+  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_UTILITIES 
 } from './utils';
 
-type Role = 'landlord' | 'tenant';
-
 interface AppState {
-  role: Role;
+  user: User | null;
+  role: User['role'] | null;
   currentTenantId: string | null;
   rooms: Room[];
   tenants: Tenant[];
@@ -15,27 +14,45 @@ interface AppState {
   invoices: Invoice[];
   contracts: Contract[];
   expenses: Expense[];
-  setRole: (role: Role) => void;
+  utilities: UtilityRecord[];
+  login: (email: string, pass: string) => boolean;
+  logout: () => void;
   addIssue: (issue: Issue) => void;
   updateIssue: (id: string, status: Issue['status']) => void;
   payInvoice: (id: string) => void;
   addInvoice: (invoice: Invoice) => void;
   updateRoom: (id: string, updates: Partial<Room>) => void;
+  addRoom: (room: Room) => void;
+  deleteRoom: (id: string) => void;
   updateTenant: (id: string, updates: Partial<Tenant>) => void;
   addExpense: (expense: Expense) => void;
   updateContract: (id: string, updates: Partial<Contract>) => void;
+  addUtility: (record: UtilityRecord) => void;
+  updateUtility: (id: string, updates: Partial<UtilityRecord>) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<Role>('landlord');
+  const [user, setUser] = useState<User | null>(null);
   const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
   const [tenants, setTenants] = useState<Tenant[]>(INITIAL_TENANTS);
   const [issues, setIssues] = useState<Issue[]>(INITIAL_ISSUES);
   const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES);
   const [contracts, setContracts] = useState<Contract[]>(INITIAL_CONTRACTS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [utilities, setUtilities] = useState<UtilityRecord[]>(INITIAL_UTILITIES);
+
+  const login = (email: string, pass: string) => {
+    const foundUser = INITIAL_USERS.find(u => u.email === email && u.password === pass);
+    if (foundUser) {
+      setUser(foundUser);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => setUser(null);
 
   const addIssue = (issue: Issue) => setIssues([...issues, issue]);
   const updateIssue = (id: string, status: Issue['status']) => {
@@ -50,6 +67,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRooms(rooms.map(r => r.id === id ? { ...r, ...updates } : r));
   };
 
+  const addRoom = (room: Room) => setRooms([...rooms, room]);
+  const deleteRoom = (id: string) => setRooms(rooms.filter(r => r.id !== id));
+
   const updateTenant = (id: string, updates: Partial<Tenant>) => {
     setTenants(tenants.map(t => t.id === id ? { ...t, ...updates } : t));
   };
@@ -60,25 +80,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setContracts(contracts.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
+  const addUtility = (record: UtilityRecord) => setUtilities([...utilities, record]);
+  const updateUtility = (id: string, updates: Partial<UtilityRecord>) => {
+    setUtilities(utilities.map(u => u.id === id ? { ...u, ...updates } : u));
+  };
+
   return (
     <AppContext.Provider value={{
-      role,
-      currentTenantId: role === 'tenant' ? 't1' : null,
+      user,
+      role: user?.role || null,
+      currentTenantId: user?.role === 'tenant' ? 't1' : null,
       rooms,
       tenants,
       issues,
       invoices,
       contracts,
       expenses,
-      setRole,
+      utilities,
+      login,
+      logout,
       addIssue,
       updateIssue,
       payInvoice,
       addInvoice,
       updateRoom,
+      addRoom,
+      deleteRoom,
       updateTenant,
       addExpense,
-      updateContract
+      updateContract,
+      addUtility,
+      updateUtility,
     }}>
       {children}
     </AppContext.Provider>

@@ -5,7 +5,7 @@ import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Papercli
 import { Room, cn, Attachment } from '../lib/utils';
 
 export function RoomList() {
-  const { rooms, tenants, issues, updateRoom, updateTenant } = useAppContext();
+  const { rooms, tenants, issues, updateRoom, updateTenant, addRoom, deleteRoom, role } = useAppContext();
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [tempRoom, setTempRoom] = useState<Room | null>(null);
   const [tempTenantName, setTempTenantName] = useState('');
@@ -13,6 +13,7 @@ export function RoomList() {
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
   const handleEditClick = (room: Room) => {
+    if (role === 'tenant') return;
     setEditingRoomId(room.id);
     setTempRoom({ ...room });
     const tenant = tenants.find(t => t.roomId === room.id);
@@ -26,7 +27,9 @@ export function RoomList() {
         price: tempRoom.price,
         status: tempRoom.status,
         cleaningSchedule: tempRoom.cleaningSchedule,
-        attachments: tempRoom.attachments
+        attachments: tempRoom.attachments,
+        leaseStart: tempRoom.leaseStart,
+        leaseEnd: tempRoom.leaseEnd
       });
       const tenant = tenants.find(t => t.roomId === tempRoom.id);
       if (tenant) {
@@ -34,6 +37,26 @@ export function RoomList() {
       }
     }
     setEditingRoomId(null);
+  };
+
+  const handleAddNewRoom = () => {
+    const newId = `r${rooms.length + 1}`;
+    addRoom({
+      id: newId,
+      number: `${100 + rooms.length + 1}`,
+      status: 'available',
+      price: 5000000,
+      features: [],
+      cleaningSchedule: [],
+      attachments: []
+    });
+  };
+
+  const handleDeleteRoom = (id: string) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
+      deleteRoom(id);
+      setEditingRoomId(null);
+    }
   };
 
   const addCleaningDate = () => {
@@ -101,7 +124,7 @@ export function RoomList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Phòng</h1>
-        <Button>Thêm phòng</Button>
+        {role === 'landlord' && <Button onClick={handleAddNewRoom}>Thêm phòng</Button>}
       </div>
 
       {editingRoomId && tempRoom && (
@@ -121,17 +144,31 @@ export function RoomList() {
                    <User size={16} /> Thông tin cơ bản
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#94a3b8] mb-1">Số phòng</label>
-                    <input 
-                      type="text" 
-                      value={tempRoom.number}
-                      onChange={e => setTempRoom({...tempRoom, number: e.target.value})}
-                      className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Số phòng</label>
+                      <input 
+                        type="text" 
+                        value={tempRoom.number}
+                        onChange={e => setTempRoom({...tempRoom, number: e.target.value})}
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Trạng thái</label>
+                      <select 
+                        value={tempRoom.status}
+                        onChange={e => setTempRoom({...tempRoom, status: e.target.value as Room['status']})}
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                      >
+                        <option value="occupied">Đang thuê</option>
+                        <option value="available">Trống</option>
+                        <option value="maintenance">Bảo trì</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#94a3b8] mb-1">Giá thuê (VNĐ)</label>
+                    <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Giá thuê (VNĐ)</label>
                     <input 
                       type="number" 
                       value={tempRoom.price}
@@ -140,7 +177,7 @@ export function RoomList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#94a3b8] mb-1">Người thuê</label>
+                    <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Người thuê</label>
                     <input 
                       type="text" 
                       value={tempTenantName}
@@ -149,17 +186,25 @@ export function RoomList() {
                       className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none disabled:opacity-50"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#94a3b8] mb-1">Trạng thái</label>
-                    <select 
-                      value={tempRoom.status}
-                      onChange={e => setTempRoom({...tempRoom, status: e.target.value as Room['status']})}
-                      className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
-                    >
-                      <option value="occupied">Đang thuê</option>
-                      <option value="available">Trống</option>
-                      <option value="maintenance">Bảo trì</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Ngày bắt đầu thuê</label>
+                      <input 
+                        type="date" 
+                        value={tempRoom.leaseStart || ''}
+                        onChange={e => setTempRoom({...tempRoom, leaseStart: e.target.value})}
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-xs focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Ngày hết hạn</label>
+                      <input 
+                        type="date" 
+                        value={tempRoom.leaseEnd || ''}
+                        onChange={e => setTempRoom({...tempRoom, leaseEnd: e.target.value})}
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-xs focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -227,11 +272,21 @@ export function RoomList() {
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-[#334155] flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setEditingRoomId(null)}>Hủy</Button>
-              <Button onClick={handleSave} className="gap-2 px-8">
-                <Save size={18} /> Lưu cấu hình
-              </Button>
+            <div className="mt-8 pt-6 border-t border-[#334155] flex justify-between items-center">
+              {role === 'landlord' && (
+                <button 
+                  onClick={() => handleDeleteRoom(tempRoom.id)}
+                  className="text-[#ef4444] text-sm font-bold flex items-center gap-2 hover:underline"
+                >
+                  <Trash2 size={18} /> Xóa phòng này
+                </button>
+              )}
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setEditingRoomId(null)}>Hủy</Button>
+                <Button onClick={handleSave} className="gap-2 px-8">
+                  <Save size={18} /> Lưu cấu hình
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -252,32 +307,41 @@ export function RoomList() {
                   {getStatusBadge(room.status)}
                 </div>
                 
-                <div className="flex-1 mt-2">
-                  <p className="font-medium text-[13px] text-[#f8fafc]">
-                    {tenant ? tenant.name : <span className="text-[#94a3b8] italic">Sẵn sàng</span>}
+                <div className="flex-1 mt-2 space-y-1">
+                  <p className="font-bold text-sm text-[#f8fafc]">
+                    {tenant ? tenant.name : <span className="text-[#94a3b8] font-normal italic">Trống</span>}
                   </p>
-                  <p className="text-[11px] text-[#94a3b8] mt-1">{room.price.toLocaleString()}đ</p>
+                  <p className="text-[10px] text-[#94a3b8] uppercase tracking-wider font-medium">{room.price.toLocaleString()}đ / tháng</p>
+                  {room.leaseStart && room.leaseEnd && (
+                    <div className="pt-2">
+                      <p className="text-[10px] text-[#38bdf8] font-bold uppercase tracking-widest">Thời hạn thuê</p>
+                      <p className="text-[11px] text-[#f8fafc] flex items-center gap-1 mt-0.5">
+                        <Clock size={10} className="text-[#94a3b8]" />
+                        {room.leaseStart} ➜ {room.leaseEnd}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 flex justify-between items-center">
                   <div className="flex gap-2">
                     {roomIssues.length > 0 && (
-                      <div className="w-6 h-6 rounded bg-white/5 border border-[#ef4444] text-[#ef4444] flex items-center justify-center text-xs" title={`${roomIssues.length} sự cố`}>
-                        🛠️
+                      <div className="w-6 h-6 rounded bg-[#ef4444]/10 border border-[#ef4444]/30 flex items-center justify-center" title={`${roomIssues.length} sự cố`}>
+                        <Clock size={12} className="text-[#ef4444]" />
                       </div>
                     )}
                     {(room.status === 'occupied' || room.cleaningSchedule.length > 0) && (
-                      <div className="w-6 h-6 rounded bg-white/5 border border-[#10b981] text-[#10b981] flex items-center justify-center text-xs" title="Lịch dọn dẹp">
-                        🧹
+                      <div className="w-6 h-6 rounded bg-[#10b981]/10 border border-[#10b981]/30 flex items-center justify-center" title="Lịch dọn dẹp">
+                         <Calendar size={12} className="text-[#10b981]" />
                       </div>
                     )}
                     {room.attachments.length > 0 && (
-                      <div className="w-6 h-6 rounded bg-white/5 border border-[#38bdf8] text-[#38bdf8] flex items-center justify-center text-xs" title="Hồ sơ">
-                        📎
+                      <div className="w-6 h-6 rounded bg-[#38bdf8]/10 border border-[#38bdf8]/30 flex items-center justify-center" title="Hồ sơ">
+                        <Paperclip size={12} className="text-[#38bdf8]" />
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] text-[#38bdf8] font-bold">CLICK ĐỂ SỬA</span>
+                  {role !== 'tenant' && <span className="text-[9px] text-[#38bdf8] font-bold tracking-widest">CHỈNH SỬA</span>}
                 </div>
               </CardContent>
             </Card>

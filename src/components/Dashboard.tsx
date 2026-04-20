@@ -1,22 +1,89 @@
 import React from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
-import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles } from 'lucide-react';
+import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '../lib/utils';
 
 export function Dashboard() {
-  const { role, rooms, tenants, issues, invoices, currentTenantId } = useAppContext();
+  const { user, role, rooms, tenants, issues, invoices, currentTenantId } = useAppContext();
+  const [period, setPeriod] = React.useState('2026-Q2'); // Example period filter
+  
+  // Technician View
+  if (role === 'technician') {
+    const techIssues = issues.filter(i => i.status !== 'resolved');
+    const cleaningTasks = rooms.filter(r => r.cleaningSchedule.length > 0)
+      .flatMap(r => r.cleaningSchedule.map(date => ({ roomId: r.id, roomNumber: r.number, date })))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-[#f8fafc]">Chào kỹ thuật viên, {user?.name}</h1>
+            <p className="text-sm text-[#94a3b8]">Dưới đây là lịch trình xử lý sự cố và dọn dẹp</p>
+          </div>
+          <Badge variant="info">Ca làm việc sáng</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-[#ef4444]/20">
+            <CardHeader title="Sự cố cần sửa chữa" />
+            <CardContent>
+              <div className="space-y-4">
+                {techIssues.length === 0 ? <p className="text-[#94a3b8] italic">Không có sự cố tồn đọng.</p> : 
+                  techIssues.map(issue => (
+                    <div key={issue.id} className="p-4 bg-[#ef4444]/5 rounded-xl border border-[#ef4444]/10 flex items-start justify-between">
+                       <div>
+                          <p className="font-bold text-[#f8fafc]">{issue.title}</p>
+                          <p className="text-xs text-[#94a3b8] mt-1">Phòng {rooms.find(r => r.id === issue.roomId)?.number} • Báo cáo: {issue.createdAt}</p>
+                       </div>
+                       <Badge variant={issue.status === 'in-progress' ? 'info' : 'warning'}>
+                         {issue.status === 'in-progress' ? 'Đang sửa' : 'Chưa xử lý'}
+                       </Badge>
+                    </div>
+                  ))
+                }
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#10b981]/20">
+            <CardHeader title="Lịch dọn vệ sinh" />
+            <CardContent>
+              <div className="space-y-4">
+                {cleaningTasks.slice(0, 5).map((task, idx) => (
+                  <div key={idx} className="p-4 bg-[#10b981]/5 rounded-xl border border-[#10b981]/10 flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#10b981]/10 rounded-lg flex items-center justify-center font-bold text-[#10b981]">
+                          {task.roomNumber}
+                        </div>
+                        <div>
+                           <p className="font-bold text-[#f8fafc]">Vệ sinh phòng</p>
+                           <p className="text-xs text-[#94a3b8] mt-1">Dự kiến: {task.date}</p>
+                        </div>
+                     </div>
+                     <Badge variant="success">Yêu cầu</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (role === 'tenant') {
-    const myRoom = rooms.find(r => r.id === tenants.find(t => t.id === currentTenantId)?.roomId);
+    const myTenant = tenants.find(t => t.id === currentTenantId);
+    const myRoom = rooms.find(r => r.id === myTenant?.roomId);
     const myInvoices = invoices.filter(i => i.tenantId === currentTenantId);
     const pendingInvoices = myInvoices.filter(i => i.status === 'pending' || i.status === 'overdue');
     const myIssues = issues.filter(i => i.roomId === myRoom?.id);
 
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-[#f8fafc]">Chào mừng quay trở lại, {tenants.find(t=>t.id === currentTenantId)?.name}!</h1>
+        <h1 className="text-2xl font-bold text-[#f8fafc]">Chào mừng quay trở lại, {user?.name}!</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="bg-[#38bdf8]/5 border-[#38bdf8]/20">
@@ -129,6 +196,7 @@ export function Dashboard() {
   const pendingRevenue = invoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
 
   const chartData = [
+    { name: 'T1', revenue: 42000000 },
     { name: 'T2', revenue: 45000000 },
     { name: 'T3', revenue: 48000000 },
     { name: 'T4', revenue: totalRevenue }, 
@@ -136,11 +204,26 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#f8fafc]">Tổng quan hệ thống</h1>
-        <Button>
-          + Thêm phòng mới
-        </Button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#f8fafc]">Tổng quan hệ thống</h1>
+          <p className="text-sm text-[#94a3b8]">Chào mừng bạn trở lại, {user?.name}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <select 
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors"
+          >
+            <option value="2026-Q1">Quý I / 2026</option>
+            <option value="2026-Q2">Quý II / 2026</option>
+            <option value="2026-04">Tháng 4 / 2026</option>
+            <option value="2026-05">Tháng 5 / 2026</option>
+          </select>
+          <Button variant="outline" className="gap-2">
+            <BarChartIcon size={18} /> Xuất báo cáo
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -150,7 +233,7 @@ export function Dashboard() {
               <Home size={24} />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider font-medium text-[#94a3b8]">Tỷ lệ lấp đầy</p>
+              <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Lấp đầy</p>
               <p className="text-2xl font-bold text-[#f8fafc] mt-1">{occupiedRooms}/{rooms.length} <span className="text-sm font-normal text-[#94a3b8]">phòng</span></p>
             </div>
           </CardContent>
@@ -158,11 +241,11 @@ export function Dashboard() {
 
         <Card>
           <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-emerald-500/10 text-[#10b981] rounded-lg">
+            <div className="p-3 bg-[#10b981]/10 text-[#10b981] rounded-lg">
               <DollarSign size={24} />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider font-medium text-[#94a3b8]">Doanh thu T10</p>
+              <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Doanh thu kỳ</p>
               <p className="text-2xl font-bold text-[#f8fafc] mt-1">{(totalRevenue / 1000000).toFixed(1)} <span className="text-sm font-normal text-[#94a3b8]">Tr</span></p>
             </div>
           </CardContent>
@@ -174,7 +257,7 @@ export function Dashboard() {
               <AlertCircle size={24} />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider font-medium text-[#94a3b8]">Chờ thu</p>
+              <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Chờ thanh toán</p>
               <p className="text-2xl font-bold text-[#f8fafc] mt-1">{(pendingRevenue / 1000000).toFixed(1)} <span className="text-sm font-normal text-[#94a3b8]">Tr</span></p>
             </div>
           </CardContent>
@@ -186,8 +269,8 @@ export function Dashboard() {
               <Wrench size={24} />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider font-medium text-[#94a3b8]">Sự cố cần xử lý</p>
-              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{issues.filter(i => i.status !== 'resolved').length}</p>
+              <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Đang bảo trì</p>
+              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{maintenanceRooms}</p>
             </div>
           </CardContent>
         </Card>
@@ -195,69 +278,51 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader title="Biểu đồ doanh thu 5 tháng gần nhất" />
+          <CardHeader title={`Biểu đồ doanh thu - ${period}`} />
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
                   tickFormatter={(value) => `${value / 1000000}Tr`}
-                  tick={{fill: '#f8fafc'}}
+                  tick={{fill: '#f8fafc', fontSize: 12}}
                 />
                 <Tooltip 
                   formatter={(value: number) => [`${value.toLocaleString()} ₫`, 'Doanh thu']}
                   cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
+                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '12px', border: '1px solid #334155' }}
                 />
-                <Bar dataKey="revenue" fill="#38bdf8" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                <Bar dataKey="revenue" fill="#38bdf8" radius={[6, 6, 0, 0]} maxBarSize={45} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader title="Trạng thái phòng" />
+          <CardHeader title="Hoạt động bảo trì" />
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#10b981]"></div>
-                  <span className="text-sm text-[#94a3b8]">Đang thuê (Full)</span>
-                </div>
-                <span className="font-medium text-[#f8fafc]">{occupiedRooms}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#38bdf8]"></div>
-                  <span className="text-sm text-[#94a3b8]">Trống</span>
-                </div>
-                <span className="font-medium text-[#f8fafc]">{availableRooms}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#f59e0b]"></div>
-                  <span className="text-sm text-[#94a3b8]">Đang bảo trì</span>
-                </div>
-                <span className="font-medium text-[#f8fafc]">{maintenanceRooms}</span>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-[#334155]">
-              <h4 className="text-sm font-semibold text-[#f8fafc] mb-4">Sự cố mới nhất</h4>
-              <div className="space-y-3">
-                {issues.slice(0, 3).map(issue => (
-                  <div key={issue.id} className="flex gap-3 items-start border-l-2 border-[#ef4444] pl-3">
-                    <Wrench className="w-4 h-4 text-[#ef4444] mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-[#f8fafc]">{issue.title}</p>
-                      <p className="text-[11px] text-[#94a3b8] mt-0.5">Phòng {rooms.find(r => r.id === issue.roomId)?.number} • {issue.createdAt}</p>
+            <div className="space-y-5">
+              {issues.slice(0, 4).map(issue => (
+                <div key={issue.id} className="flex gap-4 items-start group">
+                  <div className="p-2.5 rounded-xl bg-[#0f172a] border border-[#334155] text-[#94a3b8] group-hover:border-[#38bdf8] transition-colors">
+                    <Wrench size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm font-bold text-[#f8fafc]">P.{rooms.find(r => r.id === issue.roomId)?.number}</p>
+                      <span className="text-[10px] text-[#94a3b8] font-medium uppercase">{issue.createdAt}</span>
+                    </div>
+                    <p className="text-xs text-[#94a3b8] mt-0.5 line-clamp-1">{issue.title}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                       <div className={cn("w-1.5 h-1.5 rounded-full", issue.status === 'resolved' ? "bg-[#10b981]" : "bg-[#f59e0b]")}></div>
+                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">{issue.status}</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
