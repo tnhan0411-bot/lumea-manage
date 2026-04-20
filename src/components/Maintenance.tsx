@@ -8,6 +8,9 @@ export function Maintenance() {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
+  const [roomId, setRoomId] = useState(rooms[0].id);
+  const [maintenanceDate, setMaintenanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [type, setType] = useState<'repair' | 'cleaning'>('repair');
 
   const displayIssues = role === 'tenant' 
     ? issues.filter(i => i.roomId === 'r1') // Mock current tenant room
@@ -19,12 +22,12 @@ export function Maintenance() {
     
     addIssue({
       id: `i${Date.now()}`,
-      roomId: role === 'tenant' ? 'r1' : rooms[0].id,
+      roomId: role === 'tenant' ? 'r1' : roomId,
       title,
       description: desc,
       status: 'open',
-      createdAt: new Date().toISOString().split('T')[0],
-      type: 'repair'
+      createdAt: maintenanceDate,
+      type
     });
     
     setShowForm(false);
@@ -36,20 +39,54 @@ export function Maintenance() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#f8fafc]">
-          {role === 'landlord' ? 'Quản lý Sự cố & Bảo trì' : 'Yêu cầu Hỗ trợ'}
+          {role === 'landlord' ? 'Lịch Bảo trì & Dọn dẹp' : 'Yêu cầu Hỗ trợ'}
         </h1>
-        {role === 'tenant' && (
-          <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Hủy' : '+ Đặt lịch / Báo cáo'}
-          </Button>
-        )}
+        <Button onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Hủy' : role === 'landlord' ? '+ Lên lịch bảo trì' : '+ Đặt lịch / Báo cáo'}
+        </Button>
       </div>
 
       {showForm && (
         <Card className="bg-[#38bdf8]/5 border-[#38bdf8]/20">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
-              <h3 className="font-semibold text-lg text-[#f8fafc]">Gửi yêu cầu mới</h3>
+              <h3 className="font-semibold text-lg text-[#f8fafc]">
+                {role === 'landlord' ? 'Lên lịch bảo trì phòng' : 'Gửi yêu cầu mới'}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {role === 'landlord' && (
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-1">Chọn phòng</label>
+                    <select 
+                      value={roomId}
+                      onChange={e => setRoomId(e.target.value)}
+                      className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
+                    >
+                      {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.number}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ngày thực hiện</label>
+                  <input 
+                    type="date" 
+                    value={maintenanceDate}
+                    onChange={e => setMaintenanceDate(e.target.value)}
+                    className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Loại yêu cầu</label>
+                  <select 
+                    value={type}
+                    onChange={e => setType(e.target.value as 'repair' | 'cleaning')}
+                    className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
+                  >
+                    <option value="repair">Sửa chữa / Bảo trì</option>
+                    <option value="cleaning">Dọn dẹp vệ sinh</option>
+                  </select>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-[#94a3b8] mb-1">Vấn đề / Tiêu đề</label>
                 <input 
@@ -57,21 +94,21 @@ export function Maintenance() {
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
-                  placeholder="Ví dụ: Vòi nước bị rỉ..."
+                  placeholder="Ví dụ: Kiểm tra điều hòa định kỳ..."
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Mô tả chi tiết</label>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ghi chú chi tiết</label>
                 <textarea 
                   value={desc}
                   onChange={e => setDesc(e.target.value)}
                   className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#38bdf8] focus:ring-[#38bdf8] border p-2 text-sm"
                   rows={3}
-                  placeholder="Mô tả cụ thể hoặc chèn thời gian mong muốn..."
+                  placeholder="Mô tả cụ thể nội dung bảo trì..."
                 ></textarea>
               </div>
-              <Button type="submit">Gửi yêu cầu</Button>
+              <Button type="submit">Xác nhận lên lịch</Button>
             </form>
           </CardContent>
         </Card>

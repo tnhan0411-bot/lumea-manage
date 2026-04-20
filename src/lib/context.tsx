@@ -15,6 +15,8 @@ interface AppState {
   updateIssue: (id: string, status: Issue['status']) => void;
   payInvoice: (id: string) => void;
   addInvoice: (invoice: Invoice) => void;
+  updateRoom: (id: string, updates: Partial<Room>) => void;
+  updateTenant: (id: string, updates: Partial<Tenant>) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -35,6 +37,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
   const addInvoice = (invoice: Invoice) => setInvoices([...invoices, invoice]);
 
+  const updateRoom = (id: string, updates: Partial<Room>) => {
+    setRooms(rooms.map(r => r.id === id ? { ...r, ...updates } : r));
+  };
+
+  const updateTenant = (id: string, updates: Partial<Tenant>) => {
+    setTenants(tenants.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
   return (
     <AppContext.Provider value={{
       role,
@@ -47,7 +57,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addIssue,
       updateIssue,
       payInvoice,
-      addInvoice
+      addInvoice,
+      updateRoom,
+      updateTenant
     }}>
       {children}
     </AppContext.Provider>
