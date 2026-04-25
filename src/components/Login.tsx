@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent } from './ui';
-import { Building2, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { Building2, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
   const { login } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -66,13 +67,23 @@ export function Login() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]" size={18} />
                   <input 
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl pl-10 pr-4 py-3 text-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#38bdf8] focus:border-transparent transition-all"
+                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl pl-10 pr-12 py-3 text-[#f8fafc] focus:outline-none focus:ring-2 focus:ring-[#38bdf8] focus:border-transparent transition-all"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#f8fafc] transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <div className="flex justify-end mt-1">
+                  <a href="#" className="text-xs text-[#64748b] hover:text-[#38bdf8] transition-colors">Quên mật khẩu?</a>
                 </div>
               </div>
 

@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function formatVND(amount: number): string {
+  return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+}
+
 // Mock Data Models
 export type RoomStatus = 'available' | 'occupied' | 'maintenance';
 export type IssueStatus = 'open' | 'in-progress' | 'resolved';

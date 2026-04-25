@@ -1,9 +1,9 @@
 import React from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
-import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X } from 'lucide-react';
+import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X, CheckCircle2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { cn } from '../lib/utils';
+import { cn, formatVND } from '../lib/utils';
 
 export function Dashboard() {
   const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling } = useAppContext();
@@ -34,7 +34,13 @@ export function Dashboard() {
             <CardHeader title="Sự cố cần sửa chữa" />
             <CardContent>
               <div className="space-y-4">
-                {techIssues.length === 0 ? <p className="text-[#94a3b8] italic">Không có sự cố tồn đọng.</p> : 
+                {techIssues.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center bg-[#1e293b]/50 rounded-xl border border-[#334155]/50">
+                    <CheckCircle2 className="w-16 h-16 text-[#10b981] mb-4" />
+                    <h3 className="text-lg font-semibold text-[#f8fafc]">Tuyệt vời!</h3>
+                    <p className="text-[#94a3b8] mt-2 max-w-[250px]">Hiện tại không có sự cố nào cần xử lý. Hãy nghỉ ngơi một chút nhé!</p>
+                  </div>
+                ) : 
                   techIssues.map(issue => (
                     <div key={issue.id} className="p-4 bg-[#ef4444]/5 rounded-xl border border-[#ef4444]/10 flex items-start justify-between">
                        <div>
@@ -142,7 +148,7 @@ export function Dashboard() {
                      <AlertCircle className="w-5 h-5 text-[#ef4444] mt-0.5" />
                      <div>
                        <p className="font-medium text-[#f8fafc]">Vui lòng thanh toán tiền phòng!</p>
-                       <p className="text-sm text-[#94a3b8] mt-1">Hạn thanh toán là ngày 05/05. Tổng tiền: {pendingInvoices[0].total.toLocaleString()}đ</p>
+                       <p className="text-sm text-[#94a3b8] mt-1">Hạn thanh toán là ngày 05/05. Tổng tiền: {formatVND(pendingInvoices[0].total)}</p>
                        <Button size="sm" className="mt-3">Thanh toán ngay</Button>
                      </div>
                    </div>
@@ -164,7 +170,13 @@ export function Dashboard() {
              <CardHeader title="Hoạt động gần đây" />
              <CardContent>
                 <div className="space-y-3">
-                  {myIssues.length === 0 ? <p className="text-[#94a3b8] italic text-sm">Chưa có lịch sử hoạt động.</p> : 
+                  {myIssues.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-center bg-[#1e293b]/50 rounded-xl border border-[#334155]/50">
+                      <CheckCircle2 className="w-12 h-12 text-[#10b981] mb-3" />
+                      <h3 className="text-base font-semibold text-[#f8fafc]">Tuyệt vời!</h3>
+                      <p className="text-[#94a3b8] text-sm mt-1 max-w-[250px]">Hiện tại không có sự cố nào cần xử lý. Hãy nghỉ ngơi một chút nhé!</p>
+                    </div>
+                  ) : 
                     myIssues.slice(0, 5).map(issue => (
                       <div key={issue.id} className="flex justify-between items-center py-3 border-b last:border-0 border-[#334155]/30">
                         <div className="flex items-center gap-3">
@@ -194,9 +206,11 @@ export function Dashboard() {
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
   
+  const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
+
   // Refined Revenue Calculation based on Period or Date Range
   const getInvoicesForPeriod = () => {
-    if (dateRange.start && dateRange.end) {
+    if (filterMode === 'range' && dateRange.start && dateRange.end) {
       return invoices.filter(inv => {
         // inv.month is YYYY-MM
         const invMonth = inv.month;
@@ -206,24 +220,28 @@ export function Dashboard() {
       });
     }
 
-    return invoices.filter(inv => {
-      // Use inv.month (YYYY-MM) for matching period
-      if (period.includes('Q')) {
-        const year = period.split('-')[0];
-        const quarter = period.split('-')[1];
-        const monthPart = inv.month.split('-')[1];
-        const invYear = inv.month.split('-')[0];
-        if (invYear !== year) return false;
-        if (quarter === 'Q1') return ['01', '02', '03'].includes(monthPart);
-        if (quarter === 'Q2') return ['04', '05', '06'].includes(monthPart);
-        if (quarter === 'Q3') return ['07', '08', '09'].includes(monthPart);
-        if (quarter === 'Q4') return ['10', '11', '12'].includes(monthPart);
-      } else {
-        // Month format: YYYY-MM explicitly matches inv.month
-        return inv.month === period;
-      }
-      return false;
-    });
+    if (filterMode === 'period') {
+      return invoices.filter(inv => {
+        // Use inv.month (YYYY-MM) for matching period
+        if (period.includes('Q')) {
+          const year = period.split('-')[0];
+          const quarter = period.split('-')[1];
+          const monthPart = inv.month.split('-')[1];
+          const invYear = inv.month.split('-')[0];
+          if (invYear !== year) return false;
+          if (quarter === 'Q1') return ['01', '02', '03'].includes(monthPart);
+          if (quarter === 'Q2') return ['04', '05', '06'].includes(monthPart);
+          if (quarter === 'Q3') return ['07', '08', '09'].includes(monthPart);
+          if (quarter === 'Q4') return ['10', '11', '12'].includes(monthPart);
+        } else {
+          // Month format: YYYY-MM explicitly matches inv.month
+          return inv.month === period;
+        }
+        return false;
+      });
+    }
+
+    return [];
   };
 
   const currentPeriodInvoices = getInvoicesForPeriod();
@@ -232,50 +250,70 @@ export function Dashboard() {
 
   // Dynamic Chart Data based on period/range
   const getChartData = () => {
-    if (dateRange.start && dateRange.end) {
-      // For date range, show last 4 months in chart anyway or try to fit?
-      // Let's show the months within the range or last 4
-    }
-
-    if (period.includes('Q')) {
-      const year = period.split('-')[0];
-      const quarter = period.split('-')[1];
-      const months = quarter === 'Q1' ? ['01', '02', '03'] : quarter === 'Q2' ? ['04', '05', '06'] : quarter === 'Q3' ? ['07', '08', '09'] : ['10', '11', '12'];
-      return months.map(m => {
-        const p = `${year}-${m}`;
-        const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
-        return { name: `T${parseInt(m)}`, revenue: rev };
-      });
-    } else {
-      // Show last 4 months up to current selection
-      const [year, month] = (dateRange.end || period).split('-').map(Number);
+    if (filterMode === 'range' && dateRange.start && dateRange.end) {
       const data = [];
-      for (let i = 3; i >= 0; i--) {
-        let m = month - i;
-        let y = year;
-        if (m <= 0) {
-          m += 12;
-          y -= 1;
-        }
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
+      
+      // Calculate months
+      let currentMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      const endMonthObj = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+      while (currentMonth <= endMonthObj) {
+        const m = currentMonth.getMonth() + 1;
+        const y = currentMonth.getFullYear();
         const mStr = m < 10 ? `0${m}` : `${m}`;
         const p = `${y}-${mStr}`;
         const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
         data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev });
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
       }
       return data;
     }
+
+    if (filterMode === 'period') {
+      if (period.includes('Q')) {
+        const year = period.split('-')[0];
+        const quarter = period.split('-')[1];
+        const months = quarter === 'Q1' ? ['01', '02', '03'] : quarter === 'Q2' ? ['04', '05', '06'] : quarter === 'Q3' ? ['07', '08', '09'] : ['10', '11', '12'];
+        return months.map(m => {
+          const p = `${year}-${m}`;
+          const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
+          return { name: `T${parseInt(m)}`, revenue: rev };
+        });
+      } else {
+        // Show last 4 months up to current selection
+        const [year, month] = period.split('-').map(Number);
+        const data = [];
+        for (let i = 3; i >= 0; i--) {
+          let m = month - i;
+          let y = year;
+          if (m <= 0) {
+            m += 12;
+            y -= 1;
+          }
+          const mStr = m < 10 ? `0${m}` : `${m}`;
+          const p = `${y}-${mStr}`;
+          const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
+          data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev });
+        }
+        return data;
+      }
+    }
+
+    return [];
   };
 
   const chartData = getChartData();
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#f8fafc]">Lumea Nest Serviced Apartment</h1>
           <p className="text-sm text-[#94a3b8]">Báo cáo hiệu suất kinh doanh • Chào {user?.name}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col lg:flex-row items-end lg:items-center gap-3">
           {billingStatus.pendingRooms.length > 0 && (
             <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-3 py-1.5 rounded-xl flex items-center gap-3 animate-pulse">
               <AlertCircle size={16} className="text-[#f59e0b]" />
@@ -287,41 +325,54 @@ export function Dashboard() {
               </Button>
             </div>
           )}
-          <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1">
-             <span className="text-[10px] uppercase font-bold text-[#64748b]">Từ</span>
-             <input 
-              type="date" 
-              value={dateRange.start}
-              onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-              className="bg-transparent text-xs text-[#f8fafc] outline-none"
-             />
-             <span className="text-[10px] uppercase font-bold text-[#64748b]">Đến</span>
-             <input 
-              type="date" 
-              value={dateRange.end}
-              onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-              className="bg-transparent text-xs text-[#f8fafc] outline-none"
-             />
-             {(dateRange.start || dateRange.end) && (
-               <button onClick={() => setDateRange({start: '', end: ''})} className="text-[#ef4444] hover:text-[#ef4444]/80 ml-1">
-                 <X size={14} />
-               </button>
-             )}
+
+          <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-1 flex">
+            <button 
+              onClick={() => setFilterMode('period')}
+              className={cn("px-4 py-1.5 text-xs font-medium rounded-lg transition-colors", filterMode === 'period' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]")}
+            >
+              Tháng / Quý
+            </button>
+            <button 
+              onClick={() => setFilterMode('range')}
+              className={cn("px-4 py-1.5 text-xs font-medium rounded-lg transition-colors", filterMode === 'range' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]")}
+            >
+              Khoảng ngày
+            </button>
           </div>
 
-          <select 
-            value={period}
-            disabled={!!(dateRange.start && dateRange.end)}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors disabled:opacity-50"
-          >
-            <option value="2026-Q1">Quý I / 2026</option>
-            <option value="2026-Q2">Quý II / 2026</option>
-            <option value="2026-04">Tháng 4 / 2026</option>
-            <option value="2026-05">Tháng 5 / 2026</option>
-          </select>
-          <Button variant="outline" className="gap-2">
-            <BarChartIcon size={18} /> Xuất báo cáo
+          {filterMode === 'range' ? (
+            <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1.5 min-w-[280px]">
+               <span className="text-[10px] uppercase font-bold text-[#64748b]">Từ</span>
+               <input 
+                type="date" 
+                value={dateRange.start}
+                onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                className="bg-transparent text-xs text-[#f8fafc] outline-none w-full"
+               />
+               <span className="text-[10px] uppercase font-bold text-[#64748b]">Đến</span>
+               <input 
+                type="date" 
+                value={dateRange.end}
+                onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                className="bg-transparent text-xs text-[#f8fafc] outline-none w-full"
+               />
+            </div>
+          ) : (
+            <select 
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-1.5 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9"
+            >
+              <option value="2026-Q1">Quý I / 2026</option>
+              <option value="2026-Q2">Quý II / 2026</option>
+              <option value="2026-04">Tháng 4 / 2026</option>
+              <option value="2026-05">Tháng 5 / 2026</option>
+            </select>
+          )}
+
+          <Button variant="outline" className="gap-2 h-9 text-sm">
+            <BarChartIcon size={16} /> Xuất
           </Button>
         </div>
       </div>
@@ -346,7 +397,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Doanh thu kỳ</p>
-              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{(totalRevenue / 1000000).toFixed(1)} <span className="text-sm font-normal text-[#94a3b8]">Tr</span></p>
+              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{formatVND(totalRevenue)}</p>
             </div>
           </CardContent>
         </Card>
@@ -358,7 +409,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Chờ thanh toán</p>
-              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{(pendingRevenue / 1000000).toFixed(1)} <span className="text-sm font-normal text-[#94a3b8]">Tr</span></p>
+              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{formatVND(pendingRevenue)}</p>
             </div>
           </CardContent>
         </Card>
@@ -378,7 +429,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader title={`Biểu đồ doanh thu - ${dateRange.start && dateRange.end ? `${dateRange.start} đến ${dateRange.end}` : period}`} />
+          <CardHeader title={`Biểu đồ doanh thu - ${filterMode === 'range' && dateRange.start && dateRange.end ? `${dateRange.start} đến ${dateRange.end}` : period}`} />
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
