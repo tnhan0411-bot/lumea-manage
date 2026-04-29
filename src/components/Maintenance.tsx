@@ -63,6 +63,8 @@ export function Maintenance() {
                       className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#ef4444] focus:ring-[#ef4444] border p-2 text-sm"
                     >
                       {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.number}</option>)}
+                      <option value="elevator">Thang máy</option>
+                      <option value="other">Khác</option>
                     </select>
                   </div>
                 )}
@@ -128,7 +130,9 @@ export function Maintenance() {
                     <div className="flex gap-3 text-xs text-[#64748b] font-medium">
                       <span>Ngày: {issue.createdAt}</span>
                       {role === 'landlord' && (
-                        <Badge variant="info" className="text-[9px] px-1 py-0 h-4 uppercase">Phòng {rooms.find(r => r.id === issue.roomId)?.number}</Badge>
+                        <Badge variant="info" className="text-[9px] px-1 py-0 h-4 uppercase">
+                          {issue.roomId === 'elevator' ? 'Thang máy' : issue.roomId === 'other' ? 'Khác' : `Phòng ${rooms.find(r => r.id === issue.roomId)?.number || ''}`}
+                        </Badge>
                       )}
                     </div>
                   </div>
