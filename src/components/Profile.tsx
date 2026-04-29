@@ -52,6 +52,23 @@ export function Profile() {
     setNewStaffPhone('');
   };
 
+  const [isChangingPassword, setIsChangingPassword] = React.useState(false);
+  const [newPassword, setNewPassword] = React.useState('');
+
+  const handlePasswordChange = () => {
+    if (!user) return;
+    if (newPassword.length < 6) {
+        alert("Mật khẩu phải lớn hơn 6 ký tự");
+        return;
+    }
+    updateUser(user.id, {
+        password: newPassword
+    });
+    alert("Đổi mật khẩu thành công!");
+    setIsChangingPassword(false);
+    setNewPassword('');
+  };
+
   const currentTenant = role === 'tenant' ? tenants.find(t => t.email === user?.email) : null;
   const currentRoom = currentTenant ? rooms.find(r => r.id === currentTenant.roomId) : null;
   const currentContract = currentTenant ? contracts.find(c => c.tenantId === currentTenant.id) : null;
@@ -151,12 +168,31 @@ export function Profile() {
           </Card>
 
           <Card className="bg-[#f59e0b]/5 border-[#f59e0b]/20">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-[#f59e0b]/10 text-[#f59e0b] rounded-xl"><Key size={20} /></div>
-              <div className="flex-1">
-                <p className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Bảo mật</p>
-                <button className="text-sm text-[#f59e0b] font-medium hover:underline">Đổi mật khẩu</button>
-              </div>
+            <CardContent className="p-4">
+              {isChangingPassword ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-[#f59e0b] font-bold uppercase tracking-wider">Đổi mật khẩu</p>
+                  <input 
+                    type="password" 
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Mật khẩu mới..."
+                    className="w-full bg-[#0f172a] border border-[#f59e0b]/30 rounded-lg p-2 text-sm text-[#f8fafc] focus:outline-none focus:ring-1 focus:ring-[#f59e0b]"
+                  />
+                  <div className="flex gap-2">
+                    <Button onClick={handlePasswordChange} size="sm" className="flex-1 bg-[#f59e0b] hover:bg-[#d97706] text-white">Lưu</Button>
+                    <Button onClick={() => setIsChangingPassword(false)} variant="ghost" size="sm" className="flex-1 text-[#f59e0b]">Hủy</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-[#f59e0b]/10 text-[#f59e0b] rounded-xl"><Key size={20} /></div>
+                  <div className="flex-1">
+                    <p className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Bảo mật</p>
+                    <button onClick={() => setIsChangingPassword(true)} className="text-sm text-[#f59e0b] font-medium hover:underline">Đổi mật khẩu</button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -101,12 +101,7 @@ export function Login() {
                 )}
               </button>
 
-              <div className="text-center pt-2">
-                <p className="text-xs text-[#64748b]">
-                  Gợi ý: admin1@lumea.vn / password123 (Chủ nhà) <br/>
-                  tech@lumea.vn / password123 (Kỹ thuật)
-                </p>
-              </div>
+
             </form>
           </CardContent>
         </Card>
