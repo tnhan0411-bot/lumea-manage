@@ -208,6 +208,20 @@ export function Dashboard() {
   
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
 
+  // Visa Expiration Tracking
+  const visaExpirations = tenants
+    .filter(t => t.visaExpiry)
+    .map(t => {
+      const expiryDate = new Date(t.visaExpiry!);
+      const today = new Date();
+      const diffTime = expiryDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return { ...t, daysLeft: diffDays };
+    })
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+
+  const criticalVisas = visaExpirations.filter(v => v.daysLeft <= 15);
+
   // Refined Revenue Calculation based on Period or Date Range
   const getInvoicesForPeriod = () => {
     if (filterMode === 'range' && dateRange.start && dateRange.end) {
@@ -314,6 +328,15 @@ export function Dashboard() {
           <p className="text-sm text-[#94a3b8]">Báo cáo hiệu suất kinh doanh • Chào {user?.name}</p>
         </div>
         <div className="flex flex-col lg:flex-row items-end lg:items-center gap-3">
+          {criticalVisas.length > 0 && (
+            <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 px-3 py-1.5 rounded-xl flex items-center gap-3">
+              <AlertCircle size={16} className="text-[#ef4444]" />
+              <p className="text-[12px] font-bold text-[#ef4444]">
+                {criticalVisas.length} khách sắp hết hạn Visa
+              </p>
+            </div>
+          )}
+
           {billingStatus.pendingRooms.length > 0 && (
             <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-3 py-1.5 rounded-xl flex items-center gap-3 animate-pulse">
               <AlertCircle size={16} className="text-[#f59e0b]" />
@@ -449,6 +472,40 @@ export function Dashboard() {
                 <Bar dataKey="revenue" fill="#38bdf8" radius={[6, 6, 0, 0]} maxBarSize={45} />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader title="Theo dõi Visa (Stam)" />
+          <CardContent>
+            <div className="space-y-4">
+              {visaExpirations.length === 0 ? (
+                <p className="text-sm text-[#94a3b8] italic">Không có dữ liệu visa.</p>
+              ) : (
+                visaExpirations.slice(0, 5).map(v => (
+                  <div key={v.id} className="flex items-center justify-between p-3 rounded-lg bg-[#0f172a] border border-[#334155]">
+                    <div className="flex items-center gap-3">
+                       <div className="h-8 w-8 rounded-full bg-[#1e293b] flex items-center justify-center text-[10px] font-bold text-[#f8fafc]">
+                         {v.name.charAt(0)}
+                       </div>
+                       <div>
+                         <p className="text-xs font-bold text-[#f8fafc]">{v.name}</p>
+                         <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === v.roomId)?.number}</p>
+                       </div>
+                    </div>
+                    <div className="text-right">
+                       <p className={cn("text-[10px] font-bold", v.daysLeft <= 7 ? "text-[#ef4444]" : v.daysLeft <= 15 ? "text-[#f59e0b]" : "text-[#10b981]")}>
+                         {v.daysLeft <= 0 ? 'Đã hết hạn' : `Còn ${v.daysLeft} ngày`}
+                       </p>
+                       <p className="text-[9px] text-[#64748b]">{v.visaExpiry}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {visaExpirations.length > 5 && (
+                <Button variant="ghost" size="sm" className="w-full text-[10px] text-[#38bdf8]">Xem tất cả</Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 

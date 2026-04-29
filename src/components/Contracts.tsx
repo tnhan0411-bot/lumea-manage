@@ -17,14 +17,17 @@ export function Contracts() {
   const [endDate, setEndDate] = useState('');
   const [deposit, setDeposit] = useState('');
   const [rent, setRent] = useState('');
+  const [visaExpiry, setVisaExpiry] = useState('');
 
   const [editContractId, setEditContractId] = useState<string | null>(null);
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
   const handleEdit = (contract: any) => {
+    const tenant = tenants.find(t => t.id === contract.tenantId);
     setEditContractId(contract.id);
-    setTenantName(tenants.find(t => t.id === contract.tenantId)?.name || '');
-    setTenantPhone(tenants.find(t => t.id === contract.tenantId)?.phone || '');
+    setTenantName(tenant?.name || '');
+    setTenantPhone(tenant?.phone || '');
+    setVisaExpiry(tenant?.visaExpiry || '');
     setRoomId(contract.roomId);
     setStartDate(contract.startDate);
     setEndDate(contract.endDate);
@@ -42,11 +45,16 @@ export function Contracts() {
         deposit: Number(deposit),
         monthlyRent: Number(rent),
       });
-      // Also update tenant info if needed
+      
       const contract = contracts.find(c => c.id === editContractId);
-      if (contract) {
-        // Find existing tenant and update
+      if (contract && contract.tenantId) {
+        updateTenant(contract.tenantId, {
+          visaExpiry: visaExpiry || undefined,
+          name: tenantName,
+          phone: tenantPhone
+        });
       }
+
       setEditContractId(null);
       setShowForm(false);
       resetForm();
@@ -63,6 +71,7 @@ export function Contracts() {
     setEndDate('');
     setDeposit('');
     setRent('');
+    setVisaExpiry('');
   };
 
   const displayContracts = contracts.filter(c => {
@@ -88,7 +97,8 @@ export function Contracts() {
       email: '',
       roomId: roomId,
       contractStart: startDate,
-      contractEnd: endDate
+      contractEnd: endDate,
+      visaExpiry: visaExpiry || undefined
     });
 
     // 2. Create the contract
@@ -129,14 +139,7 @@ export function Contracts() {
     });
 
     setShowForm(false);
-    // Reset form
-    setTenantName('');
-    setTenantPhone('');
-    setRoomId('');
-    setStartDate('');
-    setEndDate('');
-    setDeposit('');
-    setRent('');
+    resetForm();
   };
 
   const handleAddAttachment = (contractId: string) => {
@@ -225,6 +228,10 @@ export function Contracts() {
                     <label className="block text-[10px] uppercase font-bold text-[#94a3b8] mb-1">Tiền cọc (VNĐ)</label>
                     <input type="number" value={deposit} onChange={e => setDeposit(e.target.value)} required className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc]" />
                   </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-[#94a3b8] mb-1">Hết hạn Visa (Stam)</label>
+                    <input type="date" value={visaExpiry} onChange={e => setVisaExpiry(e.target.value)} className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc]" />
+                  </div>
                </div>
                <div className="flex justify-end gap-3 pt-4 border-t border-[#334155]">
                   <Button type="button" variant="ghost" onClick={() => { setShowForm(false); setEditContractId(null); resetForm(); }}>Hủy bỏ</Button>
@@ -287,8 +294,11 @@ export function Contracts() {
                         <p className="text-sm text-[#10b981] font-bold">{contract.deposit.toLocaleString()}đ</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#94a3b8] uppercase font-bold tracking-wider mb-1">Tiền thuê / tháng</p>
-                        <p className="text-sm text-[#10b981] font-bold">{contract.monthlyRent.toLocaleString()}đ</p>
+                        <p className="text-[10px] text-[#94a3b8] uppercase font-bold tracking-wider mb-1">Hết hạn Visa</p>
+                        <p className={cn("text-sm flex items-center gap-2 font-bold", tenant?.visaExpiry ? "text-[#f8fafc]" : "text-[#64748b] italic")}>
+                          <User size={14} className={cn(tenant?.visaExpiry ? "text-[#f59e0b]" : "text-[#64748b]")} /> 
+                          {tenant?.visaExpiry || 'Chưa cập nhật'}
+                        </p>
                       </div>
                     </div>
                   </div>

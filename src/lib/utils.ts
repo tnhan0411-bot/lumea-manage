@@ -93,6 +93,7 @@ export interface Tenant {
   roomId: string;
   contractStart: string;
   contractEnd: string;
+  visaExpiry?: string;
   avatar?: string;
 }
 
@@ -155,8 +156,8 @@ export const INITIAL_UTILITIES: UtilityRecord[] = [
 ];
 
 export const INITIAL_TENANTS: Tenant[] = [
-  { id: 't1', name: 'Nguyễn Văn A', phone: '0901234567', email: 'nva@example.com', roomId: 'r1', contractStart: '2026-01-01', contractEnd: '2027-01-01', avatar: 'https://picsum.photos/seed/user1/100/100' },
-  { id: 't2', name: 'Trần Thị B', phone: '0901234568', email: 'ttb@example.com', roomId: 'r2', contractStart: '2026-02-01', contractEnd: '2027-02-01' },
+  { id: 't1', name: 'Nguyễn Văn A', phone: '0901234567', email: 'nva@example.com', roomId: 'r1', contractStart: '2026-01-01', contractEnd: '2027-01-01', visaExpiry: '2026-05-15', avatar: 'https://picsum.photos/seed/user1/100/100' },
+  { id: 't2', name: 'Trần Thị B', phone: '0901234568', email: 'ttb@example.com', roomId: 'r2', contractStart: '2026-02-01', contractEnd: '2027-02-01', visaExpiry: '2026-04-30' },
 ];
 
 export const INITIAL_CONTRACTS: Contract[] = [
