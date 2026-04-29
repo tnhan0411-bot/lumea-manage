@@ -25,25 +25,6 @@ export interface User {
   password?: string; // For mock login
 }
 
-export interface UtilityRecord {
-  id: string;
-  roomId: string;
-  month: string; // YYYY-MM
-  electricity: {
-    index: number; // Meter reading
-    pricePerUnit: number;
-    amount: number;
-  };
-  water: {
-    index: number;
-    pricePerUnit: number;
-    amount: number;
-  };
-  trash: number;
-  total: number;
-  recordedAt: string;
-}
-
 export interface Attachment {
   id: string;
   name: string;
@@ -121,19 +102,17 @@ export interface Invoice {
   dueDate: string;
 }
 
-export const INITIAL_ROOMS: Room[] = Array.from({ length: 10 }, (_, i) => ({
-  id: `r${i + 1}`,
-  number: `10${i + 1}`,
-  status: i < 7 ? 'occupied' : i === 7 ? 'maintenance' : 'available',
-  price: 5000000 + (i % 3) * 500000,
-  features: ['Điều hòa', 'Nóng lạnh', 'Giường tủ'],
-  cleaningSchedule: ['2026-04-15', '2026-04-01'],
-  attachments: [
-    { id: `ra${i}`, name: 'Mặt bằng phòng.pdf', url: '#', type: 'other', uploadedAt: '2026-01-10' }
-  ],
-  leaseStart: i < 7 ? '2026-01-01' : undefined,
-  leaseEnd: i < 7 ? '2027-01-01' : undefined,
-}));
+export const INITIAL_ROOMS: Room[] = [
+  { id: 'r1', number: '101', status: 'available', price: 5000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r2', number: '201', status: 'available', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r3', number: '202', status: 'available', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r4', number: '301', status: 'available', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r5', number: '302', status: 'available', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r6', number: '401', status: 'available', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r7', number: '402', status: 'available', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r8', number: '501', status: 'available', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r9', number: '502', status: 'available', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
+];
 
 export const INITIAL_USERS: User[] = [
   { id: 'u1', name: 'Landlord Admin 1', email: 'admin1@lumea.vn', role: 'landlord', phone: '0911001100', password: 'password123' },
@@ -142,18 +121,7 @@ export const INITIAL_USERS: User[] = [
   { id: 'u4', name: 'Nguyễn Văn A', email: 'tenant1@example.com', role: 'tenant', phone: '0933003300', password: 'password123' },
 ];
 
-export const INITIAL_UTILITIES: UtilityRecord[] = [
-  {
-    id: 'ut1',
-    roomId: 'r1',
-    month: '2026-04',
-    electricity: { index: 1250, pricePerUnit: 3500, amount: 350000 },
-    water: { index: 85, pricePerUnit: 15000, amount: 150000 },
-    trash: 50000,
-    total: 550000,
-    recordedAt: '2026-04-05'
-  }
-];
+export const INITIAL_UTILITIES: any[] = [];
 
 export const INITIAL_TENANTS: Tenant[] = [
   { id: 't1', name: 'Nguyễn Văn A', phone: '0901234567', email: 'nva@example.com', roomId: 'r1', contractStart: '2026-01-01', contractEnd: '2027-01-01', visaExpiry: '2026-05-15', avatar: 'https://picsum.photos/seed/user1/100/100' },

@@ -5,7 +5,11 @@ import { FileText, Calendar, DollarSign, User, Plus, Search, FileDown, Download,
 import { format } from 'date-fns';
 
 export function Contracts() {
-  const { contracts, rooms, tenants, role, addContract, deleteContract, updateContract, addTenant, updateRoom, addInvoice } = useAppContext();
+  const { 
+    contracts, rooms, tenants, role, 
+    addContract, deleteContract, updateContract, 
+    addTenant, updateTenant, updateRoom, addInvoice 
+  } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   

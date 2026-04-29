@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  Room, Tenant, Issue, Invoice, Contract, Expense, User, UtilityRecord,
-  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_UTILITIES 
+  Room, Tenant, Issue, Invoice, Contract, Expense, User, 
+  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS 
 } from './utils';
 
 interface AppState {
@@ -14,7 +14,6 @@ interface AppState {
   invoices: Invoice[];
   contracts: Contract[];
   expenses: Expense[];
-  utilities: UtilityRecord[];
   usersList: User[];
   isLoaded: boolean;
   login: (email: string, pass: string) => boolean;
@@ -33,8 +32,6 @@ interface AppState {
   updateTenant: (id: string, updates: Partial<Tenant>) => void;
   addExpense: (expense: Expense) => void;
   updateContract: (id: string, updates: Partial<Contract>) => void;
-  addUtility: (record: UtilityRecord) => void;
-  updateUtility: (id: string, updates: Partial<UtilityRecord>) => void;
   addTenant: (tenant: Tenant) => void;
   deleteTenant: (id: string) => void;
   updateExpense: (id: string, updates: Partial<Expense>) => void;
@@ -58,7 +55,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES);
   const [contracts, setContracts] = useState<Contract[]>(INITIAL_CONTRACTS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
-  const [utilities, setUtilities] = useState<UtilityRecord[]>(INITIAL_UTILITIES);
   const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
  
   // Persistence: Load from localStorage on mount
@@ -70,7 +66,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const savedInvoices = localStorage.getItem('lumea_invoices');
     const savedContracts = localStorage.getItem('lumea_contracts');
     const savedExpenses = localStorage.getItem('lumea_expenses');
-    const savedUtilities = localStorage.getItem('lumea_utilities');
     const savedUsersList = localStorage.getItem('lumea_users_list');
  
     if (savedUser) setUser(JSON.parse(savedUser));
@@ -80,7 +75,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
     if (savedContracts) setContracts(JSON.parse(savedContracts));
     if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
-    if (savedUtilities) setUtilities(JSON.parse(savedUtilities));
     if (savedUsersList) setUsersList(JSON.parse(savedUsersList));
     
     setIsLoaded(true);
@@ -96,9 +90,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('lumea_invoices', JSON.stringify(invoices));
     localStorage.setItem('lumea_contracts', JSON.stringify(contracts));
     localStorage.setItem('lumea_expenses', JSON.stringify(expenses));
-    localStorage.setItem('lumea_utilities', JSON.stringify(utilities));
     localStorage.setItem('lumea_users_list', JSON.stringify(usersList));
-  }, [user, rooms, tenants, issues, invoices, contracts, expenses, utilities, usersList, isLoaded]);
+  }, [user, rooms, tenants, issues, invoices, contracts, expenses, usersList, isLoaded]);
  
   const login = (email: string, pass: string) => {
     const foundUser = usersList.find(u => u.email === email && u.password === pass);
@@ -178,11 +171,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
   const deleteContract = (id: string) => setContracts(contracts.filter(c => c.id !== id));
 
-  const addUtility = (record: UtilityRecord) => setUtilities([record, ...utilities]);
-  const updateUtility = (id: string, updates: Partial<UtilityRecord>) => {
-    setUtilities(utilities.map(u => u.id === id ? { ...u, ...updates } : u));
-  };
-
   const checkMonthlyBilling = () => {
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -239,7 +227,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       invoices,
       contracts,
       expenses,
-      utilities,
       usersList,
       isLoaded,
       login,
@@ -265,8 +252,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addContract,
       updateContract,
       deleteContract,
-      addUtility,
-      updateUtility,
       updateInvoice,
       deleteInvoice,
       checkMonthlyBilling,

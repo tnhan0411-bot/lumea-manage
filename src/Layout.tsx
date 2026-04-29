@@ -47,7 +47,6 @@ export function Layout() {
           { id: 'maintenance', label: 'Bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
           { id: 'cleaning', label: 'Vệ sinh phòng', icon: Zap },
           { id: 'billing', label: 'Hóa đơn & Thu chi', icon: Receipt },
-          { id: 'utilities', label: 'Điện, Nước & Rác', icon: Zap },
           { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
           { id: 'expenses', label: 'Quản lý chi phí', icon: CreditCard },
           { id: 'profile', label: 'Hồ sơ của tôi', icon: Settings },
@@ -86,7 +85,6 @@ export function Layout() {
       case 'reports': return <Reports />;
       case 'contracts': return <Contracts />;
       case 'profile': return <Profile />;
-      case 'utilities': return <Utilities />;
       case 'expenses': return <Expenses />;
       default: return <div className="p-8 text-center text-gray-500">Đang tải...</div>;
     }

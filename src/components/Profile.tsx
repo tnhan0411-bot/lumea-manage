@@ -11,7 +11,22 @@ export function Profile() {
   const [apartmentName, setApartmentName] = React.useState('Lumea Nest Serviced Apartment');
   const [isEditingName, setIsEditingName] = React.useState(false);
 
-  // New Staff form state
+  // Profile editing state
+  const [isEditingProfile, setIsEditingProfile] = React.useState(false);
+  const [editName, setEditName] = React.useState(user?.name || '');
+  const [editEmail, setEditEmail] = React.useState(user?.email || '');
+  const [editPhone, setEditPhone] = React.useState(user?.phone || '');
+
+  const handleUpdateProfile = () => {
+    if (!user) return;
+    updateUser(user.id, {
+      name: editName,
+      email: editEmail,
+      phone: editPhone
+    });
+    setIsEditingProfile(false);
+  };
+
   const [showAddStaff, setShowAddStaff] = React.useState(false);
   const [newStaffName, setNewStaffName] = React.useState('');
   const [newStaffEmail, setNewStaffEmail] = React.useState('');
@@ -20,6 +35,7 @@ export function Profile() {
 
   const staff = usersList.filter(u => u.role === 'landlord' || u.role === 'technician');
   
+  const [showTenants, setShowTenants] = React.useState(false);
   const handleAddStaff = (e: React.FormEvent) => {
     e.preventDefault();
     addUser({
@@ -64,31 +80,73 @@ export function Profile() {
                 <div className="w-24 h-24 rounded-2xl bg-[#38bdf8]/10 border-2 border-[#38bdf8] flex items-center justify-center text-4xl font-bold text-[#38bdf8] shadow-xl shadow-[#38bdf8]/10">
                   {user.name.charAt(0)}
                 </div>
-                <div className="absolute -bottom-1 -right-1 p-2 bg-[#1e293b] border border-[#334155] rounded-xl text-[#38bdf8] cursor-pointer shadow-lg hover:bg-[#334155] transition-colors">
+                <button 
+                  onClick={() => setIsEditingProfile(!isEditingProfile)}
+                  className="absolute -bottom-1 -right-1 p-2 bg-[#1e293b] border border-[#334155] rounded-xl text-[#38bdf8] cursor-pointer shadow-lg hover:bg-[#334155] transition-colors"
+                >
                   <Settings size={14} />
-                </div>
-              </div>
-              <h2 className="text-xl font-bold text-[#f8fafc]">{user.name}</h2>
-              <div className="mt-2 flex justify-center">
-                <Badge variant={role === 'landlord' ? 'info' : role === 'technician' ? 'warning' : 'success'} className="uppercase text-[9px] tracking-widest">
-                  {role === 'landlord' ? 'Chủ nhà' : role === 'technician' ? 'Kỹ thuật' : 'Người thuê'}
-                </Badge>
+                </button>
               </div>
               
-              <div className="mt-6 pt-6 border-t border-[#334155] space-y-4 text-left">
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase font-bold text-[#64748b] tracking-widest">Email</p>
-                  <p className="text-sm text-[#f8fafc] flex items-center gap-2">
-                    <Mail size={14} className="text-[#38bdf8]" /> {user.email}
-                  </p>
+              {isEditingProfile ? (
+                <div className="space-y-4 text-left">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-[#64748b]">Tên hiển thị</label>
+                    <input 
+                      type="text" 
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc] outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-[#64748b]">Email</label>
+                    <input 
+                      type="email" 
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc] outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-[#64748b]">Số điện thoại</label>
+                    <input 
+                      type="text" 
+                      value={editPhone}
+                      onChange={e => setEditPhone(e.target.value)}
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc] outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button onClick={handleUpdateProfile} size="sm" className="flex-1">Lưu</Button>
+                    <Button onClick={() => setIsEditingProfile(false)} variant="ghost" size="sm" className="flex-1">Hủy</Button>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase font-bold text-[#64748b] tracking-widest">Số điện thoại</p>
-                  <p className="text-sm text-[#f8fafc] flex items-center gap-2">
-                    <Phone size={14} className="text-[#38bdf8]" /> {user.phone}
-                  </p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold text-[#f8fafc]">{user.name}</h2>
+                  <div className="mt-2 flex justify-center">
+                    <Badge variant={role === 'landlord' ? 'info' : role === 'technician' ? 'warning' : 'success'} className="uppercase text-[9px] tracking-widest">
+                      {role === 'landlord' ? 'Chủ nhà' : role === 'technician' ? 'Kỹ thuật' : 'Người thuê'}
+                    </Badge>
+                  </div>
+                  
+                  <div className="mt-6 pt-6 border-t border-[#334155] space-y-4 text-left">
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase font-bold text-[#64748b] tracking-widest">Email</p>
+                      <p className="text-sm text-[#f8fafc] flex items-center gap-2">
+                        <Mail size={14} className="text-[#38bdf8]" /> {user.email}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase font-bold text-[#64748b] tracking-widest">Số điện thoại</p>
+                      <p className="text-sm text-[#f8fafc] flex items-center gap-2">
+                        <Phone size={14} className="text-[#38bdf8]" /> {user.phone}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -263,13 +321,62 @@ export function Profile() {
                         </div>
                       </div>
                     ))}
-                    {staff.length === 0 && (
-                      <div className="p-8 text-center text-[#94a3b8]">
-                        Chưa có nhân sự nào.
-                      </div>
-                    )}
                   </div>
                 </CardContent>
+              </Card>
+
+              {/* Tenant Management Section */}
+              <Card>
+                <div className="px-6 py-4 border-b border-[#334155] flex justify-between items-center">
+                   <div className="flex items-center gap-2 font-bold text-[#f8fafc]">
+                    <Users size={18} className="text-[#10b981]" /> Quản lý Hồ sơ Người thuê
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowTenants(!showTenants)}
+                    className="text-[#10b981] font-bold"
+                  >
+                    {showTenants ? 'Thu gọn' : 'Xem danh sách'}
+                  </Button>
+                </div>
+                {showTenants && (
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-[#334155]">
+                       {tenants.map((t) => (
+                         <div key={t.id} className="px-6 py-4 flex justify-between items-center hover:bg-[#334155]/10 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[#10b981]/10 flex items-center justify-center font-bold text-[#10b981]">
+                                {t.name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-bold text-[#f8fafc]">{t.name}</p>
+                                <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === t.roomId)?.number || 'Trống'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right hidden sm:block">
+                                <p className="text-xs text-[#f8fafc]">{t.phone}</p>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  if(window.confirm('Xóa hồ sơ người thuê này? Hợp đồng liên quan cũng sẽ bị ảnh hưởng.')) deleteTenant(t.id);
+                                }}
+                                className="p-2 text-[#ef4444] hover:bg-[#ef4444]/10 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                         </div>
+                       ))}
+                       {tenants.length === 0 && (
+                        <div className="p-8 text-center text-[#94a3b8]">
+                          Chưa có hồ sơ người thuê nào.
+                        </div>
+                       )}
+                    </div>
+                  </CardContent>
+                )}
               </Card>
             </div>
           ) : (

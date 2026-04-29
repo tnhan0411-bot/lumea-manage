@@ -130,9 +130,6 @@ export function Billing() {
                     )}
                     <td className="px-6 py-4">
                       <span className="font-bold text-[#10b981] text-base">{inv.total.toLocaleString()}đ</span>
-                      <div className="text-[10px] text-[#64748b] mt-0.5">
-                        P: {inv.rent.toLocaleString()} | Đ: {inv.electricity.toLocaleString()} | N: {inv.water.toLocaleString()}
-                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {inv.status === 'paid' ? <Badge variant="success">Đã thu</Badge> : 
