@@ -122,40 +122,8 @@ export const INITIAL_USERS: User[] = [
 ];
 
 export const INITIAL_UTILITIES: any[] = [];
-
-export const INITIAL_TENANTS: Tenant[] = [
-  { id: 't1', name: 'Nguyễn Văn A', phone: '0901234567', email: 'nva@example.com', roomId: 'r1', contractStart: '2026-01-01', contractEnd: '2027-01-01', visaExpiry: '2026-05-15', avatar: 'https://picsum.photos/seed/user1/100/100' },
-  { id: 't2', name: 'Trần Thị B', phone: '0901234568', email: 'ttb@example.com', roomId: 'r2', contractStart: '2026-02-01', contractEnd: '2027-02-01', visaExpiry: '2026-04-30' },
-];
-
-export const INITIAL_CONTRACTS: Contract[] = [
-  {
-    id: 'c1',
-    roomId: 'r1',
-    tenantId: 't1',
-    startDate: '2026-01-01',
-    endDate: '2027-01-01',
-    deposit: 10000000,
-    monthlyRent: 5000000,
-    status: 'active',
-    attachments: [
-      { id: 'ca1', name: 'Hop_Dong_Thue_P101.pdf', url: '#', type: 'contract', uploadedAt: '2026-01-01' }
-    ]
-  }
-];
-
-export const INITIAL_EXPENSES: Expense[] = [
-  { id: 'e1', title: 'Tiền điện tổng', amount: 2500000, category: 'electricity', date: '2026-04-05' },
-  { id: 'e2', title: 'Sửa bồn cầu P106', amount: 500000, category: 'maintenance', date: '2026-04-12' },
-  { id: 'e3', title: 'Lương bảo vệ', amount: 7000000, category: 'staff', date: '2026-04-01' },
-];
-
-export const INITIAL_ISSUES: Issue[] = [
-  { id: 'i1', roomId: 'r1', title: 'Hỏng vòi nước', description: 'Vòi nước bồn rửa mặt bị rỉ', status: 'open', createdAt: '2026-04-20', type: 'repair' },
-  { id: 'i2', roomId: 'r3', title: 'Đăng ký dọn phòng', description: 'Cần dọn phòng vào cuối tuần', status: 'resolved', createdAt: '2026-04-15', type: 'cleaning' },
-];
-
-export const INITIAL_INVOICES: Invoice[] = [
-  { id: 'inv1', roomId: 'r1', tenantId: 't1', month: '2026-04', rent: 5000000, electricity: 300000, water: 100000, other: 50000, total: 5450000, status: 'pending', dueDate: '2026-05-05' },
-  { id: 'inv2', roomId: 'r2', tenantId: 't2', month: '2026-04', rent: 5500000, electricity: 250000, water: 100000, other: 0, total: 5850000, status: 'paid', dueDate: '2026-05-05' },
-];
+export const INITIAL_TENANTS: Tenant[] = [];
+export const INITIAL_CONTRACTS: Contract[] = [];
+export const INITIAL_EXPENSES: Expense[] = [];
+export const INITIAL_ISSUES: Issue[] = [];
+export const INITIAL_INVOICES: Invoice[] = [];

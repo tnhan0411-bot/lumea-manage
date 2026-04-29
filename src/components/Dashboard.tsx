@@ -486,7 +486,7 @@ export function Dashboard() {
                   <div key={v.id} className="flex items-center justify-between p-3 rounded-lg bg-[#0f172a] border border-[#334155]">
                     <div className="flex items-center gap-3">
                        <div className="h-8 w-8 rounded-full bg-[#1e293b] flex items-center justify-center text-[10px] font-bold text-[#f8fafc]">
-                         {v.name.charAt(0)}
+                         {(v.name || 'U').charAt(0)}
                        </div>
                        <div>
                          <p className="text-xs font-bold text-[#f8fafc]">{v.name}</p>

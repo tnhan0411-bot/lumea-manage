@@ -59,14 +59,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
  
   // Persistence: Load from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('lumea_user');
-    const savedRooms = localStorage.getItem('lumea_rooms');
-    const savedTenants = localStorage.getItem('lumea_tenants');
-    const savedIssues = localStorage.getItem('lumea_issues');
-    const savedInvoices = localStorage.getItem('lumea_invoices');
-    const savedContracts = localStorage.getItem('lumea_contracts');
-    const savedExpenses = localStorage.getItem('lumea_expenses');
-    const savedUsersList = localStorage.getItem('lumea_users_list');
+    const savedUser = localStorage.getItem('lumea_user_v2');
+    const savedRooms = localStorage.getItem('lumea_rooms_v2');
+    const savedTenants = localStorage.getItem('lumea_tenants_v2');
+    const savedIssues = localStorage.getItem('lumea_issues_v2');
+    const savedInvoices = localStorage.getItem('lumea_invoices_v2');
+    const savedContracts = localStorage.getItem('lumea_contracts_v2');
+    const savedExpenses = localStorage.getItem('lumea_expenses_v2');
+    const savedUsersList = localStorage.getItem('lumea_users_list_v2');
  
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedRooms) setRooms(JSON.parse(savedRooms));
@@ -83,14 +83,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Persistence: Save to localStorage on change
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem('lumea_user', JSON.stringify(user));
-    localStorage.setItem('lumea_rooms', JSON.stringify(rooms));
-    localStorage.setItem('lumea_tenants', JSON.stringify(tenants));
-    localStorage.setItem('lumea_issues', JSON.stringify(issues));
-    localStorage.setItem('lumea_invoices', JSON.stringify(invoices));
-    localStorage.setItem('lumea_contracts', JSON.stringify(contracts));
-    localStorage.setItem('lumea_expenses', JSON.stringify(expenses));
-    localStorage.setItem('lumea_users_list', JSON.stringify(usersList));
+    localStorage.setItem('lumea_user_v2', JSON.stringify(user));
+    localStorage.setItem('lumea_rooms_v2', JSON.stringify(rooms));
+    localStorage.setItem('lumea_tenants_v2', JSON.stringify(tenants));
+    localStorage.setItem('lumea_issues_v2', JSON.stringify(issues));
+    localStorage.setItem('lumea_invoices_v2', JSON.stringify(invoices));
+    localStorage.setItem('lumea_contracts_v2', JSON.stringify(contracts));
+    localStorage.setItem('lumea_expenses_v2', JSON.stringify(expenses));
+    localStorage.setItem('lumea_users_list_v2', JSON.stringify(usersList));
   }, [user, rooms, tenants, issues, invoices, contracts, expenses, usersList, isLoaded]);
  
   const login = (email: string, pass: string) => {
@@ -104,7 +104,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
  
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('lumea_user');
+    localStorage.removeItem('lumea_user_v2');
   };
 
   const addUser = (u: User) => setUsersList([...usersList, u]);

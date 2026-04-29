@@ -78,7 +78,7 @@ export function Profile() {
             <CardContent className="p-6 text-center">
               <div className="relative inline-block mb-4">
                 <div className="w-24 h-24 rounded-2xl bg-[#38bdf8]/10 border-2 border-[#38bdf8] flex items-center justify-center text-4xl font-bold text-[#38bdf8] shadow-xl shadow-[#38bdf8]/10">
-                  {user.name.charAt(0)}
+                  {(user.name || 'U').charAt(0)}
                 </div>
                 <button 
                   onClick={() => setIsEditingProfile(!isEditingProfile)}
@@ -296,7 +296,7 @@ export function Profile() {
                             "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white uppercase",
                             s.role === 'landlord' ? "bg-gradient-to-br from-[#38bdf8] to-[#0ea5e9]" : "bg-gradient-to-br from-[#f59e0b] to-[#d97706]"
                           )}>
-                            {s.name.charAt(0)}
+                            {(s.name || 'U').charAt(0)}
                           </div>
                           <div>
                             <p className="font-bold text-[#f8fafc]">{s.name}</p>
@@ -347,7 +347,7 @@ export function Profile() {
                          <div key={t.id} className="px-6 py-4 flex justify-between items-center hover:bg-[#334155]/10 transition-colors">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-[#10b981]/10 flex items-center justify-center font-bold text-[#10b981]">
-                                {t.name.charAt(0)}
+                                {(t.name || 'U').charAt(0)}
                               </div>
                               <div>
                                 <p className="font-bold text-[#f8fafc]">{t.name}</p>

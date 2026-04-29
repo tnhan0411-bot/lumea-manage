@@ -234,7 +234,7 @@ export function Layout() {
             </div>
             
             <div className="h-8 w-8 rounded-lg bg-[#38bdf8]/10 text-[#38bdf8] font-bold flex items-center justify-center border border-[#38bdf8]/20 shadow-lg shadow-[#38bdf8]/5 uppercase">
-              {user.name.charAt(0)}
+              {(user.name || 'U').charAt(0)}
             </div>
           </div>
         </header>

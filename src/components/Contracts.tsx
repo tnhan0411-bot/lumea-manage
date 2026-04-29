@@ -3,6 +3,7 @@ import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
 import { FileText, Calendar, DollarSign, User, Plus, Search, FileDown, Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { cn } from '../lib/utils';
 
 export function Contracts() {
   const { 
@@ -82,8 +83,8 @@ export function Contracts() {
     const tenant = tenants.find(t => t.id === c.tenantId);
     const room = rooms.find(r => r.id === c.roomId);
     return (
-      tenant?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room?.number.includes(searchTerm)
+      (tenant?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (room?.number || '').includes(searchTerm)
     );
   });
 
