@@ -15,9 +15,56 @@ export function Dashboard() {
   // Technician View
   if (role === 'technician') {
     const techIssues = issues.filter(i => i.status !== 'resolved');
+    
+    // Default filter state
+    const [techFilterMode, setTechFilterMode] = React.useState<'period' | 'range'>('period');
+    const [techPeriod, setTechPeriod] = React.useState('2026-Q2');
+    const [techDateRange, setTechDateRange] = React.useState({ start: '', end: '' });
+
+    // Filter resolved tasks
+    let resolvedIssues = issues.filter(i => i.status === 'resolved');
+    if (techFilterMode === 'range' && techDateRange.start && techDateRange.end) {
+      resolvedIssues = resolvedIssues.filter(i => i.createdAt >= techDateRange.start && i.createdAt <= techDateRange.end);
+    } else if (techFilterMode === 'period') {
+      const year = techPeriod.split('-')[0];
+      const part = techPeriod.split('-')[1];
+      resolvedIssues = resolvedIssues.filter(i => {
+        if (!i.createdAt) return false;
+        const iYear = i.createdAt.split('-')[0];
+        const iMonth = parseInt(i.createdAt.split('-')[1], 10);
+        if (iYear !== year) return false;
+        if (part === 'Q1' && iMonth >= 1 && iMonth <= 3) return true;
+        if (part === 'Q2' && iMonth >= 4 && iMonth <= 6) return true;
+        if (part === 'Q3' && iMonth >= 7 && iMonth <= 9) return true;
+        if (part === 'Q4' && iMonth >= 10 && iMonth <= 12) return true;
+        return false;
+      });
+    }
+
     const cleaningTasks = rooms.filter(r => r.cleaningSchedule.length > 0)
       .flatMap(r => r.cleaningSchedule.map(date => ({ roomId: r.id, roomNumber: r.number, date })))
       .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Handle CSV Export
+    const handleExport = () => {
+      const headings = ['ID', 'Loại công việc', 'Phòng', 'Mô tả', 'Ngày báo cáo'];
+      const rows = resolvedIssues.map(i => [
+        i.id,
+        i.type === 'repair' ? 'Sửa chữa' : 'Dọn dẹp',
+        i.roomId === 'elevator' ? 'Thang máy' : i.roomId === 'other' ? 'Khác' : rooms.find(r => r.id === i.roomId)?.number || '',
+        i.title,
+        i.createdAt
+      ]);
+      const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+        + headings.join(",") + "\n" 
+        + rows.map(e => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Bao_Cao_Cong_Viec_${techFilterMode === 'range' ? techDateRange.start + '_' + techDateRange.end : techPeriod}.csv`);
+      document.body.appendChild(link); // Required for FF
+      link.click();
+    };
 
     return (
       <div className="space-y-6">
@@ -29,6 +76,7 @@ export function Dashboard() {
           <Badge variant="info">Ca làm việc sáng</Badge>
         </div>
 
+        {/* Existing Blocks for Pending Tasks */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="border-[#ef4444]/20">
             <CardHeader title="Sự cố cần sửa chữa" />
@@ -61,7 +109,9 @@ export function Dashboard() {
             <CardHeader title="Lịch dọn vệ sinh" />
             <CardContent>
               <div className="space-y-4">
-                {cleaningTasks.slice(0, 5).map((task, idx) => (
+                {cleaningTasks.length === 0 ? (
+                  <div className="text-center py-8 text-[#94a3b8]">Không có lịch dọn vệ sinh.</div>
+                ) : cleaningTasks.slice(0, 5).map((task, idx) => (
                   <div key={idx} className="p-4 bg-[#10b981]/5 rounded-xl border border-[#10b981]/10 flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#10b981]/10 rounded-lg flex items-center justify-center font-bold text-[#10b981]">
@@ -79,6 +129,95 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Dashboard for Completed Tasks & Report Export */}
+        <Card className="border-[#38bdf8]/20">
+          <div className="p-6 border-b border-[#334155] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-[#f8fafc] flex items-center gap-2">
+                <CheckCircle2 size={20} className="text-[#38bdf8]" />
+                Công việc đã hoàn thành
+              </h2>
+              <p className="text-sm text-[#94a3b8] mt-1">Thống kê và xuất báo cáo công việc</p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex bg-[#0f172a] border border-[#334155] rounded-lg p-1">
+                <button 
+                  onClick={() => setTechFilterMode('period')}
+                  className={cn("px-4 py-1.5 text-xs font-medium rounded-lg transition-colors", techFilterMode === 'period' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]")}
+                >
+                  Theo Quý
+                </button>
+                <button 
+                  onClick={() => setTechFilterMode('range')}
+                  className={cn("px-4 py-1.5 text-xs font-medium rounded-lg transition-colors", techFilterMode === 'range' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]")}
+                >
+                  Tùy chọn
+                </button>
+              </div>
+
+              {techFilterMode === 'range' ? (
+                <div className="flex items-center gap-2">
+                  <input type="date" value={techDateRange.start} onChange={e => setTechDateRange({...techDateRange, start: e.target.value})} className="bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc]" />
+                  <span className="text-[#94a3b8]">-</span>
+                  <input type="date" value={techDateRange.end} onChange={e => setTechDateRange({...techDateRange, end: e.target.value})} className="bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc]" />
+                </div>
+              ) : (
+                <select 
+                  value={techPeriod} 
+                  onChange={e => setTechPeriod(e.target.value)}
+                  className="bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc]"
+                >
+                  <option value="2026-Q1">Quý 1 / 2026</option>
+                  <option value="2026-Q2">Quý 2 / 2026</option>
+                  <option value="2026-Q3">Quý 3 / 2026</option>
+                  <option value="2026-Q4">Quý 4 / 2026</option>
+                </select>
+              )}
+
+              <Button onClick={handleExport} variant="primary" className="flex items-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.3)] min-w-[140px]">
+                {/* FileDown import icon is not defined, we'll use a standard text or if imported, use it. But wait, I see `AlertCircle` is imported but I need to make sure `FileDown` is available or just use another icon, let's use BarChartIcon */}
+                <BarChartIcon size={16} /> Xuất báo cáo
+              </Button>
+            </div>
+          </div>
+          <CardContent>
+            {resolvedIssues.length === 0 ? (
+              <div className="py-8 text-center text-[#94a3b8]">Không có công việc nào hoàn thành trong thời gian này.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-[#94a3b8]">
+                  <thead className="bg-[#1e293b]/50 border-b border-[#334155]">
+                    <tr>
+                      <th className="px-4 py-3 font-medium uppercase text-xs tracking-wider text-[#f8fafc]">Ngày báo cáo</th>
+                      <th className="px-4 py-3 font-medium uppercase text-xs tracking-wider text-[#f8fafc]">Phòng/Vị trí</th>
+                      <th className="px-4 py-3 font-medium uppercase text-xs tracking-wider text-[#f8fafc]">Sự cố</th>
+                      <th className="px-4 py-3 font-medium uppercase text-xs tracking-wider text-[#f8fafc]">Loại</th>
+                      <th className="px-4 py-3 font-medium uppercase text-xs tracking-wider text-[#f8fafc]">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#334155]">
+                    {resolvedIssues.map(issue => (
+                      <tr key={issue.id} className="hover:bg-[#334155]/20 transition-colors">
+                        <td className="px-4 py-3 text-[#f8fafc] whitespace-nowrap">{issue.createdAt}</td>
+                        <td className="px-4 py-3 text-[#f8fafc]">
+                          {issue.roomId === 'elevator' ? 'Thang máy' : issue.roomId === 'other' ? 'Khác' : `Phòng ${rooms.find(r => r.id === issue.roomId)?.number || ''}`}
+                        </td>
+                        <td className="px-4 py-3 text-[#f8fafc]">{issue.title}</td>
+                        <td className="px-4 py-3">
+                          <span className="text-[#38bdf8] font-medium">{issue.type === 'repair' ? 'Sửa chữa' : 'Dọn dẹp'}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="success">Hoàn thành</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }
