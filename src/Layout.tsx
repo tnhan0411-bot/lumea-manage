@@ -56,7 +56,6 @@ export function Layout() {
           { id: 'dashboard', label: 'Trạng thái chung', icon: LayoutDashboard },
           { id: 'maintenance', label: 'Lịch bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
           { id: 'cleaning', label: 'Lịch dọn vệ sinh', icon: Zap },
-          { id: 'rooms', label: 'Xem phòng', icon: Building2 },
           { id: 'profile', label: 'Hồ sơ kỹ thuật', icon: User },
         ];
       case 'tenant':
