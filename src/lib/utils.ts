@@ -115,10 +115,10 @@ export const INITIAL_ROOMS: Room[] = [
 ];
 
 export const INITIAL_USERS: User[] = [
-  { id: 'u1', name: 'Landlord Admin 1', email: 'admin1@lumea.vn', role: 'landlord', phone: '0911001100', password: 'password123' },
-  { id: 'u2', name: 'Landlord Admin 2', email: 'admin2@lumea.vn', role: 'landlord', phone: '0911001122', password: 'password123' },
-  { id: 'u3', name: 'Kỹ thuật viên Tùng', email: 'tech@lumea.vn', role: 'technician', phone: '0922002200', password: 'password123' },
-  { id: 'u4', name: 'Nguyễn Văn A', email: 'tenant1@example.com', role: 'tenant', phone: '0933003300', password: 'password123' },
+  { id: 'u1', name: 'Quản lý', email: 'admin1@lumea.vn', role: 'landlord', phone: '0911001100', password: 'password123' },
+  { id: 'u2', name: 'Quản lý 2', email: 'admin2@lumea.vn', role: 'landlord', phone: '0911001122', password: 'password123' },
+  { id: 'u3', name: 'Kỹ thuật', email: 'tech@lumea.vn', role: 'technician', phone: '0922002200', password: 'password123' },
+  { id: 'u4', name: 'Người thuê', email: 'tenant1@example.com', role: 'tenant', phone: '0933003300', password: 'password123' },
 ];
 
 export const INITIAL_UTILITIES: any[] = [];

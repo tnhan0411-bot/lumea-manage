@@ -68,14 +68,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const savedExpenses = localStorage.getItem('lumea_expenses_v2');
     const savedUsersList = localStorage.getItem('lumea_users_list_v2');
  
-    if (savedUser) setUser(JSON.parse(savedUser));
+    if (savedUsersList) {
+      const parsedUserList = JSON.parse(savedUsersList);
+      setUsersList(parsedUserList);
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        const updatedUser = parsedUserList.find((u: User) => u.id === parsedUser.id) || parsedUser;
+        setUser(updatedUser);
+      }
+    } else {
+      if (savedUser) setUser(JSON.parse(savedUser));
+    }
+    
     if (savedRooms) setRooms(JSON.parse(savedRooms));
     if (savedTenants) setTenants(JSON.parse(savedTenants));
     if (savedIssues) setIssues(JSON.parse(savedIssues));
     if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
     if (savedContracts) setContracts(JSON.parse(savedContracts));
     if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
-    if (savedUsersList) setUsersList(JSON.parse(savedUsersList));
     
     setIsLoaded(true);
   }, []);
@@ -91,6 +101,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('lumea_contracts_v2', JSON.stringify(contracts));
     localStorage.setItem('lumea_expenses_v2', JSON.stringify(expenses));
     localStorage.setItem('lumea_users_list_v2', JSON.stringify(usersList));
+    
+    // Sync current user if it changed in usersList
+    if (user) {
+      const latestUser = usersList.find(u => u.id === user.id);
+      if (latestUser && latestUser.name !== user.name) {
+        setUser(latestUser);
+      }
+    }
   }, [user, rooms, tenants, issues, invoices, contracts, expenses, usersList, isLoaded]);
  
   const login = (email: string, pass: string) => {
