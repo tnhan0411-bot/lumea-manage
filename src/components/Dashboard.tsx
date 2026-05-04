@@ -10,17 +10,17 @@ export function Dashboard() {
   const [period, setPeriod] = React.useState('2026-Q2');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
+  // Technician role filter states
+  const [techFilterMode, setTechFilterMode] = React.useState<'period' | 'range'>('period');
+  const [techPeriod, setTechPeriod] = React.useState('2026-Q2');
+  const [techDateRange, setTechDateRange] = React.useState({ start: '', end: '' });
+  
   const billingStatus = role === 'landlord' ? checkMonthlyBilling() : { pendingRooms: [], generateAll: () => {} };
 
   // Technician View
   if (role === 'technician') {
     const techIssues = issues.filter(i => i.status !== 'resolved');
     
-    // Default filter state
-    const [techFilterMode, setTechFilterMode] = React.useState<'period' | 'range'>('period');
-    const [techPeriod, setTechPeriod] = React.useState('2026-Q2');
-    const [techDateRange, setTechDateRange] = React.useState({ start: '', end: '' });
-
     // Filter resolved tasks
     let resolvedIssues = issues.filter(i => i.status === 'resolved');
     if (techFilterMode === 'range' && techDateRange.start && techDateRange.end) {
@@ -41,8 +41,8 @@ export function Dashboard() {
       });
     }
 
-    const cleaningTasks = rooms.filter(r => r.cleaningSchedule.length > 0)
-      .flatMap(r => r.cleaningSchedule.map(date => ({ roomId: r.id, roomNumber: r.number, date })))
+    const cleaningTasks = rooms.filter(r => r.cleaningSchedule?.length > 0)
+      .flatMap(r => r.cleaningSchedule?.map(date => ({ roomId: r.id, roomNumber: r.number, date })) || [])
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Handle CSV Export
@@ -270,7 +270,7 @@ export function Dashboard() {
               <div>
                 <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Ngày dọn phòng tiếp theo</p>
                 <p className="text-lg font-bold text-[#f8fafc] mt-1">
-                  {myRoom?.cleaningSchedule[0] || 'Chưa có lịch'}
+                  {myRoom?.cleaningSchedule?.[0] || 'Chưa có lịch'}
                 </p>
               </div>
             </CardContent>

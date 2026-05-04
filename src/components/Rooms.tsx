@@ -15,7 +15,12 @@ export function RoomList() {
   const handleEditClick = (room: Room) => {
     if (role === 'tenant') return;
     setEditingRoomId(room.id);
-    setTempRoom({ ...room });
+    setTempRoom({ 
+      ...room, 
+      cleaningSchedule: room.cleaningSchedule || [], 
+      attachments: room.attachments || [], 
+      features: room.features || [] 
+    });
     const tenant = tenants.find(t => t.roomId === room.id);
     setTempTenantName(tenant ? tenant.name : '');
   };
@@ -385,12 +390,12 @@ export function RoomList() {
                         <Clock size={12} className="text-[#ef4444]" />
                       </div>
                     )}
-                    {(room.status === 'occupied' || room.cleaningSchedule.length > 0) && (
+                    {(room.status === 'occupied' || (room.cleaningSchedule?.length || 0) > 0) && (
                       <div className="w-6 h-6 rounded bg-[#10b981]/10 border border-[#10b981]/30 flex items-center justify-center" title="Lịch dọn dẹp">
                          <Calendar size={12} className="text-[#10b981]" />
                       </div>
                     )}
-                    {room.attachments.length > 0 && (
+                    {((room.attachments?.length || 0) > 0) && (
                       <div className="w-6 h-6 rounded bg-[#38bdf8]/10 border border-[#38bdf8]/30 flex items-center justify-center" title="Hồ sơ">
                         <Paperclip size={12} className="text-[#38bdf8]" />
                       </div>

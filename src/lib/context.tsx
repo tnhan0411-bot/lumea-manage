@@ -69,7 +69,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const savedUsersList = localStorage.getItem('lumea_users_list_v2');
  
     if (savedUsersList) {
-      const parsedUserList = JSON.parse(savedUsersList);
+      let parsedUserList = JSON.parse(savedUsersList);
+      
+      // Auto-migrate old names to new names
+      parsedUserList = parsedUserList.map((u: User) => {
+        if (u.id === 'u1' && u.name === 'Landlord Admin 1') return { ...u, name: 'Quản lý' };
+        if (u.id === 'u2' && u.name === 'Landlord Admin 2') return { ...u, name: 'Quản lý 2' };
+        if (u.id === 'u3' && u.name === 'Kỹ thuật viên Tùng') return { ...u, name: 'Kỹ thuật' };
+        return u;
+      });
+
       setUsersList(parsedUserList);
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
@@ -80,12 +89,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedUser) setUser(JSON.parse(savedUser));
     }
     
-    if (savedRooms) setRooms(JSON.parse(savedRooms));
-    if (savedTenants) setTenants(JSON.parse(savedTenants));
-    if (savedIssues) setIssues(JSON.parse(savedIssues));
-    if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
-    if (savedContracts) setContracts(JSON.parse(savedContracts));
-    if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+    if (savedRooms) setRooms(JSON.parse(savedRooms) || []);
+    if (savedTenants) setTenants(JSON.parse(savedTenants) || []);
+    if (savedIssues) setIssues(JSON.parse(savedIssues) || []);
+    if (savedInvoices) setInvoices(JSON.parse(savedInvoices) || []);
+    if (savedContracts) setContracts(JSON.parse(savedContracts) || []);
+    if (savedExpenses) setExpenses(JSON.parse(savedExpenses) || []);
     
     setIsLoaded(true);
   }, []);
