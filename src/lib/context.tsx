@@ -67,7 +67,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Persistence: Load from Firestore on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('lumea_user_v2');
-    if (savedUser) setUser(JSON.parse(savedUser));
+    if (savedUser && savedUser !== "null") setUser(JSON.parse(savedUser));
 
     const unsub = onSnapshot(doc(db, 'state', 'global'), (docSnap) => {
       if (docSnap.exists()) {
@@ -81,10 +81,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.usersList) {
           setUsersList(data.usersList);
           
-          if (savedUser) {
+          if (savedUser && savedUser !== "null") {
             const parsedUser = JSON.parse(savedUser);
-            const updatedUser = data.usersList.find((u: User) => u.id === parsedUser.id) || parsedUser;
-            setUser(updatedUser);
+            if (parsedUser) {
+              const updatedUser = data.usersList.find((u: User) => u.id === parsedUser.id) || parsedUser;
+              setUser(updatedUser);
+            }
           }
         }
       } else {
@@ -108,14 +110,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Sync current user to local storage
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem('lumea_user_v2', JSON.stringify(user));
     
-    // Sync current user if it changed in usersList
     if (user) {
+      localStorage.setItem('lumea_user_v2', JSON.stringify(user));
+      
+      // Sync current user if it changed in usersList
       const latestUser = usersList.find(u => u.id === user.id);
       if (latestUser && latestUser.name !== user.name) {
         setUser(latestUser);
       }
+    } else {
+      localStorage.removeItem('lumea_user_v2');
     }
   }, [user, usersList, isLoaded]);
  
