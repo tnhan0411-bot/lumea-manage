@@ -5,7 +5,7 @@ import { User, Mail, Phone, MapPin, Shield, Settings, LogOut, Key, Building2, Us
 import { cn } from '../lib/utils';
 
 export function Profile() {
-  const { user, role, logout, contracts, rooms, usersList, addUser, updateUser, deleteUser, tenants } = useAppContext();
+  const { user, role, logout, contracts, rooms, usersList, addUser, updateUser, deleteUser, tenants, deleteTenant } = useAppContext();
   
   // Building settings
   const [apartmentName, setApartmentName] = React.useState('Lumea Nest Serviced Apartment');

@@ -9,7 +9,6 @@ import { Billing } from './components/Billing';
 import { Reports } from './components/Reports';
 import { Contracts } from './components/Contracts';
 import { Profile } from './components/Profile';
-import { Utilities } from './components/Utilities';
 import { Expenses } from './components/Expenses';
 import { Login } from './components/Login';
 import { cn } from './lib/utils';
