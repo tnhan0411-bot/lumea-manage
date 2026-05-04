@@ -138,7 +138,7 @@ export function Maintenance() {
                   </div>
                 </div>
 
-                {role === 'landlord' && issue.status !== 'resolved' && (
+                {role === 'technician' && issue.status !== 'resolved' && (
                   <div className="flex gap-2 w-full md:w-auto mt-4 md:mt-0 justify-end">
                     {issue.status === 'open' && (
                       <Button variant="outline" size="sm" onClick={() => updateIssue(issue.id, 'in-progress')}>

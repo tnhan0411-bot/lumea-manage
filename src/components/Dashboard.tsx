@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn, formatVND } from '../lib/utils';
 
 export function Dashboard() {
-  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling } = useAppContext();
+  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue } = useAppContext();
   const [period, setPeriod] = React.useState('2026-Q2');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
@@ -90,14 +90,24 @@ export function Dashboard() {
                   </div>
                 ) : 
                   techIssues.map(issue => (
-                    <div key={issue.id} className="p-4 bg-[#ef4444]/5 rounded-xl border border-[#ef4444]/10 flex items-start justify-between">
+                    <div key={issue.id} className="p-4 bg-[#ef4444]/5 rounded-xl border border-[#ef4444]/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                        <div>
                           <p className="font-bold text-[#f8fafc]">{issue.title}</p>
                           <p className="text-xs text-[#94a3b8] mt-1">Phòng {rooms.find(r => r.id === issue.roomId)?.number} • Báo cáo: {issue.createdAt}</p>
                        </div>
-                       <Badge variant={issue.status === 'in-progress' ? 'info' : 'warning'}>
-                         {issue.status === 'in-progress' ? 'Đang sửa' : 'Chưa xử lý'}
-                       </Badge>
+                       <div className="flex items-center gap-3">
+                         <Badge variant={issue.status === 'in-progress' ? 'info' : 'warning'}>
+                           {issue.status === 'in-progress' ? 'Đang sửa' : 'Chưa xử lý'}
+                         </Badge>
+                         {issue.status === 'open' && (
+                           <Button variant="outline" size="sm" onClick={() => updateIssue(issue.id, 'in-progress')}>
+                             Tiếp nhận
+                           </Button>
+                         )}
+                         <Button variant="primary" size="sm" onClick={() => updateIssue(issue.id, 'resolved')}>
+                           Hoàn thành
+                         </Button>
+                       </div>
                     </div>
                   ))
                 }
