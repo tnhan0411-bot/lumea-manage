@@ -8,7 +8,7 @@ export function Maintenance() {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
-  const [roomId, setRoomId] = useState(rooms[0].id);
+  const [roomId, setRoomId] = useState(rooms[0]?.id || '');
   const [maintenanceDate, setMaintenanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<'repair' | 'cleaning'>('repair');
 

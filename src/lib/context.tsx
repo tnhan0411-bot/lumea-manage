@@ -99,7 +99,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsLoaded(true);
   }, []);
  
-  // Persistence: Save to localStorage on change
+  // Handle cross-tab synchronization
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'lumea_user_v2' && e.newValue) setUser(JSON.parse(e.newValue));
+      if (e.key === 'lumea_rooms_v2' && e.newValue) setRooms(JSON.parse(e.newValue));
+      if (e.key === 'lumea_tenants_v2' && e.newValue) setTenants(JSON.parse(e.newValue));
+      if (e.key === 'lumea_issues_v2' && e.newValue) setIssues(JSON.parse(e.newValue));
+      if (e.key === 'lumea_invoices_v2' && e.newValue) setInvoices(JSON.parse(e.newValue));
+      if (e.key === 'lumea_contracts_v2' && e.newValue) setContracts(JSON.parse(e.newValue));
+      if (e.key === 'lumea_expenses_v2' && e.newValue) setExpenses(JSON.parse(e.newValue));
+      if (e.key === 'lumea_users_list_v2' && e.newValue) setUsersList(JSON.parse(e.newValue));
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('lumea_user_v2', JSON.stringify(user));

@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 export function Cleaning() {
   const { role, issues, addIssue, updateIssue, rooms, deleteIssue } = useAppContext();
   const [showForm, setShowForm] = useState(false);
-  const [roomId, setRoomId] = useState(rooms[0].id);
+  const [roomId, setRoomId] = useState(rooms[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('09:00');
 
