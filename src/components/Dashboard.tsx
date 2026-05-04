@@ -76,6 +76,65 @@ export function Dashboard() {
           <Badge variant="info">Ca làm việc sáng</Badge>
         </div>
 
+        {/* Overview Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Đã hoàn thành</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[#10b981]">{resolvedIssues.length}</span>
+                <span className="text-xs text-[#94a3b8]">lệnh</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Đang xử lý</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[#38bdf8]">{techIssues.filter(i => i.status === 'in-progress').length}</span>
+                <span className="text-xs text-[#94a3b8]">lệnh</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Chưa xử lý</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[#fbbf24]">{techIssues.filter(i => i.status === 'open').length}</span>
+                <span className="text-xs text-[#94a3b8]">lệnh</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50 flex flex-col justify-between">
+            <CardContent className="p-4 flex flex-col h-full justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Tỉ lệ hoàn thành</p>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-[#f8fafc]">
+                    {(() => {
+                      const total = techIssues.length + resolvedIssues.length;
+                      return total > 0 ? Math.round((resolvedIssues.length / total) * 100) : 0;
+                    })()}%
+                  </span>
+                  <span className="text-xs text-[#94a3b8]">hiệu suất</span>
+                </div>
+              </div>
+              <div className="mt-4 w-full bg-[#334155] rounded-full h-1.5">
+                <div 
+                  className="bg-[#38bdf8] h-1.5 rounded-full" 
+                  style={{ width: `${(() => {
+                    const total = techIssues.length + resolvedIssues.length;
+                    return total > 0 ? Math.round((resolvedIssues.length / total) * 100) : 0;
+                  })()}%` }}
+                ></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Existing Blocks for Pending Tasks */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="border-[#ef4444]/20">

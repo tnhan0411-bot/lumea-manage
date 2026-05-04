@@ -82,14 +82,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.expenses) setExpenses(data.expenses);
         if (data.usersList) {
           setUsersList(data.usersList);
-          
-          if (savedUser && savedUser !== "null") {
-            const parsedUser = JSON.parse(savedUser);
-            if (parsedUser) {
-              const updatedUser = data.usersList.find((u: User) => u.id === parsedUser.id) || parsedUser;
-              setUser(updatedUser);
-            }
-          }
         }
       } else {
         // Init remote document first time
