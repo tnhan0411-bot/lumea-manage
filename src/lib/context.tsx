@@ -1,8 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
 import { 
   Room, Tenant, Issue, Invoice, Contract, Expense, User, 
   INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS 
 } from './utils';
+
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
 
 interface AppState {
   user: User | null;
@@ -57,74 +64,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
  
-  // Persistence: Load from localStorage on mount
+  // Persistence: Load from Firestore on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('lumea_user_v2');
-    const savedRooms = localStorage.getItem('lumea_rooms_v2');
-    const savedTenants = localStorage.getItem('lumea_tenants_v2');
-    const savedIssues = localStorage.getItem('lumea_issues_v2');
-    const savedInvoices = localStorage.getItem('lumea_invoices_v2');
-    const savedContracts = localStorage.getItem('lumea_contracts_v2');
-    const savedExpenses = localStorage.getItem('lumea_expenses_v2');
-    const savedUsersList = localStorage.getItem('lumea_users_list_v2');
- 
-    if (savedUsersList) {
-      let parsedUserList = JSON.parse(savedUsersList);
-      
-      // Auto-migrate old names to new names
-      parsedUserList = parsedUserList.map((u: User) => {
-        if (u.id === 'u1' && u.name === 'Landlord Admin 1') return { ...u, name: 'Quản lý' };
-        if (u.id === 'u2' && u.name === 'Landlord Admin 2') return { ...u, name: 'Quản lý 2' };
-        if (u.id === 'u3' && u.name === 'Kỹ thuật viên Tùng') return { ...u, name: 'Kỹ thuật' };
-        return u;
-      });
+    if (savedUser) setUser(JSON.parse(savedUser));
 
-      setUsersList(parsedUserList);
-      if (savedUser) {
-        const parsedUser = JSON.parse(savedUser);
-        const updatedUser = parsedUserList.find((u: User) => u.id === parsedUser.id) || parsedUser;
-        setUser(updatedUser);
+    const unsub = onSnapshot(doc(db, 'state', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.rooms) setRooms(data.rooms);
+        if (data.tenants) setTenants(data.tenants);
+        if (data.issues) setIssues(data.issues);
+        if (data.invoices) setInvoices(data.invoices);
+        if (data.contracts) setContracts(data.contracts);
+        if (data.expenses) setExpenses(data.expenses);
+        if (data.usersList) {
+          setUsersList(data.usersList);
+          
+          if (savedUser) {
+            const parsedUser = JSON.parse(savedUser);
+            const updatedUser = data.usersList.find((u: User) => u.id === parsedUser.id) || parsedUser;
+            setUser(updatedUser);
+          }
+        }
+      } else {
+        // Init remote document first time
+        setDoc(doc(db, 'state', 'global'), {
+          rooms: INITIAL_ROOMS,
+          tenants: INITIAL_TENANTS,
+          issues: INITIAL_ISSUES,
+          invoices: INITIAL_INVOICES,
+          contracts: INITIAL_CONTRACTS,
+          expenses: INITIAL_EXPENSES,
+          usersList: INITIAL_USERS
+        });
       }
-    } else {
-      if (savedUser) setUser(JSON.parse(savedUser));
-    }
-    
-    if (savedRooms) setRooms(JSON.parse(savedRooms) || []);
-    if (savedTenants) setTenants(JSON.parse(savedTenants) || []);
-    if (savedIssues) setIssues(JSON.parse(savedIssues) || []);
-    if (savedInvoices) setInvoices(JSON.parse(savedInvoices) || []);
-    if (savedContracts) setContracts(JSON.parse(savedContracts) || []);
-    if (savedExpenses) setExpenses(JSON.parse(savedExpenses) || []);
-    
-    setIsLoaded(true);
+      setIsLoaded(true);
+    });
+
+    return () => unsub();
   }, []);
- 
-  // Handle cross-tab synchronization
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'lumea_user_v2' && e.newValue) setUser(JSON.parse(e.newValue));
-      if (e.key === 'lumea_rooms_v2' && e.newValue) setRooms(JSON.parse(e.newValue));
-      if (e.key === 'lumea_tenants_v2' && e.newValue) setTenants(JSON.parse(e.newValue));
-      if (e.key === 'lumea_issues_v2' && e.newValue) setIssues(JSON.parse(e.newValue));
-      if (e.key === 'lumea_invoices_v2' && e.newValue) setInvoices(JSON.parse(e.newValue));
-      if (e.key === 'lumea_contracts_v2' && e.newValue) setContracts(JSON.parse(e.newValue));
-      if (e.key === 'lumea_expenses_v2' && e.newValue) setExpenses(JSON.parse(e.newValue));
-      if (e.key === 'lumea_users_list_v2' && e.newValue) setUsersList(JSON.parse(e.newValue));
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+
+  // Sync current user to local storage
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('lumea_user_v2', JSON.stringify(user));
-    localStorage.setItem('lumea_rooms_v2', JSON.stringify(rooms));
-    localStorage.setItem('lumea_tenants_v2', JSON.stringify(tenants));
-    localStorage.setItem('lumea_issues_v2', JSON.stringify(issues));
-    localStorage.setItem('lumea_invoices_v2', JSON.stringify(invoices));
-    localStorage.setItem('lumea_contracts_v2', JSON.stringify(contracts));
-    localStorage.setItem('lumea_expenses_v2', JSON.stringify(expenses));
-    localStorage.setItem('lumea_users_list_v2', JSON.stringify(usersList));
     
     // Sync current user if it changed in usersList
     if (user) {
@@ -133,7 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setUser(latestUser);
       }
     }
-  }, [user, rooms, tenants, issues, invoices, contracts, expenses, usersList, isLoaded]);
+  }, [user, usersList, isLoaded]);
  
   const login = (email: string, pass: string) => {
     const foundUser = usersList.find(u => u.email === email && u.password === pass);
@@ -149,69 +133,146 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('lumea_user_v2');
   };
 
-  const addUser = (u: User) => setUsersList([...usersList, u]);
+  const addUser = (u: User) => {
+    const newItems = [...usersList, u];
+    setUsersList(newItems);
+    syncToDb('usersList', newItems);
+  };
   const updateUser = (id: string, updates: Partial<User>) => {
-    setUsersList(usersList.map(u => u.id === id ? { ...u, ...updates } : u));
+    const newItems = usersList.map(u => u.id === id ? { ...u, ...updates } : u);
+    setUsersList(newItems);
+    syncToDb('usersList', newItems);
     if (user?.id === id) {
       setUser({ ...user, ...updates });
     }
   };
-  const deleteUser = (id: string) => setUsersList(usersList.filter(u => u.id !== id));
+  const deleteUser = (id: string) => {
+    const newItems = usersList.filter(u => u.id !== id);
+    setUsersList(newItems);
+    syncToDb('usersList', newItems);
+  };
 
-  const addIssue = (issue: Issue) => setIssues([issue, ...issues]);
+  const syncToDb = (key: string, data: any) => {
+    setDoc(doc(db, 'state', 'global'), { [key]: data }, { merge: true }).catch(console.error);
+  };
+
+  const addIssue = (issue: Issue) => {
+    const newItems = [issue, ...issues];
+    setIssues(newItems);
+    syncToDb('issues', newItems);
+  };
   const updateIssue = (id: string, status: Issue['status']) => {
-    setIssues(issues.map(i => i.id === id ? { ...i, status } : i));
+    const newItems = issues.map(i => i.id === id ? { ...i, status } : i);
+    setIssues(newItems);
+    syncToDb('issues', newItems);
   };
   const deleteIssue = (id: string) => {
-    setIssues(issues.filter(i => i.id !== id));
+    const newItems = issues.filter(i => i.id !== id);
+    setIssues(newItems);
+    syncToDb('issues', newItems);
   };
   const payInvoice = (id: string) => {
-    setInvoices(invoices.map(i => i.id === id ? { ...i, status: 'paid' as const } : i));
+    const newItems = invoices.map(i => i.id === id ? { ...i, status: 'paid' as const } : i);
+    setInvoices(newItems);
+    syncToDb('invoices', newItems);
   };
-  const addInvoice = (invoice: Invoice) => setInvoices([invoice, ...invoices]);
+  const addInvoice = (invoice: Invoice) => {
+    const newItems = [invoice, ...invoices];
+    setInvoices(newItems);
+    syncToDb('invoices', newItems);
+  };
   const updateInvoice = (id: string, updates: Partial<Invoice>) => {
-    setInvoices(invoices.map(i => i.id === id ? { ...i, ...updates } : i));
+    const newItems = invoices.map(i => i.id === id ? { ...i, ...updates } : i);
+    setInvoices(newItems);
+    syncToDb('invoices', newItems);
   };
   const deleteInvoice = (id: string) => {
-    setInvoices(invoices.filter(i => i.id !== id));
+    const newItems = invoices.filter(i => i.id !== id);
+    setInvoices(newItems);
+    syncToDb('invoices', newItems);
   };
 
   const updateRoom = (id: string, updates: Partial<Room>) => {
-    setRooms(rooms.map(r => r.id === id ? { ...r, ...updates } : r));
+    const newItems = rooms.map(r => r.id === id ? { ...r, ...updates } : r);
+    setRooms(newItems);
+    syncToDb('rooms', newItems);
   };
 
-  const addRoom = (room: Room) => setRooms([...rooms, room]);
-  const deleteRoom = (id: string) => setRooms(rooms.filter(r => r.id !== id));
+  const addRoom = (room: Room) => {
+    const newItems = [...rooms, room];
+    setRooms(newItems);
+    syncToDb('rooms', newItems);
+  };
+  const deleteRoom = (id: string) => {
+    const newItems = rooms.filter(r => r.id !== id);
+    setRooms(newItems);
+    syncToDb('rooms', newItems);
+  };
 
   const checkoutRoom = (id: string) => {
-    setRooms(rooms.map(r => r.id === id ? { 
+    const newRooms = rooms.map(r => r.id === id ? { 
       ...r, 
       status: 'available', 
       leaseStart: undefined, 
       leaseEnd: undefined 
-    } : r));
+    } : r);
+    setRooms(newRooms as any);
+    syncToDb('rooms', newRooms);
+    
     // Also remove tenant from this room
-    setTenants(tenants.map(t => t.roomId === id ? { ...t, roomId: undefined } : t));
+    const newTenants = tenants.map(t => t.roomId === id ? { ...t, roomId: undefined } : t);
+    setTenants(newTenants);
+    syncToDb('tenants', newTenants);
   };
 
   const updateTenant = (id: string, updates: Partial<Tenant>) => {
-    setTenants(tenants.map(t => t.id === id ? { ...t, ...updates } : t));
+    const newItems = tenants.map(t => t.id === id ? { ...t, ...updates } : t);
+    setTenants(newItems);
+    syncToDb('tenants', newItems);
   };
 
-  const addTenant = (tenant: Tenant) => setTenants([...tenants, tenant]);
-  const deleteTenant = (id: string) => setTenants(tenants.filter(t => t.id !== id));
+  const addTenant = (tenant: Tenant) => {
+    const newItems = [...tenants, tenant];
+    setTenants(newItems);
+    syncToDb('tenants', newItems);
+  };
+  const deleteTenant = (id: string) => {
+    const newItems = tenants.filter(t => t.id !== id);
+    setTenants(newItems);
+    syncToDb('tenants', newItems);
+  };
 
-  const addExpense = (expense: Expense) => setExpenses([expense, ...expenses]);
+  const addExpense = (expense: Expense) => {
+    const newItems = [expense, ...expenses];
+    setExpenses(newItems);
+    syncToDb('expenses', newItems);
+  };
   const updateExpense = (id: string, updates: Partial<Expense>) => {
-    setExpenses(expenses.map(e => e.id === id ? { ...e, ...updates } : e));
+    const newItems = expenses.map(e => e.id === id ? { ...e, ...updates } : e);
+    setExpenses(newItems);
+    syncToDb('expenses', newItems);
   };
-  const deleteExpense = (id: string) => setExpenses(expenses.filter(e => e.id !== id));
+  const deleteExpense = (id: string) => {
+    const newItems = expenses.filter(e => e.id !== id);
+    setExpenses(newItems);
+    syncToDb('expenses', newItems);
+  };
   
-  const addContract = (contract: Contract) => setContracts([contract, ...contracts]);
-  const updateContract = (id: string, updates: Partial<Contract>) => {
-    setContracts(contracts.map(c => c.id === id ? { ...c, ...updates } : c));
+  const addContract = (contract: Contract) => {
+    const newItems = [contract, ...contracts];
+    setContracts(newItems);
+    syncToDb('contracts', newItems);
   };
-  const deleteContract = (id: string) => setContracts(contracts.filter(c => c.id !== id));
+  const updateContract = (id: string, updates: Partial<Contract>) => {
+    const newItems = contracts.map(c => c.id === id ? { ...c, ...updates } : c);
+    setContracts(newItems);
+    syncToDb('contracts', newItems);
+  };
+  const deleteContract = (id: string) => {
+    const newItems = contracts.filter(c => c.id !== id);
+    setContracts(newItems);
+    syncToDb('contracts', newItems);
+  };
 
   const checkMonthlyBilling = () => {
     const now = new Date();
@@ -239,7 +300,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`
         };
       });
-      setInvoices([...newInvoices, ...invoices]);
+      const newItems = [...newInvoices, ...invoices];
+      setInvoices(newItems);
+      syncToDb('invoices', newItems);
     };
 
     return { pendingRooms: pendingBillingRooms, generateAll };
