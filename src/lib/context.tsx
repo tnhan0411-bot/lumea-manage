@@ -32,6 +32,7 @@ interface AppState {
   deleteUser: (id: string) => void;
   addIssue: (issue: Issue) => void;
   updateIssue: (id: string, status: Issue['status']) => void;
+  editIssue: (id: string, updates: Partial<Issue>) => void;
   payInvoice: (id: string) => void;
   addInvoice: (invoice: Invoice) => void;
   updateRoom: (id: string, updates: Partial<Room>) => void;
@@ -162,6 +163,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
   const updateIssue = (id: string, status: Issue['status']) => {
     const newItems = issues.map(i => i.id === id ? { ...i, status } : i);
+    setIssues(newItems);
+    syncToDb('issues', newItems);
+  };
+  const editIssue = (id: string, updates: Partial<Issue>) => {
+    const newItems = issues.map(i => i.id === id ? { ...i, ...updates } : i);
     setIssues(newItems);
     syncToDb('issues', newItems);
   };
@@ -340,6 +346,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteUser,
       addIssue,
       updateIssue,
+      editIssue,
       deleteIssue,
       payInvoice,
       addInvoice,

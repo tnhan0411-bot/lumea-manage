@@ -4,8 +4,9 @@ import { Card, CardHeader, CardContent, Badge, Button } from './ui';
 import { Wrench, Sparkles, CheckCircle } from 'lucide-react';
 
 export function Maintenance() {
-  const { role, issues, addIssue, updateIssue, rooms } = useAppContext();
+  const { role, issues, addIssue, updateIssue, editIssue, deleteIssue, rooms } = useAppContext();
   const [showForm, setShowForm] = useState(false);
+  const [editIssueId, setEditIssueId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [roomId, setRoomId] = useState(rooms[0]?.id || '');
@@ -20,19 +21,44 @@ export function Maintenance() {
     e.preventDefault();
     if (!title) return;
     
-    addIssue({
-      id: `i${Date.now()}`,
-      roomId: role === 'tenant' ? 'r1' : roomId,
-      title,
-      description: desc,
-      status: 'open',
-      createdAt: maintenanceDate,
-      type: 'repair'
-    });
+    if (editIssueId) {
+      editIssue(editIssueId, {
+        roomId: role === 'tenant' ? 'r1' : roomId,
+        title,
+        description: desc,
+        createdAt: maintenanceDate,
+      });
+      setEditIssueId(null);
+    } else {
+      addIssue({
+        id: `i${Date.now()}`,
+        roomId: role === 'tenant' ? 'r1' : roomId,
+        title,
+        description: desc,
+        status: 'open',
+        createdAt: maintenanceDate,
+        type: 'repair'
+      });
+    }
     
     setShowForm(false);
     setTitle('');
     setDesc('');
+  };
+
+  const handleEditClick = (issue: any) => {
+    setEditIssueId(issue.id);
+    setTitle(issue.title);
+    setDesc(issue.description);
+    setRoomId(issue.roomId);
+    setMaintenanceDate(issue.createdAt || new Date().toISOString().split('T')[0]);
+    setShowForm(true);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa lệnh bảo trì này?')) {
+      deleteIssue(id);
+    }
   };
 
   return (
@@ -41,7 +67,16 @@ export function Maintenance() {
         <h1 className="text-2xl font-bold text-[#f8fafc]">
           {role === 'landlord' ? 'Lệnh Yêu cầu Bảo trì' : 'Báo cáo sự cố bảo trì'}
         </h1>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => {
+          if (showForm) {
+            setShowForm(false);
+            setEditIssueId(null);
+            setTitle('');
+            setDesc('');
+          } else {
+            setShowForm(true);
+          }
+        }}>
           {showForm ? 'Hủy' : role === 'landlord' ? '+ Tạo lệnh bảo trì' : '+ Báo cáo sự cố'}
         </Button>
       </div>
@@ -51,7 +86,7 @@ export function Maintenance() {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
               <h3 className="font-semibold text-lg text-[#f8fafc]">
-                {role === 'landlord' ? 'Lên lịch bảo trì phòng' : 'Gửi yêu cầu mới'}
+                {editIssueId ? 'Chỉnh sửa lệnh bảo trì' : role === 'landlord' ? 'Lên lịch bảo trì phòng' : 'Gửi yêu cầu mới'}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {role === 'landlord' && (
@@ -147,6 +182,17 @@ export function Maintenance() {
                     )}
                     <Button variant="primary" size="sm" onClick={() => updateIssue(issue.id, 'resolved')}>
                       Hoàn thành
+                    </Button>
+                  </div>
+                )}
+                
+                {role === 'landlord' && (
+                  <div className="flex gap-2 w-full md:w-auto mt-4 md:mt-0 justify-end">
+                    <Button variant="outline" size="sm" onClick={() => handleEditClick(issue)}>
+                      Chỉnh sửa
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => handleDeleteClick(issue.id)}>
+                      Xóa lệnh
                     </Button>
                   </div>
                 )}
