@@ -10,12 +10,25 @@ export function Maintenance() {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [roomId, setRoomId] = useState(rooms[0]?.id || '');
-  const [maintenanceDate, setMaintenanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [maintenanceDate, setMaintenanceDate] = useState(new Date().toISOString().split('T')[0]); // Used as createdAt or report date
+  const [dueDate, setDueDate] = useState('');
   const [type, setType] = useState<'repair' | 'cleaning'>('repair');
+  
+  const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'in-progress' | 'resolved'>('all');
 
-  const displayIssues = role === 'tenant' 
-    ? issues.filter(i => i.roomId === 'r1' && i.type === 'repair') // Mock current tenant room
-    : issues.filter(i => i.type === 'repair');
+  const allRepairIssues = issues.filter(i => i.type === 'repair');
+  
+  let displayIssues = role === 'tenant' 
+    ? allRepairIssues.filter(i => i.roomId === 'r1') // Mock current tenant room
+    : allRepairIssues;
+
+  if (filterStatus !== 'all') {
+    displayIssues = displayIssues.filter(i => i.status === filterStatus);
+  }
+
+  const resolvedCount = allRepairIssues.filter(i => i.status === 'resolved').length;
+  const pendingCount = allRepairIssues.filter(i => i.status !== 'resolved').length;
+  const completionRate = allRepairIssues.length > 0 ? Math.round((resolvedCount / allRepairIssues.length) * 100) : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +40,7 @@ export function Maintenance() {
         title,
         description: desc,
         createdAt: maintenanceDate,
+        dueDate: dueDate || undefined,
       });
       setEditIssueId(null);
     } else {
@@ -37,6 +51,7 @@ export function Maintenance() {
         description: desc,
         status: 'open',
         createdAt: maintenanceDate,
+        dueDate: dueDate || undefined,
         type: 'repair'
       });
     }
@@ -44,6 +59,7 @@ export function Maintenance() {
     setShowForm(false);
     setTitle('');
     setDesc('');
+    setDueDate('');
   };
 
   const handleEditClick = (issue: any) => {
@@ -52,6 +68,7 @@ export function Maintenance() {
     setDesc(issue.description);
     setRoomId(issue.roomId);
     setMaintenanceDate(issue.createdAt || new Date().toISOString().split('T')[0]);
+    setDueDate(issue.dueDate || '');
     setShowForm(true);
   };
 
@@ -81,6 +98,60 @@ export function Maintenance() {
         </Button>
       </div>
 
+      {(role === 'landlord' || role === 'technician') && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50 flex flex-col justify-between">
+            <CardContent className="p-4 flex flex-col h-full justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Tỉ lệ hoàn thành</p>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-[#f8fafc]">
+                    {completionRate}%
+                  </span>
+                  <span className="text-xs text-[#94a3b8]">hiệu suất</span>
+                </div>
+              </div>
+              <div className="mt-4 w-full bg-[#334155] rounded-full h-1.5">
+                <div 
+                  className="bg-[#38bdf8] h-1.5 rounded-full" 
+                  style={{ width: `${completionRate}%` }}
+                ></div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Đã hoàn thành</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[#10b981]">{resolvedCount}</span>
+                <span className="text-xs text-[#94a3b8]">lệnh</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Đang xử lý</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[#38bdf8]">{allRepairIssues.filter(i => i.status === 'in-progress').length}</span>
+                <span className="text-xs text-[#94a3b8]">lệnh</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1e293b]/50 border-[#334155]/50">
+            <CardContent className="p-4">
+              <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Chưa xử lý</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[#fbbf24]">{allRepairIssues.filter(i => i.status === 'open').length}</span>
+                <span className="text-xs text-[#94a3b8]">lệnh</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {showForm && (
         <Card className="bg-[#ef4444]/5 border-[#ef4444]/20 border-dashed">
           <CardContent className="p-6">
@@ -89,8 +160,8 @@ export function Maintenance() {
                 {editIssueId ? 'Chỉnh sửa lệnh bảo trì' : role === 'landlord' ? 'Lên lịch bảo trì phòng' : 'Gửi yêu cầu mới'}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {role === 'landlord' && (
-                  <div>
+                {role !== 'tenant' && (
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-[#94a3b8] mb-1">Chọn phòng</label>
                     <select 
                       value={roomId}
@@ -104,7 +175,7 @@ export function Maintenance() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ngày thực hiện</label>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ngày xử lý/Báo cáo</label>
                   <input 
                     type="date" 
                     value={maintenanceDate}
@@ -112,6 +183,17 @@ export function Maintenance() {
                     className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#ef4444] focus:ring-[#ef4444] border p-2 text-sm"
                   />
                 </div>
+                {role === 'landlord' && (
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-1">Hạn hoàn thành</label>
+                    <input 
+                      type="date" 
+                      value={dueDate}
+                      onChange={e => setDueDate(e.target.value)}
+                      className="w-full rounded-md bg-[#0f172a] border-[#334155] text-[#f8fafc] shadow-sm focus:border-[#ef4444] focus:ring-[#ef4444] border p-2 text-sm"
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#94a3b8] mb-1">Thiết bị / Vấn đề</label>
@@ -140,6 +222,23 @@ export function Maintenance() {
         </Card>
       )}
 
+      {(role === 'landlord' || role === 'technician') && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button variant={filterStatus === 'all' ? 'primary' : 'outline'} size="sm" onClick={() => setFilterStatus('all')}>
+            Tất cả
+          </Button>
+          <Button variant={filterStatus === 'open' ? 'warning' : 'outline'} size="sm" onClick={() => setFilterStatus('open')}>
+            Chưa xử lý
+          </Button>
+          <Button variant={filterStatus === 'in-progress' ? 'info' : 'outline'} size="sm" onClick={() => setFilterStatus('in-progress')}>
+            Đang sửa
+          </Button>
+          <Button variant={filterStatus === 'resolved' ? 'success' : 'outline'} size="sm" onClick={() => setFilterStatus('resolved')}>
+            Đã hoàn thành
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4">
         {displayIssues.length === 0 ? (
           <div className="text-center py-12 bg-[#1e293b]/50 rounded-xl border border-dashed border-[#334155]">
@@ -162,9 +261,12 @@ export function Maintenance() {
                       </Badge>
                     </div>
                     <p className="text-[#94a3b8] text-sm mb-2">{issue.description}</p>
-                    <div className="flex gap-3 text-xs text-[#64748b] font-medium">
-                      <span>Ngày: {issue.createdAt}</span>
-                      {role === 'landlord' && (
+                    <div className="flex gap-3 text-xs text-[#64748b] font-medium items-center">
+                      <span>Báo cáo: {issue.createdAt}</span>
+                      {issue.dueDate && (
+                        <span className="text-[#ef4444]">Hạn chót: {issue.dueDate}</span>
+                      )}
+                      {role !== 'tenant' && (
                         <Badge variant="info" className="text-[9px] px-1 py-0 h-4 uppercase">
                           {issue.roomId === 'elevator' ? 'Thang máy' : issue.roomId === 'other' ? 'Khác' : `Phòng ${rooms.find(r => r.id === issue.roomId)?.number || ''}`}
                         </Badge>

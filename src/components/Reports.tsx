@@ -42,7 +42,7 @@ export function Reports() {
 
   const COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-  const maintenanceHistory = issues.filter(i => i.status === 'resolved' && i.type === 'repair');
+  const maintenanceHistory = issues.filter(i => i.type === 'repair');
   const cleaningHistory = issues.filter(i => i.status === 'resolved' && i.type === 'cleaning');
 
   return (
@@ -168,27 +168,37 @@ export function Reports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Maintenance History */}
-        <Card>
+        <Card className="lg:col-span-2">
           <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]/50 flex justify-between items-center">
-            <h3 className="font-bold text-[#f8fafc] flex items-center gap-2"><Wrench size={16} /> Lịch sử Bảo trì</h3>
-            <span className="text-xs text-[#94a3b8]">{maintenanceHistory.length} mục hoàn thành</span>
+            <h3 className="font-bold text-[#f8fafc] flex items-center gap-2"><Wrench size={16} /> Báo cáo Danh mục Bảo trì</h3>
+            <span className="text-xs text-[#94a3b8]">{maintenanceHistory.length} lệnh bảo trì</span>
           </div>
           <CardContent className="p-0">
             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-left">
                 <thead className="bg-[#0f172a] text-[#94a3b8] text-xs uppercase sticky top-0">
                   <tr>
-                    <th className="px-6 py-3 font-medium">Ngày</th>
+                    <th className="px-6 py-3 font-medium">Báo cáo</th>
                     <th className="px-6 py-3 font-medium">Phòng</th>
-                    <th className="px-6 py-3 font-medium">Nội dung</th>
+                    <th className="px-6 py-3 font-medium">Sự cố</th>
+                    <th className="px-6 py-3 font-medium">Nội dung / Tình trạng</th>
+                    <th className="px-6 py-3 font-medium">Ngày xử lý</th>
+                    <th className="px-6 py-3 font-medium">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#334155]">
                   {maintenanceHistory.map(h => (
                     <tr key={h.id} className="text-sm border-b border-[#334155]/50 hover:bg-[#334155]/10">
                       <td className="px-6 py-3 text-[#94a3b8]">{h.createdAt}</td>
-                      <td className="px-6 py-3 text-[#f8fafc] font-medium">P.{rooms.find(r => r.id === h.roomId)?.number}</td>
+                      <td className="px-6 py-3 text-[#f8fafc] font-medium">{h.roomId === 'elevator' ? 'Thang máy' : h.roomId === 'other' ? 'Khác' : `P.${rooms.find(r => r.id === h.roomId)?.number || h.roomId}`}</td>
                       <td className="px-6 py-3 text-[#f8fafc]">{h.title}</td>
+                      <td className="px-6 py-3 text-[#94a3b8] truncate max-w-[200px]" title={h.description}>{h.description}</td>
+                      <td className="px-6 py-3 text-[#ef4444] font-medium">{h.dueDate || '-'}</td>
+                      <td className="px-6 py-3">
+                        <Badge variant={h.status === 'resolved' ? 'success' : h.status === 'in-progress' ? 'info' : 'warning'}>
+                          {h.status === 'resolved' ? 'Đã xong' : h.status === 'in-progress' ? 'Đang sửa' : 'Mới'}
+                        </Badge>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

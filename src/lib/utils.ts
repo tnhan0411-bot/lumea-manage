@@ -85,6 +85,7 @@ export interface Issue {
   description: string;
   status: IssueStatus;
   createdAt: string;
+  dueDate?: string;
   type: 'repair' | 'cleaning' | 'other';
 }
 
