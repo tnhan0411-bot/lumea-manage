@@ -717,28 +717,47 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader title="Hoạt động bảo trì" />
+        <Card className="lg:col-span-1">
+          <CardHeader title="Tình trạng kỹ thuật & Bảo trì" />
           <CardContent>
-            <div className="space-y-5">
-              {issues.slice(0, 4).map(issue => (
-                <div key={issue.id} className="flex gap-4 items-start group">
-                  <div className="p-2.5 rounded-xl bg-[#0f172a] border border-[#334155] text-[#94a3b8] group-hover:border-[#38bdf8] transition-colors">
-                    <Wrench size={16} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <p className="text-sm font-bold text-[#f8fafc]">P.{rooms.find(r => r.id === issue.roomId)?.number}</p>
-                      <span className="text-[10px] text-[#94a3b8] font-medium uppercase">{issue.createdAt}</span>
+            <div className="space-y-4">
+              {(() => {
+                const repairIssues = issues.filter(i => i.type === 'repair');
+                const resolved = repairIssues.filter(i => i.status === 'resolved').length;
+                const inProgress = repairIssues.filter(i => i.status === 'in-progress').length;
+                const open = repairIssues.filter(i => i.status === 'open').length;
+                const total = repairIssues.length;
+                const rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+
+                return (
+                  <>
+                    <div className="p-4 bg-[#1e293b]/50 border border-[#334155]/50 rounded-xl">
+                      <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Tỉ lệ hoàn thành</p>
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-[#f8fafc]">{rate}%</span>
+                        <span className="text-xs text-[#94a3b8]">hiệu suất</span>
+                      </div>
+                      <div className="mt-3 w-full bg-[#334155] rounded-full h-1.5">
+                        <div className="bg-[#38bdf8] h-1.5 rounded-full" style={{ width: `${rate}%` }}></div>
+                      </div>
                     </div>
-                    <p className="text-xs text-[#94a3b8] mt-0.5 line-clamp-1">{issue.title}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                       <div className={cn("w-1.5 h-1.5 rounded-full", issue.status === 'resolved' ? "bg-[#10b981]" : "bg-[#f59e0b]")}></div>
-                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">{issue.status}</span>
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      <div className="bg-[#0f172a] border border-[#334155] p-3 rounded-lg text-center">
+                        <p className="text-xl font-bold text-[#10b981]">{resolved}</p>
+                        <p className="text-[10px] uppercase font-bold text-[#94a3b8] mt-1">Đã xong</p>
+                      </div>
+                      <div className="bg-[#0f172a] border border-[#334155] p-3 rounded-lg text-center">
+                        <p className="text-xl font-bold text-[#38bdf8]">{inProgress}</p>
+                        <p className="text-[10px] uppercase font-bold text-[#94a3b8] mt-1">Đang sửa</p>
+                      </div>
+                      <div className="bg-[#0f172a] border border-[#334155] p-3 rounded-lg text-center col-span-2">
+                        <p className="text-xl font-bold text-[#fbbf24]">{open}</p>
+                        <p className="text-[10px] uppercase font-bold text-[#94a3b8] mt-1">Chưa xử lý (Mới)</p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

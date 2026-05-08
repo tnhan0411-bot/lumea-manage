@@ -9,6 +9,7 @@ export function RoomList() {
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [tempRoom, setTempRoom] = useState<Room | null>(null);
   const [tempTenantName, setTempTenantName] = useState('');
+  const [tempPassportExpiry, setTempPassportExpiry] = useState('');
   const [newCleaningDate, setNewCleaningDate] = useState('');
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
@@ -23,6 +24,7 @@ export function RoomList() {
     });
     const tenant = tenants.find(t => t.roomId === room.id);
     setTempTenantName(tenant ? tenant.name : '');
+    setTempPassportExpiry(tenant?.visaExpiry || '');
   };
 
   const handleSave = () => {
@@ -40,7 +42,7 @@ export function RoomList() {
       const tenant = tenants.find(t => t.roomId === tempRoom.id);
       if (tempRoom.status === 'occupied') {
         if (tenant) {
-          updateTenant(tenant.id, { name: tempTenantName });
+          updateTenant(tenant.id, { name: tempTenantName, visaExpiry: tempPassportExpiry || undefined });
         } else if (tempTenantName) {
           // If no tenant exists but name is provided, create one
           const newTenantId = `t-${Date.now()}`;
@@ -51,7 +53,8 @@ export function RoomList() {
             phone: '',
             email: '',
             contractStart: tempRoom.leaseStart || new Date().toISOString().split('T')[0],
-            contractEnd: tempRoom.leaseEnd || ''
+            contractEnd: tempRoom.leaseEnd || '',
+            visaExpiry: tempPassportExpiry || undefined
           });
 
           // Auto-generate invoice for the new stay
@@ -234,6 +237,16 @@ export function RoomList() {
                       onChange={e => setTempTenantName(e.target.value)}
                       disabled={tempRoom.status === 'available'}
                       className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hạn Passport</label>
+                    <input 
+                      type="date" 
+                      value={tempPassportExpiry}
+                      onChange={e => setTempPassportExpiry(e.target.value)}
+                      disabled={tempRoom.status === 'available'}
+                      className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none disabled:opacity-50 text-xs"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
