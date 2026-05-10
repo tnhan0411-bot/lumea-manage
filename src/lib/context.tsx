@@ -127,7 +127,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       // Sync current user if it changed in usersList
       const latestUser = usersList.find(u => u.id === user.id);
-      if (latestUser && latestUser.name !== user.name) {
+      if (latestUser && JSON.stringify(latestUser) !== JSON.stringify(user)) {
         setUser(latestUser);
       }
     } else {

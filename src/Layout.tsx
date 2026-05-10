@@ -37,6 +37,7 @@ export function Layout() {
   }
 
   const getNavItems = () => {
+    if (!role) return [];
     switch (role) {
       case 'landlord':
         return [
