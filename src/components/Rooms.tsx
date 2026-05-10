@@ -247,8 +247,7 @@ export function RoomList() {
                         type="text" 
                         value={tempTenantName}
                         onChange={e => setTempTenantName(e.target.value)}
-                        disabled={tempRoom.status === 'available'}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none disabled:opacity-50 text-xs"
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
                       />
                     </div>
                     <div>
@@ -257,8 +256,7 @@ export function RoomList() {
                         type="date" 
                         value={tempPassportExpiry}
                         onChange={e => setTempPassportExpiry(e.target.value)}
-                        disabled={tempRoom.status === 'available'}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none disabled:opacity-50 text-xs"
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
                       />
                     </div>
                     <div>
@@ -267,8 +265,7 @@ export function RoomList() {
                         type="text" 
                         value={tempSecondaryName}
                         onChange={e => setTempSecondaryName(e.target.value)}
-                        disabled={tempRoom.status === 'available'}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none disabled:opacity-50 text-xs"
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
                       />
                     </div>
                     <div>
@@ -277,8 +274,7 @@ export function RoomList() {
                         type="date" 
                         value={tempSecondaryPassportExpiry}
                         onChange={e => setTempSecondaryPassportExpiry(e.target.value)}
-                        disabled={tempRoom.status === 'available'}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none disabled:opacity-50 text-xs"
+                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
                       />
                     </div>
                   </div>
