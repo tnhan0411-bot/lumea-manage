@@ -420,20 +420,32 @@ export function RoomList() {
                 {role === 'landlord' && tempRoom.status === 'occupied' && (
                   <button 
                     onClick={() => {
-                        handleSave();
                         const now = new Date();
                         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        
+                        let calculatedRent = tempRoom.price;
+                        // Proration for the first month
+                        if (tempRoom.leaseStart && tempRoom.leaseStart.startsWith(currentMonth)) {
+                          const leaseStartDate = new Date(tempRoom.leaseStart);
+                          const dayOfLeaseStart = leaseStartDate.getDate();
+                          const daysUsed = 30 - dayOfLeaseStart + 1;
+                          if (daysUsed < 30 && daysUsed > 0) {
+                            calculatedRent = Math.round((tempRoom.price / 30) * daysUsed);
+                          }
+                        }
+
+                        handleSave();
                         addInvoice({
                           id: `inv-${tempRoom.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
                           roomId: tempRoom.id,
                           tenantId: tenants.find(t => t.roomId === tempRoom.id)?.id || 'unknown',
                           month: currentMonth,
-                          rent: tempRoom.price,
+                          rent: calculatedRent,
                           electricity: 0,
                           initialElectricityMeter: tempRoom.initialElectricityMeter,
                           water: 0,
                           other: 0,
-                          total: tempRoom.price,
+                          total: calculatedRent,
                           status: 'pending',
                           dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
                           issueDate: now.toISOString().split('T')[0],

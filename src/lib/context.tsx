@@ -360,17 +360,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const generateAll = () => {
       const newInvoices: Invoice[] = pendingBillingRooms.map(room => {
         const tenant = tenants.find(t => t.roomId === room.id);
+        
+        let calculatedRent = room.price;
+        // Check if this is the FIRST month of lease to apply proration
+        if (room.leaseStart && room.leaseStart.startsWith(currentMonth)) {
+          const leaseStartDate = new Date(room.leaseStart);
+          const dayOfLeaseStart = leaseStartDate.getDate();
+          
+          // Formula: (Rent / 30) * remaining days in first month
+          // Example: Starts on 20th. Days used = 30 - 20 + 1 = 11 days.
+          const daysUsed = 30 - dayOfLeaseStart + 1;
+          if (daysUsed < 30 && daysUsed > 0) {
+            calculatedRent = Math.round((room.price / 30) * daysUsed);
+          }
+        }
+
         return {
           id: `inv-${room.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           roomId: room.id,
           tenantId: tenant?.id || 'unknown',
           month: currentMonth,
-          rent: room.price,
+          rent: calculatedRent,
           electricity: 0,
           initialElectricityMeter: room.initialElectricityMeter,
           water: 0,
           other: 0,
-          total: room.price,
+          total: calculatedRent,
           status: 'pending',
           dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
           issueDate: now.toISOString().split('T')[0]
