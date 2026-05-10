@@ -73,29 +73,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (savedUser && savedUser !== "null") setUser(JSON.parse(savedUser));
 
     const unsub = onSnapshot(doc(db, 'state', 'global'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.rooms) setRooms(data.rooms);
-        if (data.tenants) setTenants(data.tenants);
-        if (data.issues) setIssues(data.issues);
-        if (data.invoices) setInvoices(data.invoices);
-        if (data.contracts) setContracts(data.contracts);
-        if (data.expenses) setExpenses(data.expenses);
-        if (data.usersList) {
-          setUsersList(data.usersList);
+      try {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.rooms) setRooms(data.rooms);
+          if (data.tenants) setTenants(data.tenants);
+          if (data.issues) setIssues(data.issues);
+          if (data.invoices) setInvoices(data.invoices);
+          if (data.contracts) setContracts(data.contracts);
+          if (data.expenses) setExpenses(data.expenses);
+          if (data.usersList) {
+            setUsersList(data.usersList);
+          }
+        } else {
+          // Init remote document first time
+          setDoc(doc(db, 'state', 'global'), {
+            rooms: INITIAL_ROOMS,
+            tenants: INITIAL_TENANTS,
+            issues: INITIAL_ISSUES,
+            invoices: INITIAL_INVOICES,
+            contracts: INITIAL_CONTRACTS,
+            expenses: INITIAL_EXPENSES,
+            usersList: INITIAL_USERS
+          });
         }
-      } else {
-        // Init remote document first time
-        setDoc(doc(db, 'state', 'global'), {
-          rooms: INITIAL_ROOMS,
-          tenants: INITIAL_TENANTS,
-          issues: INITIAL_ISSUES,
-          invoices: INITIAL_INVOICES,
-          contracts: INITIAL_CONTRACTS,
-          expenses: INITIAL_EXPENSES,
-          usersList: INITIAL_USERS
-        });
+      } catch (e) {
+        console.error("Error loading initial data", e);
+      } finally {
+        setIsLoaded(true);
       }
+    }, (error) => {
+      console.error("Snapshot error:", error);
       setIsLoaded(true);
     });
 
