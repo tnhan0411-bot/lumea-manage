@@ -423,14 +423,14 @@ export function Dashboard() {
       const today = new Date();
       const diffTime = expiryDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      acc.push({ ...t, daysLeft: diffDays, _isSecondary: false, displayTitle: t.name });
+      acc.push({ ...t, daysLeft: diffDays, _isSecondary: false, displayTitle: t.name, displayPassportInfo: t.passportNumber });
     }
     if (t.secondaryVisaExpiry && t.secondaryName) {
       const expiryDate = new Date(t.secondaryVisaExpiry);
       const today = new Date();
       const diffTime = expiryDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      acc.push({ ...t, daysLeft: diffDays, _isSecondary: true, displayTitle: t.secondaryName, visaExpiry: t.secondaryVisaExpiry });
+      acc.push({ ...t, daysLeft: diffDays, _isSecondary: true, displayTitle: t.secondaryName, visaExpiry: t.secondaryVisaExpiry, displayPassportInfo: t.secondaryPassportNumber });
     }
     return acc;
   }, [] as any[]).sort((a, b) => a.daysLeft - b.daysLeft);
@@ -705,7 +705,7 @@ export function Dashboard() {
                        </div>
                        <div>
                          <p className="text-xs font-bold text-[#f8fafc]">{v.displayTitle}</p>
-                         <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === v.roomId)?.number}</p>
+                         <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === v.roomId)?.number} {v.displayPassportInfo ? `• HC: ${v.displayPassportInfo}` : ''}</p>
                        </div>
                     </div>
                     <div className="text-right">

@@ -75,8 +75,10 @@ export interface Tenant {
   contractStart: string;
   contractEnd: string;
   visaExpiry?: string;
+  passportNumber?: string;
   secondaryName?: string;
   secondaryVisaExpiry?: string;
+  secondaryPassportNumber?: string;
   avatar?: string;
 }
 
