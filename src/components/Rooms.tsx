@@ -424,14 +424,34 @@ export function RoomList() {
                         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
                         
                         let calculatedRent = tempRoom.price;
-                        // Proration for the first month
-                        if (tempRoom.leaseStart && tempRoom.leaseStart.startsWith(currentMonth)) {
-                          const leaseStartDate = new Date(tempRoom.leaseStart);
-                          const dayOfLeaseStart = leaseStartDate.getDate();
-                          const daysUsed = 30 - dayOfLeaseStart + 1;
-                          if (daysUsed < 30 && daysUsed > 0) {
-                            calculatedRent = Math.round((tempRoom.price / 30) * daysUsed);
+                        if (tempRoom.leaseStart && tempRoom.leaseEnd) {
+                          const lStart = new Date(tempRoom.leaseStart);
+                          const lEnd = new Date(tempRoom.leaseEnd);
+                          const cycleDay = lStart.getDate();
+                          
+                          const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
+                          const billingCycleStart = new Date(curYear, curMonthNum - 1, cycleDay);
+                          const nextCycleStart = new Date(curYear, curMonthNum, cycleDay);
+                          
+                          if (lEnd < nextCycleStart) {
+                            const diffTime = lEnd.getTime() - billingCycleStart.getTime();
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                            if (diffDays > 0 && diffDays < 28) {
+                               calculatedRent = Math.round((tempRoom.price / 30) * diffDays);
+                            }
                           }
+                        } else if (tempRoom.leaseStart) {
+                           const lStart = new Date(tempRoom.leaseStart);
+                           const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
+                           if (lStart.getFullYear() === curYear && (lStart.getMonth() + 1) === curMonthNum) {
+                              const day = lStart.getDate();
+                              if (day > 1) {
+                                 const daysStayed = 30 - day + 1;
+                                 if (daysStayed < 30) {
+                                    calculatedRent = Math.round((tempRoom.price / 30) * daysStayed);
+                                 }
+                              }
+                           }
                         }
 
                         handleSave();

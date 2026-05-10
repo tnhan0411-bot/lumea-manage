@@ -362,17 +362,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const tenant = tenants.find(t => t.roomId === room.id);
         
         let calculatedRent = room.price;
-        // Check if this is the FIRST month of lease to apply proration
-        if (room.leaseStart && room.leaseStart.startsWith(currentMonth)) {
-          const leaseStartDate = new Date(room.leaseStart);
-          const dayOfLeaseStart = leaseStartDate.getDate();
+        if (room.leaseStart && room.leaseEnd) {
+          const lStart = new Date(room.leaseStart);
+          const lEnd = new Date(room.leaseEnd);
+          const cycleDay = lStart.getDate();
           
-          // Formula: (Rent / 30) * remaining days in first month
-          // Example: Starts on 20th. Days used = 30 - 20 + 1 = 11 days.
-          const daysUsed = 30 - dayOfLeaseStart + 1;
-          if (daysUsed < 30 && daysUsed > 0) {
-            calculatedRent = Math.round((room.price / 30) * daysUsed);
+          // Current billing cycle start in this month
+          const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
+          const billingCycleStart = new Date(curYear, curMonthNum - 1, cycleDay);
+          
+          // Next cycle start
+          const nextCycleStart = new Date(curYear, curMonthNum, cycleDay);
+          
+          // If the stay ends before or on the next cycle, and it's partial
+          if (lEnd < nextCycleStart) {
+            // Calculate days from current cycle start to lease end
+            const diffTime = lEnd.getTime() - billingCycleStart.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            if (diffDays > 0 && diffDays < 28) { // Less than a full month
+               calculatedRent = Math.round((room.price / 30) * diffDays);
+            }
           }
+        } else if (room.leaseStart && !room.leaseEnd) {
+           // If it's the very first month and starts late
+           const lStart = new Date(room.leaseStart);
+           const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
+           if (lStart.getFullYear() === curYear && (lStart.getMonth() + 1) === curMonthNum) {
+              const day = lStart.getDate();
+              if (day > 1) {
+                 const daysStayed = 30 - day + 1;
+                 if (daysStayed < 30) {
+                    calculatedRent = Math.round((room.price / 30) * daysStayed);
+                 }
+              }
+           }
         }
 
         return {
