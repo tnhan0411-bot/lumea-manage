@@ -15,16 +15,16 @@ export function Billing() {
 
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [tempIssueDate, setTempIssueDate] = useState<string>('');
-  const [tempMonth, setTempMonth] = useState<number | ''>('');
+  const [tempMonth, setTempMonth] = useState<string>('');
 
   const handleEditDate = (inv: any) => {
      setEditingDateId(inv.id);
      setTempIssueDate(inv.issueDate || new Date().toISOString().split('T')[0]);
-     setTempMonth(inv.month ?? '');
+     setTempMonth(inv.month || '');
   };
 
   const handleSaveDate = (id: string) => {
-     updateInvoice(id, { issueDate: tempIssueDate, month: Number(tempMonth) });
+     updateInvoice(id, { issueDate: tempIssueDate, month: tempMonth });
      setEditingDateId(null);
   };
 
@@ -172,7 +172,7 @@ export function Billing() {
                       <p className="font-bold text-[#f8fafc]">Tháng {inv.month}</p>
                       {editingDateId === inv.id ? (
                         <div className="flex flex-col gap-2 mt-1">
-                          <input type="number" placeholder="Tháng" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempMonth} onChange={e => setTempMonth(Number(e.target.value))} />
+                          <input type="text" placeholder="Tháng (YYYY-MM)" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempMonth} onChange={e => setTempMonth(e.target.value)} />
                           <input type="date" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempIssueDate} onChange={e => setTempIssueDate(e.target.value)} />
                           <div className="flex gap-2">
                              <Button size="sm" variant="outline" onClick={() => setEditingDateId(null)} className="h-6 text-[9px]">Hủy</Button>
