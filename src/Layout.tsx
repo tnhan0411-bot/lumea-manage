@@ -75,9 +75,16 @@ export function Layout() {
   const navItems = getNavItems();
 
   const renderScreen = () => {
-    if (!user) return <Login />;
-    if (!role) return <div className="p-8 text-center text-[#94a3b8]">Đang đợi phân quyền...</div>;
+    if (!user) {
+      console.log("Rendering Login");
+      return <Login />;
+    }
+    if (!role) {
+      console.log("Role is null, waiting...");
+      return <div className="p-8 text-center text-[#94a3b8]">Đang đợi phân quyền... (user: {user.name})</div>;
+    }
     
+    console.log("Rendering screen:", activeScreen);
     try {
       switch (activeScreen) {
         case 'dashboard': return <Dashboard />;
