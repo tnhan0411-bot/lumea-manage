@@ -26,7 +26,7 @@ export function Layout() {
       <div className="h-screen bg-[#0f172a] flex items-center justify-center text-[#f8fafc]">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#38bdf8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm font-bold uppercase tracking-widest text-[#94a3b8]">Đang tải dữ liệu...</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-[#94a3b8]">Đang tải dữ liệu (isLoaded: {String(isLoaded)})...</p>
         </div>
       </div>
     );

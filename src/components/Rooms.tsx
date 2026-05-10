@@ -213,7 +213,7 @@ export function RoomList() {
         {role === 'landlord' && <Button onClick={handleAddNewRoom}>Thêm phòng</Button>}
       </div>
 
-      {editingRoomId && tempRoom && (
+      {editingRoomId && tempRoom ? (
         <Card className="border-2 border-[#38bdf8] bg-[#1e293b] mb-8">
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -235,7 +235,7 @@ export function RoomList() {
                       <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Số phòng</label>
                       <input 
                         type="text" 
-                        value={tempRoom.number}
+                        value={tempRoom.number || ''}
                         onChange={e => setTempRoom({...tempRoom, number: e.target.value})}
                         className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
                       />
@@ -243,7 +243,7 @@ export function RoomList() {
                     <div>
                       <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Trạng thái</label>
                       <select 
-                        value={tempRoom.status}
+                        value={tempRoom.status || 'available'}
                         onChange={e => setTempRoom({...tempRoom, status: e.target.value as Room['status']})}
                         className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
                       >
@@ -257,7 +257,7 @@ export function RoomList() {
                     <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Giá thuê (VNĐ)</label>
                     <input 
                       type="number" 
-                      value={tempRoom.price}
+                      value={tempRoom.price || 0}
                       onChange={e => setTempRoom({...tempRoom, price: Number(e.target.value)})}
                       className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
                     />
@@ -423,7 +423,9 @@ export function RoomList() {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : editingRoomId ? (
+          <div className="p-4 text-center text-red-500">Lỗi: Không tìm thấy dữ liệu phòng {editingRoomId}</div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         {rooms.map(room => {
