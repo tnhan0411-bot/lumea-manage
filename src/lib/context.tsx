@@ -69,12 +69,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
  
   // Persistence: Load from Firestore on mount
   useEffect(() => {
-    localStorage.removeItem('lumea_user_v2'); // FORCE CLEAR STALE USER
+    // Attempt to restore user from localStorage immediately to prevent flicker
+    const savedUser = localStorage.getItem('lumea_user_v2');
+    if (savedUser && savedUser !== "null") {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.id) setUser(parsed);
+      } catch (e) {
+        console.error("Error parsing saved user", e);
+      }
+    }
+
     const unsub = onSnapshot(doc(db, 'state', 'global'), (docSnap) => {
-      console.log("Snapshot received, exists:", docSnap.exists());
       try {
         if (docSnap.exists()) {
-          console.log("Loading data from existing document");
           const data = docSnap.data();
           if (data.rooms) setRooms(data.rooms);
           if (data.tenants) setTenants(data.tenants);
@@ -90,7 +98,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setUsersList(updatedUsers);
           }
         } else {
-          console.log("Initializing remote document");
           // Init remote document first time
           const updatedUsers = INITIAL_USERS.map(u => ({
             ...u,
@@ -109,7 +116,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error("Error loading initial data", e);
       } finally {
-        console.log("Setting isLoaded to true");
         setIsLoaded(true);
       }
     }, (error) => {
@@ -127,10 +133,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       localStorage.setItem('lumea_user_v2', JSON.stringify(user));
       
-      // Sync current user if it changed in usersList
+      // Sync current user if it changed in usersList (only essential fields)
       const latestUser = usersList.find(u => u.id === user.id);
-      if (latestUser && (latestUser.name !== user.name || latestUser.password !== user.password || latestUser.role !== user.role)) {
-        setUser(latestUser);
+      if (latestUser) {
+        const hasChanged = 
+          latestUser.name !== user.name || 
+          latestUser.email !== user.email || 
+          latestUser.role !== user.role ||
+          latestUser.password !== user.password;
+          
+        if (hasChanged) {
+          setUser(latestUser);
+        }
       }
     } else {
       localStorage.removeItem('lumea_user_v2');
