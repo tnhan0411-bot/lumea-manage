@@ -15,14 +15,16 @@ export function Billing() {
 
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [tempIssueDate, setTempIssueDate] = useState<string>('');
+  const [tempMonth, setTempMonth] = useState<number | ''>('');
 
   const handleEditDate = (inv: any) => {
      setEditingDateId(inv.id);
      setTempIssueDate(inv.issueDate || new Date().toISOString().split('T')[0]);
+     setTempMonth(inv.month ?? '');
   };
 
   const handleSaveDate = (id: string) => {
-     updateInvoice(id, { issueDate: tempIssueDate });
+     updateInvoice(id, { issueDate: tempIssueDate, month: Number(tempMonth) });
      setEditingDateId(null);
   };
 
@@ -169,15 +171,20 @@ export function Billing() {
                     <td className="px-6 py-4">
                       <p className="font-bold text-[#f8fafc]">Tháng {inv.month}</p>
                       {editingDateId === inv.id ? (
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex flex-col gap-2 mt-1">
+                          <input type="number" placeholder="Tháng" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempMonth} onChange={e => setTempMonth(Number(e.target.value))} />
                           <input type="date" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempIssueDate} onChange={e => setTempIssueDate(e.target.value)} />
-                          <button onClick={() => handleSaveDate(inv.id)} className="text-[#10b981] hover:text-[#10b981]/80"><Receipt size={14} /></button>
+                          <div className="flex gap-2">
+                             <Button size="sm" variant="outline" onClick={() => setEditingDateId(null)} className="h-6 text-[9px]">Hủy</Button>
+                             <Button size="sm" onClick={() => handleSaveDate(inv.id)} className="h-6 text-[9px]">Lưu</Button>
+                          </div>
                         </div>
                       ) : (
                         <div className="text-[10px] text-[#94a3b8] flex flex-col gap-0.5 mt-1 relative">
+                          <span className="font-bold text-[#f8fafc] cursor-pointer" onClick={() => handleEditDate(inv)}>Tháng {inv.month} {role === 'landlord' && <span className="text-[9px] text-[#38bdf8] opacity-50 ml-1 underline">Sửa kỳ</span>}</span>
                           <span className="flex items-center gap-1 group/date cursor-pointer" onClick={() => handleEditDate(inv)}>
                              <Calendar size={10} /> Ngày lập: {inv.issueDate || 'Chưa cập nhật'}
-                             {role === 'landlord' && <span className="text-[9px] text-[#38bdf8] opacity-0 group-hover/date:opacity-100 ml-1">Sửa</span>}
+                             {role === 'landlord' && <span className="text-[9px] text-[#38bdf8] opacity-0 group-hover/date:opacity-100 ml-1 underline">Sửa ngày</span>}
                           </span>
                           <span className="flex items-center gap-1"><Calendar size={10} /> Hạn: {inv.dueDate}</span>
                         </div>
