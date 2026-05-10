@@ -75,6 +75,9 @@ export function Layout() {
   const navItems = getNavItems();
 
   const renderScreen = () => {
+    if (!user) return <Login />;
+    if (!role) return <div className="p-8 text-center text-[#94a3b8]">Đang đợi phân quyền...</div>;
+    
     try {
       switch (activeScreen) {
         case 'dashboard': return <Dashboard />;
@@ -86,7 +89,7 @@ export function Layout() {
         case 'contracts': return <Contracts />;
         case 'profile': return <Profile />;
         case 'expenses': return <Expenses />;
-        default: return <div className="p-8 text-center text-[#94a3b8]">Đang tải... {activeScreen}</div>;
+        default: return <div className="p-8 text-center text-[#94a3b8]">Màn hình {activeScreen} chưa được cấu hình.</div>;
       }
     } catch (e) {
       console.error("Screen render error:", e);
