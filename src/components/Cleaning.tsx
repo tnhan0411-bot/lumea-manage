@@ -10,6 +10,7 @@ export function Cleaning() {
   const [roomId, setRoomId] = useState(rooms[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('09:00');
+  const [note, setNote] = useState('');
 
   const cleaningTasks = issues.filter(i => i.type === 'cleaning');
 
@@ -19,11 +20,12 @@ export function Cleaning() {
       id: `clean-${Date.now()}`,
       roomId,
       title: `Dọn dẹp định kỳ`,
-      description: `Lịch dọn vệ sinh lúc ${time}`,
+      description: note || `Lịch dọn vệ sinh lúc ${time}`,
       status: 'open',
       createdAt: date,
       type: 'cleaning'
     });
+    setNote('');
     setShowForm(false);
   };
 
@@ -35,7 +37,10 @@ export function Cleaning() {
           <p className="text-[#94a3b8] text-sm">Theo dõi giờ giấc và ngày dọn dẹp theo từng phòng.</p>
         </div>
         {role === 'landlord' && (
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button onClick={() => {
+            setShowForm(!showForm);
+            if (!showForm) setNote('');
+          }}>
             {showForm ? 'Hủy' : '+ Lên lịch dọn dẹp'}
           </Button>
         )}
@@ -44,36 +49,50 @@ export function Cleaning() {
       {showForm && (
         <Card className="bg-[#10b981]/5 border-[#10b981]/20 border-dashed">
           <CardContent className="p-6">
-            <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Chọn phòng</label>
-                <select 
-                  value={roomId}
-                  onChange={e => setRoomId(e.target.value)}
-                  className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
-                >
-                  {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.number}</option>)}
-                </select>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Chọn phòng</label>
+                  <select 
+                    value={roomId}
+                    onChange={e => setRoomId(e.target.value)}
+                    className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
+                  >
+                    {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.number}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ngày dọn</label>
+                  <input 
+                    type="date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Giờ dọn</label>
+                  <input 
+                    type="time"
+                    value={time}
+                    onChange={e => setTime(e.target.value)}
+                    className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ngày dọn</label>
-                <input 
-                  type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
-                />
+              <div className="flex gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ghi chú / Yêu cầu đặc biệt</label>
+                  <input 
+                    type="text"
+                    placeholder="Ví dụ: Thay ga giường, dọn kỹ nhà vệ sinh..."
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
+                  />
+                </div>
+                <Button type="submit" className="h-[38px] px-8">Xác nhận</Button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-1">Giờ dọn</label>
-                <input 
-                  type="time"
-                  value={time}
-                  onChange={e => setTime(e.target.value)}
-                  className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
-                />
-              </div>
-              <Button type="submit">Xác nhận</Button>
             </form>
           </CardContent>
         </Card>
