@@ -42,8 +42,13 @@ export function Dashboard() {
       });
     }
 
-    const cleaningTasks = rooms.filter(r => r.cleaningSchedule?.length > 0)
-      .flatMap(r => r.cleaningSchedule?.map(date => ({ roomId: r.id, roomNumber: r.number, date })) || [])
+    const cleaningTasks = rooms.filter(r => (r.cleaningSchedule?.length ?? 0) > 0)
+      .flatMap(r => r.cleaningSchedule?.map(item => ({ 
+        roomId: r.id, 
+        roomNumber: r.number, 
+        date: typeof item === 'string' ? item : item.date,
+        note: typeof item === 'string' ? '' : item.note 
+      })) || [])
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Handle CSV Export
@@ -190,6 +195,7 @@ export function Dashboard() {
                         <div>
                            <p className="font-bold text-[#f8fafc]">Vệ sinh phòng</p>
                            <p className="text-xs text-[#94a3b8] mt-1">Dự kiến: {task.date}</p>
+                           {task.note && <p className="text-[10px] text-[#10b981] mt-1 italic">Ghi chú: {task.note}</p>}
                         </div>
                      </div>
                      <Badge variant="success">Yêu cầu</Badge>
@@ -412,6 +418,7 @@ export function Dashboard() {
   }
 
   // Landlord Dashboard
+  const { updateTenant } = useAppContext();
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
   
@@ -419,14 +426,14 @@ export function Dashboard() {
 
   // Visa Expiration Tracking
   const visaExpirations = tenants.reduce((acc, t) => {
-    if (t.visaExpiry) {
+    if (t.visaExpiry && !t.visaHandled) {
       const expiryDate = new Date(t.visaExpiry);
       const today = new Date();
       const diffTime = expiryDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       acc.push({ ...t, daysLeft: diffDays, _isSecondary: false, displayTitle: t.name, displayPassportInfo: t.passportNumber });
     }
-    if (t.secondaryVisaExpiry && t.secondaryName) {
+    if (t.secondaryVisaExpiry && t.secondaryName && !t.secondaryVisaHandled) {
       const expiryDate = new Date(t.secondaryVisaExpiry);
       const today = new Date();
       const diffTime = expiryDate.getTime() - today.getTime();
@@ -437,6 +444,14 @@ export function Dashboard() {
   }, [] as any[]).sort((a, b) => a.daysLeft - b.daysLeft);
 
   const criticalVisas = visaExpirations.filter(v => v.daysLeft <= 15);
+
+  const handleDismissVisa = (v: any) => {
+    if (v._isSecondary) {
+      updateTenant(v.id, { secondaryVisaHandled: true });
+    } else {
+      updateTenant(v.id, { visaHandled: true });
+    }
+  };
 
   // Refined Revenue Calculation based on Period or Date Range
   const getInvoicesForPeriod = () => {
@@ -702,21 +717,30 @@ export function Dashboard() {
                 <p className="text-sm text-[#94a3b8] italic">Không có dữ liệu visa.</p>
               ) : (
                 visaExpirations.slice(0, 5).map(v => (
-                  <div key={v.id + (v._isSecondary ? '_2' : '_1')} className="flex items-center justify-between p-3 rounded-lg bg-[#0f172a] border border-[#334155]">
-                      <div className="flex items-center gap-3">
-                       <div className="h-8 w-8 rounded-full bg-[#1e293b] flex items-center justify-center text-[10px] font-bold text-[#f8fafc]">
-                         {(v.displayTitle || 'U').charAt(0)}
-                       </div>
-                       <div>
-                         <p className="text-xs font-bold text-[#f8fafc]">{v.displayTitle}</p>
-                         <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === v.roomId)?.number} {v.displayPassportInfo ? `• HC: ${v.displayPassportInfo}` : ''}</p>
-                       </div>
+                  <div key={v.id + (v._isSecondary ? '_2' : '_1')} className="group p-3 rounded-lg bg-[#0f172a] border border-[#334155] hover:border-[#38bdf8]/30 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                       <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-[#1e293b] flex items-center justify-center text-[10px] font-bold text-[#f8fafc]">
+                          {(v.displayTitle || 'U').charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-[#f8fafc]">{v.displayTitle}</p>
+                          <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === v.roomId)?.number} {v.displayPassportInfo ? `• HC: ${v.displayPassportInfo}` : ''}</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleDismissVisa(v)}
+                        className="p-1.5 text-[#64748b] hover:text-[#ef4444] transition-colors bg-[#1e293b] rounded opacity-0 group-hover:opacity-100"
+                        title="Đã xử lý (Ẩn thông báo)"
+                      >
+                        <X size={12} />
+                      </button>
                     </div>
-                    <div className="text-right">
+                    <div className="flex justify-between items-end mt-2 pt-2 border-t border-[#334155]/30">
+                       <p className="text-[9px] text-[#64748b]">{v.visaExpiry}</p>
                        <p className={cn("text-[10px] font-bold", v.daysLeft <= 7 ? "text-[#ef4444]" : v.daysLeft <= 15 ? "text-[#f59e0b]" : "text-[#10b981]")}>
                          {v.daysLeft <= 0 ? 'Đã hết hạn' : `Còn ${v.daysLeft} ngày`}
                        </p>
-                       <p className="text-[9px] text-[#64748b]">{v.visaExpiry}</p>
                     </div>
                   </div>
                 ))

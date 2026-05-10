@@ -15,9 +15,44 @@ export function RoomList() {
   const [tempSecondaryPassportExpiry, setTempSecondaryPassportExpiry] = useState('');
   const [tempSecondaryPassportNumber, setTempSecondaryPassportNumber] = useState('');
   const [newCleaningDate, setNewCleaningDate] = useState('');
+  const [newCleaningNote, setNewCleaningNote] = useState('');
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
+
+  const handleExportReport = () => {
+    const headings = ['Số phòng', 'Trạng thái', 'Giá thuê', 'Người thuê 1', 'Hạn Visa 1', 'Người thuê 2', 'Hạn Visa 2', 'Bắt đầu thuê', 'Kết thúc thuê', 'Doanh thu (Đã thu)'];
+    const rows = rooms.map(r => {
+      const tenant = tenants.find(t => t.roomId === r.id);
+      const roomRevenue = invoices
+        .filter(inv => inv.roomId === r.id && inv.status === 'paid')
+        .reduce((sum, inv) => sum + inv.total, 0);
+        
+      return [
+        r.number,
+        r.status === 'occupied' ? 'Đang thuê' : r.status === 'available' ? 'Trống' : 'Bảo trì',
+        r.price,
+        tenant?.name || '',
+        tenant?.visaExpiry || '',
+        tenant?.secondaryName || '',
+        tenant?.secondaryVisaExpiry || '',
+        r.leaseStart || '',
+        r.leaseEnd || '',
+        roomRevenue
+      ];
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + headings.join(",") + "\n" 
+      + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Bao_Cao_Phong_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const extendLease = (months: number) => {
     if (tempRoom) {
@@ -151,9 +186,10 @@ export function RoomList() {
     if (newCleaningDate && tempRoom) {
       setTempRoom({
         ...tempRoom,
-        cleaningSchedule: [...tempRoom.cleaningSchedule, newCleaningDate].sort((a, b) => b.localeCompare(a))
+        cleaningSchedule: [...tempRoom.cleaningSchedule, { date: newCleaningDate, note: newCleaningNote }].sort((a, b) => b.date.localeCompare(a.date))
       });
       setNewCleaningDate('');
+      setNewCleaningNote('');
     }
   };
 
@@ -161,7 +197,7 @@ export function RoomList() {
     if (tempRoom) {
       setTempRoom({
         ...tempRoom,
-        cleaningSchedule: tempRoom.cleaningSchedule.filter(d => d !== date)
+        cleaningSchedule: tempRoom.cleaningSchedule.filter(d => d.date !== date)
       });
     }
   };
@@ -212,7 +248,14 @@ export function RoomList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Phòng</h1>
-        {role === 'landlord' && <Button onClick={handleAddNewRoom}>Thêm phòng</Button>}
+        <div className="flex gap-3">
+           {role === 'landlord' && (
+             <Button variant="outline" onClick={handleExportReport} className="gap-2">
+               <FileText size={18} /> Xuất báo cáo
+             </Button>
+           )}
+           {role === 'landlord' && <Button onClick={handleAddNewRoom}>Thêm phòng</Button>}
+        </div>
       </div>
 
       {editingRoomId && tempRoom ? (
@@ -280,6 +323,7 @@ export function RoomList() {
                           <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Người thuê 1</label>
                           <input 
                             type="text" 
+                            name="tenantName"
                             value={tempTenantName}
                             onChange={e => setTempTenantName(e.target.value)}
                             className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
@@ -363,6 +407,50 @@ export function RoomList() {
                       </div>
                     </>
                   )}
+                </div>
+              </div>
+
+              {/* Cleaning Schedule */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-[#10b981] uppercase tracking-wider flex items-center gap-2">
+                   <Calendar size={16} /> Lịch vệ sinh & Ghi chú
+                </h3>
+                <div className="bg-[#0f172a] rounded-xl p-4 border border-[#334155]">
+                  <div className="flex flex-col md:flex-row gap-2 mb-4">
+                    <input 
+                      type="date" 
+                      value={newCleaningDate}
+                      onChange={e => setNewCleaningDate(e.target.value)}
+                      className="bg-[#1e293b] border-[#334155] rounded-lg p-2 text-[#f8fafc] outline-none text-xs flex-1"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Ghi chú vệ sinh..."
+                      value={newCleaningNote}
+                      onChange={e => setNewCleaningNote(e.target.value)}
+                      className="bg-[#1e293b] border-[#334155] rounded-lg p-2 text-[#f8fafc] outline-none text-xs flex-[2]"
+                    />
+                    <Button size="sm" onClick={addCleaningDate} className="gap-1">
+                      <Plus size={14} /> Thêm
+                    </Button>
+                  </div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                    {tempRoom.cleaningSchedule.length === 0 ? (
+                      <p className="text-xs text-[#64748b] italic">Chưa có lịch dọn dẹp</p>
+                    ) : (
+                      tempRoom.cleaningSchedule.map((c, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-[#1e293b]/50 p-2 rounded border border-[#334155]/50 group">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-[#10b981]">{formatDate(c.date)}</span>
+                            <span className="text-[11px] text-[#94a3b8]">{c.note || 'Không có ghi chú'}</span>
+                          </div>
+                          <button onClick={() => removeCleaningDate(c.date)} className="text-[#ef4444] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

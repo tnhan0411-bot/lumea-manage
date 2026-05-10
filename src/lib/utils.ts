@@ -69,7 +69,7 @@ export interface Room {
   status: RoomStatus;
   price: number;
   features: string[];
-  cleaningSchedule: string[]; // Historical or upcoming cleaning dates
+  cleaningSchedule: { date: string; note?: string }[]; 
   attachments: Attachment[];
   leaseStart?: string;
   leaseEnd?: string;
@@ -86,9 +86,11 @@ export interface Tenant {
   contractEnd: string;
   visaExpiry?: string;
   passportNumber?: string;
+  visaHandled?: boolean;
   secondaryName?: string;
   secondaryVisaExpiry?: string;
   secondaryPassportNumber?: string;
+  secondaryVisaHandled?: boolean;
   avatar?: string;
 }
 
