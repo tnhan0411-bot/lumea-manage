@@ -5,7 +5,7 @@ import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Papercli
 import { Room, cn, Attachment, formatDate } from '../lib/utils';
 
 export function RoomList() {
-  const { rooms, tenants, issues, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role } = useAppContext();
+  const { rooms, tenants, issues, invoices, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role } = useAppContext();
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [tempRoom, setTempRoom] = useState<Room | null>(null);
   const [tempTenantName, setTempTenantName] = useState('');
@@ -14,8 +14,6 @@ export function RoomList() {
   const [tempSecondaryName, setTempSecondaryName] = useState('');
   const [tempSecondaryPassportExpiry, setTempSecondaryPassportExpiry] = useState('');
   const [tempSecondaryPassportNumber, setTempSecondaryPassportNumber] = useState('');
-  const [newCleaningDate, setNewCleaningDate] = useState('');
-  const [newCleaningNote, setNewCleaningNote] = useState('');
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
@@ -70,7 +68,6 @@ export function RoomList() {
     setEditingRoomId(room.id);
     setTempRoom({ 
       ...room, 
-      cleaningSchedule: room.cleaningSchedule || [], 
       attachments: room.attachments || [], 
       features: room.features || [] 
     });
@@ -90,19 +87,27 @@ export function RoomList() {
         // Ensure we pass all fields from tempRoom
         await updateRoom(tempRoom.id, { ...tempRoom });
         
-        const tenant = tenants.find(t => t.roomId === tempRoom.id);
-        if (tempRoom.status === 'occupied') {
+        // Handle tenant detachment if room becomes available/maintenance
+        if (tempRoom.status !== 'occupied') {
+          const tenant = tenants.find(t => t.roomId === tempRoom.id);
+          if (tenant) {
+            await updateTenant(tenant.id, { roomId: "" });
+          }
+        } else {
+          // Room is occupied
+          const tenant = tenants.find(t => t.roomId === tempRoom.id);
           if (tenant) {
             await updateTenant(tenant.id, { 
               name: tempTenantName, 
-              visaExpiry: tempPassportExpiry || undefined,
-              passportNumber: tempPassportNumber || undefined,
-              secondaryName: tempSecondaryName || undefined,
-              secondaryVisaExpiry: tempSecondaryPassportExpiry || undefined,
-              secondaryPassportNumber: tempSecondaryPassportNumber || undefined,
-              contractEnd: tempRoom.leaseEnd || undefined
+              visaExpiry: tempPassportExpiry || "",
+              passportNumber: tempPassportNumber || "",
+              secondaryName: tempSecondaryName || "",
+              secondaryVisaExpiry: tempSecondaryPassportExpiry || "",
+              secondaryPassportNumber: tempSecondaryPassportNumber || "",
+              contractEnd: tempRoom.leaseEnd || ""
             });
           } else if (tempTenantName) {
+            // ... (keep the rest of adding tenant logic)
             // If no tenant exists but name is provided, create one
             const newTenantId = `t-${Date.now()}`;
             await addTenant({
@@ -113,11 +118,11 @@ export function RoomList() {
               email: '',
               contractStart: tempRoom.leaseStart || new Date().toISOString().split('T')[0],
               contractEnd: tempRoom.leaseEnd || '',
-              visaExpiry: tempPassportExpiry || undefined,
-              passportNumber: tempPassportNumber || undefined,
-              secondaryName: tempSecondaryName || undefined,
-              secondaryVisaExpiry: tempSecondaryPassportExpiry || undefined,
-              secondaryPassportNumber: tempSecondaryPassportNumber || undefined
+              visaExpiry: tempPassportExpiry || "",
+              passportNumber: tempPassportNumber || "",
+              secondaryName: tempSecondaryName || "",
+              secondaryVisaExpiry: tempSecondaryPassportExpiry || "",
+              secondaryPassportNumber: tempSecondaryPassportNumber || ""
             });
 
             // Auto-generate invoice for the new stay
@@ -179,26 +184,6 @@ export function RoomList() {
     if (window.confirm('Bạn có chắc chắn muốn xóa phòng này khỏi hệ thống?')) {
       deleteRoom(id);
       setEditingRoomId(null);
-    }
-  };
-
-  const addCleaningDate = () => {
-    if (newCleaningDate && tempRoom) {
-      setTempRoom({
-        ...tempRoom,
-        cleaningSchedule: [...tempRoom.cleaningSchedule, { date: newCleaningDate, note: newCleaningNote }].sort((a, b) => b.date.localeCompare(a.date))
-      });
-      setNewCleaningDate('');
-      setNewCleaningNote('');
-    }
-  };
-
-  const removeCleaningDate = (date: string) => {
-    if (tempRoom) {
-      setTempRoom({
-        ...tempRoom,
-        cleaningSchedule: tempRoom.cleaningSchedule.filter(d => d.date !== date)
-      });
     }
   };
 

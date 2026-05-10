@@ -209,7 +209,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const syncToDb = async (key: string, data: any) => {
     try {
-      await setDoc(doc(db, 'state', 'global'), { [key]: data }, { merge: true });
+      // Remove undefined values from objects within arrays to prevent Firestore errors
+      const sanitizedData = JSON.parse(JSON.stringify(data, (_, value) => 
+        value === undefined ? null : value
+      ));
+      await setDoc(doc(db, 'state', 'global'), { [key]: sanitizedData }, { merge: true });
     } catch (e) {
       console.error(`Error syncing ${key} to DB:`, e);
       throw e;
@@ -282,15 +286,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkoutRoom = async (id: string) => {
     const newRooms = rooms.map(r => r.id === id ? { 
       ...r, 
-      status: 'available', 
-      leaseStart: undefined, 
-      leaseEnd: undefined 
+      status: 'available' as const, 
+      leaseStart: null, 
+      leaseEnd: null 
     } : r);
     setRooms(newRooms as any);
     await syncToDb('rooms', newRooms);
     
-    // Also remove tenant from this room
-    const newTenants = tenants.map(t => t.roomId === id ? { ...t, roomId: undefined } : t);
+    // Also remove tenant from this room (but keep the tenant record)
+    const newTenants = tenants.map(t => t.roomId === id ? { ...t, roomId: "" } : t);
     setTenants(newTenants);
     await syncToDb('tenants', newTenants);
   };
