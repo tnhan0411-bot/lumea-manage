@@ -110,6 +110,7 @@ export interface Invoice {
   paymentMethod?: 'cash' | 'transfer';
   paymentDate?: string;
   dueDate: string;
+  issueDate?: string; // Add issueDate to determine exact time
 }
 
 export const INITIAL_ROOMS: Room[] = [

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2 } from 'lucide-react';
+import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2, MessageSquare } from 'lucide-react';
 import { useAppContext } from './lib/context';
 import { Dashboard } from './components/Dashboard';
 import { RoomList } from './components/Rooms';
@@ -10,6 +10,7 @@ import { Reports } from './components/Reports';
 import { Contracts } from './components/Contracts';
 import { Profile } from './components/Profile';
 import { Expenses } from './components/Expenses';
+import { SmsTemplates } from './components/SmsTemplates';
 import { Login } from './components/Login';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
@@ -48,6 +49,7 @@ export function Layout() {
           { id: 'billing', label: 'Hóa đơn & Thu chi', icon: Receipt },
           { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
           { id: 'expenses', label: 'Quản lý chi phí', icon: CreditCard },
+          { id: 'sms', label: 'Mẫu SMS', icon: MessageSquare },
           { id: 'profile', label: 'Hồ sơ của tôi', icon: Settings },
         ];
       case 'technician':
@@ -84,6 +86,7 @@ export function Layout() {
       case 'contracts': return <Contracts />;
       case 'profile': return <Profile />;
       case 'expenses': return <Expenses />;
+      case 'sms': return <SmsTemplates />;
       default: return <div className="p-8 text-center text-gray-500">Đang tải...</div>;
     }
   };

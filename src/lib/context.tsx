@@ -308,7 +308,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           other: 0,
           total: room.price,
           status: 'pending',
-          dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`
+          dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+          issueDate: now.toISOString().split('T')[0]
         };
       });
       const newItems = [...newInvoices, ...invoices];

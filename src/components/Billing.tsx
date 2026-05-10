@@ -13,6 +13,19 @@ export function Billing() {
   const [tempInitMeter, setTempInitMeter] = useState<number | ''>('');
   const [tempFinalMeter, setTempFinalMeter] = useState<number | ''>('');
 
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [tempIssueDate, setTempIssueDate] = useState<string>('');
+
+  const handleEditDate = (inv: any) => {
+     setEditingDateId(inv.id);
+     setTempIssueDate(inv.issueDate || new Date().toISOString().split('T')[0]);
+  };
+
+  const handleSaveDate = (id: string) => {
+     updateInvoice(id, { issueDate: tempIssueDate });
+     setEditingDateId(null);
+  };
+
   const handleEditElec = (inv: any) => {
     setEditingElecId(inv.id);
     setTempInitMeter(inv.initialElectricityMeter ?? '');
@@ -55,6 +68,7 @@ export function Billing() {
     : myInvoices.filter(i => i.status === 'paid');
 
   const [selectedMethod, setSelectedMethod] = useState<Record<string, 'cash' | 'transfer'>>({});
+  const [selectedPaymentDate, setSelectedPaymentDate] = useState<Record<string, string>>({});
 
   const handlePay = (id: string) => {
     if(window.confirm('Xác nhận thanh toán?')) {
@@ -64,8 +78,9 @@ export function Billing() {
 
   const handleLandlordPay = (id: string) => {
     const method = selectedMethod[id] || 'transfer';
-    if(window.confirm(`Xác nhận đã thu tiền (${method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})?`)) {
-      payInvoice(id, method);
+    const payDate = selectedPaymentDate[id] || new Date().toISOString().split('T')[0];
+    if(window.confirm(`Xác nhận đã thu tiền (${method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}) vào ngày ${payDate}?`)) {
+      payInvoice(id, method, payDate);
     }
   };
 
@@ -153,9 +168,20 @@ export function Billing() {
                   <tr key={inv.id} className="hover:bg-[#334155]/30 group">
                     <td className="px-6 py-4">
                       <p className="font-bold text-[#f8fafc]">Tháng {inv.month}</p>
-                      <p className="text-[10px] text-[#94a3b8] flex items-center gap-1">
-                        <Calendar size={10} /> Hạn: {inv.dueDate}
-                      </p>
+                      {editingDateId === inv.id ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input type="date" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempIssueDate} onChange={e => setTempIssueDate(e.target.value)} />
+                          <button onClick={() => handleSaveDate(inv.id)} className="text-[#10b981] hover:text-[#10b981]/80"><Receipt size={14} /></button>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-[#94a3b8] flex flex-col gap-0.5 mt-1 relative">
+                          <span className="flex items-center gap-1 group/date cursor-pointer" onClick={() => handleEditDate(inv)}>
+                             <Calendar size={10} /> Ngày lập: {inv.issueDate || 'Chưa cập nhật'}
+                             {role === 'landlord' && <span className="text-[9px] text-[#38bdf8] opacity-0 group-hover/date:opacity-100 ml-1">Sửa</span>}
+                          </span>
+                          <span className="flex items-center gap-1"><Calendar size={10} /> Hạn: {inv.dueDate}</span>
+                        </div>
+                      )}
                     </td>
                     {role === 'landlord' && (
                       <td className="px-6 py-4">
@@ -209,21 +235,33 @@ export function Billing() {
                         <Button size="sm" onClick={() => handlePay(inv.id)}>Thanh toán</Button>
                       )}
                       {inv.status !== 'paid' && role === 'landlord' && (
-                        <div className="flex items-center justify-end gap-2">
-                          <select 
-                            className="bg-[#0f172a] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc] outline-none"
-                            value={selectedMethod[inv.id] || 'transfer'}
-                            onChange={e => setSelectedMethod({...selectedMethod, [inv.id]: e.target.value as 'cash'|'transfer'})}
-                          >
-                            <option value="transfer">Chuyển khoản</option>
-                            <option value="cash">Tiền mặt</option>
-                          </select>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="date"
+                              className="bg-[#0f172a] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc] outline-none"
+                              value={selectedPaymentDate[inv.id] || new Date().toISOString().split('T')[0]}
+                              onChange={e => setSelectedPaymentDate({...selectedPaymentDate, [inv.id]: e.target.value})}
+                              title="Ngày thanh toán"
+                            />
+                            <select 
+                              className="bg-[#0f172a] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc] outline-none"
+                              value={selectedMethod[inv.id] || 'transfer'}
+                              onChange={e => setSelectedMethod({...selectedMethod, [inv.id]: e.target.value as 'cash'|'transfer'})}
+                            >
+                              <option value="transfer">Chuyển khoản</option>
+                              <option value="cash">Tiền mặt</option>
+                            </select>
+                          </div>
                           <Button variant="outline" size="sm" onClick={() => handleLandlordPay(inv.id)}>Đánh dấu Thu</Button>
                         </div>
                       )}
                       {inv.status === 'paid' && (
                         <div className="flex items-center justify-end gap-2">
-                          {inv.paymentMethod && <span className="text-[10px] text-[#94a3b8] uppercase mr-2">{inv.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}</span>}
+                          <div className="flex flex-col items-end mr-2">
+                             {inv.paymentMethod && <span className="text-[10px] text-[#94a3b8] uppercase">{inv.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}</span>}
+                             {inv.paymentDate && <span className="text-[10px] text-[#38bdf8]">{inv.paymentDate}</span>}
+                          </div>
                           <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">Biên lai</Button>
                         </div>
                       )}

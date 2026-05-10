@@ -103,7 +103,8 @@ export function RoomList() {
             other: 0,
             total: tempRoom.price,
             status: 'pending',
-            dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`
+            dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+            issueDate: now.toISOString().split('T')[0]
           });
         }
       }
@@ -397,6 +398,7 @@ export function RoomList() {
                           total: tempRoom.price,
                           status: 'pending',
                           dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+                          issueDate: now.toISOString().split('T')[0],
                           type: 'other',
                           createdAt: now.toISOString()
                         });
