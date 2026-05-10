@@ -9,6 +9,15 @@ export function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
 }
 
+export function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
 // Mock Data Models
 export type RoomStatus = 'available' | 'occupied' | 'maintenance';
 export type IssueStatus = 'open' | 'in-progress' | 'resolved';

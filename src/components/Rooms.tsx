@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
 import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut, Receipt } from 'lucide-react';
-import { Room, cn, Attachment } from '../lib/utils';
+import { Room, cn, Attachment, formatDate } from '../lib/utils';
 
 export function RoomList() {
   const { rooms, tenants, issues, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role } = useAppContext();
@@ -463,7 +463,7 @@ export function RoomList() {
                       <p className="text-[10px] text-[#38bdf8] font-bold uppercase tracking-widest">Thời hạn thuê</p>
                       <p className="text-[11px] text-[#f8fafc] flex items-center gap-1 mt-0.5">
                         <Clock size={10} className="text-[#94a3b8]" />
-                        {room.leaseStart} ➜ {room.leaseEnd}
+                        {formatDate(room.leaseStart)} ➜ {formatDate(room.leaseEnd)}
                       </p>
                     </div>
                   )}
