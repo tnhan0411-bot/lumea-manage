@@ -5,9 +5,35 @@ import { Receipt, Calendar, Clock } from 'lucide-react';
 import { FormEvent } from 'react';
 
 export function Billing() {
-  const { role, invoices, rooms, tenants, payInvoice, expenses, checkMonthlyBilling, payInvoice: updateInvoice } = useAppContext();
+  const { role, invoices, rooms, tenants, payInvoice, expenses, checkMonthlyBilling, updateInvoice, updateRoom } = useAppContext();
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const [editingElecId, setEditingElecId] = useState<string | null>(null);
+  const [tempInitMeter, setTempInitMeter] = useState<number | ''>('');
+  const [tempFinalMeter, setTempFinalMeter] = useState<number | ''>('');
+
+  const handleEditElec = (inv: any) => {
+    setEditingElecId(inv.id);
+    setTempInitMeter(inv.initialElectricityMeter ?? '');
+    setTempFinalMeter(inv.finalElectricityMeter ?? '');
+  };
+
+  const handleSaveElec = (inv: any) => {
+    const init = Number(tempInitMeter) || 0;
+    const final = Number(tempFinalMeter) || 0;
+    const electricityAmount = Math.max(0, final - init) * 4000;
+    const newTotal = inv.rent + electricityAmount + inv.water + inv.other;
+    updateInvoice(inv.id, { 
+      initialElectricityMeter: init, 
+      finalElectricityMeter: final, 
+      electricity: electricityAmount,
+      total: newTotal
+    });
+    updateRoom(inv.roomId, { initialElectricityMeter: final });
+    setEditingElecId(null);
+  };
+
 
   const { pendingRooms, generateAll } = checkMonthlyBilling();
 
@@ -137,8 +163,41 @@ export function Billing() {
                         <p className="text-[#94a3b8] text-xs">{tenant?.name}</p>
                       </td>
                     )}
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-[#10b981] text-base">{inv.total.toLocaleString()}đ</span>
+                    <td className="px-6 py-4 min-w-[240px]">
+                      {editingElecId === inv.id ? (
+                        <div className="flex flex-col gap-2 bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] uppercase text-[#94a3b8] font-bold">Số điện đầu</span>
+                            <input type="number" className="w-20 bg-[#1e293b] rounded px-2 py-1 text-xs text-[#f8fafc] border border-[#334155] outline-none" value={tempInitMeter} onChange={e => setTempInitMeter(Number(e.target.value))} />
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] uppercase text-[#94a3b8] font-bold">Số điện cuối</span>
+                            <input type="number" className="w-20 bg-[#1e293b] rounded px-2 py-1 text-xs text-[#f8fafc] border border-[#334155] outline-none" value={tempFinalMeter} onChange={e => setTempFinalMeter(Number(e.target.value))} />
+                          </div>
+                          <div className="flex gap-2 justify-end mt-2">
+                            <Button variant="outline" size="sm" onClick={() => setEditingElecId(null)} className="h-7 text-[10px]">Hủy</Button>
+                            <Button size="sm" onClick={() => handleSaveElec(inv)} className="h-7 text-[10px]">Lưu</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="font-bold text-[#10b981] text-base">{inv.total.toLocaleString()}đ</span>
+                          <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
+                            <p>Phòng: {inv.rent.toLocaleString()}đ</p>
+                            <div className="flex items-center gap-2 group/elec">
+                              <p>
+                                Điện: {inv.electricity.toLocaleString()}đ 
+                                {inv.finalElectricityMeter ? ` (${inv.finalElectricityMeter} - ${inv.initialElectricityMeter || 0})` : ''}
+                              </p>
+                              {role === 'landlord' && inv.status !== 'paid' && (
+                                <button onClick={() => handleEditElec(inv)} className="text-[#38bdf8] opacity-0 group-hover/elec:opacity-100 transition-opacity">
+                                  {inv.finalElectricityMeter ? 'Sửa số' : 'Chốt số'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {inv.status === 'paid' ? <Badge variant="success">Đã thu</Badge> : 

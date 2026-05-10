@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
-import { FileText, Calendar, DollarSign, User, Plus, Search, FileDown, Download, Trash2 } from 'lucide-react';
+import { FileText, Calendar, DollarSign, User, Plus, Search, FileDown, Download, Trash2, Clock, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 
 export function Contracts() {
   const { 
-    contracts, rooms, tenants, role, 
+    contracts, rooms, tenants, invoices, role, 
     addContract, deleteContract, updateContract, 
     addTenant, updateTenant, updateRoom, addInvoice 
   } = useAppContext();
@@ -26,6 +26,7 @@ export function Contracts() {
 
   const [editContractId, setEditContractId] = useState<string | null>(null);
   const [newAttachmentName, setNewAttachmentName] = useState('');
+  const [historyTenantId, setHistoryTenantId] = useState<string | null>(null);
 
   const handleEdit = (contract: any) => {
     const tenant = tenants.find(t => t.id === contract.tenantId);
@@ -247,6 +248,66 @@ export function Contracts() {
         </Card>
       )}
 
+      {historyTenantId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <Card className="w-full max-w-4xl bg-[#1e293b] border-[#334155] shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-[#334155] flex justify-between items-center bg-[#0f172a]/50">
+              <h2 className="text-xl font-bold text-[#f8fafc] flex items-center gap-2">
+                <Clock className="text-[#38bdf8]" /> 
+                Lịch sử khách thuê: {tenants.find(t => t.id === historyTenantId)?.name}
+              </h2>
+              <button onClick={() => setHistoryTenantId(null)} className="text-[#94a3b8] hover:text-[#f8fafc]">
+                <X size={24} />
+              </button>
+            </div>
+            <CardContent className="p-6 overflow-y-auto custom-scrollbar space-y-8">
+              <div>
+                <h3 className="text-sm font-bold text-[#f8fafc] uppercase tracking-widest mb-4 border-b border-[#334155] pb-2">Lịch sử hợp đồng</h3>
+                <div className="space-y-3">
+                  {contracts.filter(c => c.tenantId === historyTenantId).length > 0 ? (
+                    contracts.filter(c => c.tenantId === historyTenantId).map(c => (
+                      <div key={c.id} className="bg-[#0f172a] p-4 rounded-lg border border-[#334155] flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-[#f8fafc]">Phòng {rooms.find(r => r.id === c.roomId)?.number}</p>
+                          <p className="text-xs text-[#94a3b8] mt-1">{c.startDate} đến {c.endDate}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-[#10b981] font-bold">Giá: {c.monthlyRent.toLocaleString()}đ</p>
+                          <p className="text-xs text-[#94a3b8] mt-1">Cọc: {c.deposit.toLocaleString()}đ</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : <p className="text-sm text-[#94a3b8] italic">Không có dữ liệu hợp đồng</p>}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-bold text-[#f8fafc] uppercase tracking-widest mb-4 border-b border-[#334155] pb-2">Lịch sử thanh toán</h3>
+                <div className="space-y-3">
+                  {invoices.filter(i => i.tenantId === historyTenantId).length > 0 ? (
+                    invoices.filter(i => i.tenantId === historyTenantId).map(i => (
+                      <div key={i.id} className="bg-[#0f172a] p-4 rounded-lg border border-[#334155] flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-[#f8fafc]">Kỳ thu {i.month}</p>
+                          <p className="text-xs text-[#94a3b8] mt-1">
+                            {i.status === 'paid' ? `Đã thanh toán ngày ${i.paymentDate || ''}` : 'Chưa thu'} 
+                            {i.paymentMethod && ` (${i.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-[#10b981] font-bold">{i.total.toLocaleString()}đ</p>
+                          {i.status === 'paid' ? <Badge variant="success">Đã thanh toán</Badge> : <Badge variant="warning">Chưa thanh toán</Badge>}
+                        </div>
+                      </div>
+                    ))
+                  ) : <p className="text-sm text-[#94a3b8] italic">Không có dữ liệu thanh toán</p>}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4">
         {displayContracts.map(contract => {
           const room = rooms.find(r => r.id === contract.roomId);
@@ -272,16 +333,21 @@ export function Contracts() {
                         <Badge variant={contract.status === 'active' ? 'success' : 'danger'}>
                           {contract.status === 'active' ? 'Đang hiệu lực' : 'Đã hết hạn'}
                         </Badge>
-                        {role === 'landlord' && (
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleEdit(contract)} className="p-2 text-[#94a3b8] hover:text-[#38bdf8] transition-colors">
-                               <FileText size={16} />
-                            </button>
-                            <button onClick={() => deleteContract(contract.id)} className="p-2 text-[#94a3b8] hover:text-[#ef4444] transition-colors">
-                               <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setHistoryTenantId(contract.tenantId)} className="p-2 text-[#94a3b8] hover:text-[#10b981] transition-colors" title="Lịch sử">
+                            <Clock size={16} />
+                          </button>
+                          {role === 'landlord' && (
+                            <>
+                              <button onClick={() => handleEdit(contract)} className="p-2 text-[#94a3b8] hover:text-[#38bdf8] transition-colors" title="Chỉnh sửa">
+                                 <FileText size={16} />
+                              </button>
+                              <button onClick={() => deleteContract(contract.id)} className="p-2 text-[#94a3b8] hover:text-[#ef4444] transition-colors" title="Xóa">
+                                 <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 

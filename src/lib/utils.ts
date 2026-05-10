@@ -101,6 +101,8 @@ export interface Invoice {
   month: string; // YYYY-MM
   rent: number;
   electricity: number;
+  initialElectricityMeter?: number;
+  finalElectricityMeter?: number;
   water: number;
   other: number;
   total: number;

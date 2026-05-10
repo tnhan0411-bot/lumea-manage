@@ -303,6 +303,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           month: currentMonth,
           rent: room.price,
           electricity: 0,
+          initialElectricityMeter: room.initialElectricityMeter,
           water: 0,
           other: 0,
           total: room.price,

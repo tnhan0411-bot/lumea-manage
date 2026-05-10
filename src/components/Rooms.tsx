@@ -17,6 +17,17 @@ export function RoomList() {
   const [newCleaningDate, setNewCleaningDate] = useState('');
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
+  const extendLease = (months: number) => {
+    if (tempRoom) {
+      let date = new Date();
+      if (tempRoom.leaseEnd) {
+        date = new Date(tempRoom.leaseEnd);
+      }
+      date.setMonth(date.getMonth() + months);
+      setTempRoom({ ...tempRoom, leaseEnd: date.toISOString().split('T')[0] });
+    }
+  };
+
   const handleEditClick = (room: Room) => {
     if (role === 'tenant') return;
     setEditingRoomId(room.id);
@@ -57,7 +68,8 @@ export function RoomList() {
             passportNumber: tempPassportNumber || undefined,
             secondaryName: tempSecondaryName || undefined,
             secondaryVisaExpiry: tempSecondaryPassportExpiry || undefined,
-            secondaryPassportNumber: tempSecondaryPassportNumber || undefined
+            secondaryPassportNumber: tempSecondaryPassportNumber || undefined,
+            contractEnd: tempRoom.leaseEnd || undefined
           });
         } else if (tempTenantName) {
           // If no tenant exists but name is provided, create one
@@ -210,7 +222,7 @@ export function RoomList() {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 gap-8">
               {/* Basic Info */}
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-[#38bdf8] uppercase tracking-wider flex items-center gap-2">
@@ -327,7 +339,15 @@ export function RoomList() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Ngày hết hạn</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8]">Ngày hết hạn</label>
+                        {tempRoom.status === 'occupied' && (
+                           <div className="flex gap-1">
+                             <button type="button" onClick={() => extendLease(6)} className="text-[9px] bg-[#10b981]/10 text-[#10b981] px-1.5 py-0.5 rounded font-bold hover:bg-[#10b981]/20">Gia hạn 6T</button>
+                             <button type="button" onClick={() => extendLease(12)} className="text-[9px] bg-[#38bdf8]/10 text-[#38bdf8] px-1.5 py-0.5 rounded font-bold hover:bg-[#38bdf8]/20">Gia hạn 1N</button>
+                           </div>
+                        )}
+                      </div>
                       <input 
                         type="date" 
                         value={tempRoom.leaseEnd || ''}
@@ -338,72 +358,10 @@ export function RoomList() {
                   </div>
                 </div>
               </div>
-
-              {/* Cleaning Schedule */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-[#10b981] uppercase tracking-wider flex items-center gap-2">
-                   <Calendar size={16} /> Lịch dọn vệ sinh
-                </h3>
-                <div className="flex gap-2 mb-4">
-                  <input 
-                    type="date"
-                    value={newCleaningDate}
-                    onChange={e => setNewCleaningDate(e.target.value)}
-                    className="flex-1 bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-sm"
-                  />
-                  <Button size="sm" onClick={addCleaningDate}><Plus size={16} /></Button>
-                </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                  {tempRoom.cleaningSchedule.map(date => (
-                    <div key={date} className="flex justify-between items-center bg-[#0f172a] p-2 rounded border border-[#334155]">
-                      <span className="text-sm text-[#f8fafc]">{date}</span>
-                      <button onClick={() => removeCleaningDate(date)} className="text-[#ef4444] hover:text-[#ef4444]/80">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {tempRoom.cleaningSchedule.length === 0 && (
-                    <p className="text-xs text-[#94a3b8] italic text-center py-4">Chưa có lịch dọn dẹp</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Attachments */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-[#f59e0b] uppercase tracking-wider flex items-center gap-2">
-                   <Paperclip size={16} /> Hồ sơ & File đính kèm
-                </h3>
-                <div className="flex gap-2 mb-4">
-                  <input 
-                    type="text"
-                    placeholder="Tên file..."
-                    value={newAttachmentName}
-                    onChange={e => setNewAttachmentName(e.target.value)}
-                    className="flex-1 bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-sm"
-                  />
-                  <Button size="sm" onClick={addAttachment}><Plus size={16} /></Button>
-                </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                  {tempRoom.attachments.map(att => (
-                    <div key={att.id} className="flex justify-between items-center bg-[#0f172a] p-2 rounded border border-[#334155]">
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <FileText size={14} className="text-[#38bdf8] shrink-0" />
-                        <span className="text-sm text-[#f8fafc] truncate">{att.name}</span>
-                      </div>
-                      <button onClick={() => removeAttachment(att.id)} className="text-[#ef4444] hover:text-[#ef4444]/80">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  {tempRoom.attachments.length === 0 && (
-                    <p className="text-xs text-[#94a3b8] italic text-center py-4">Chưa có file đính kèm</p>
-                  )}
-                </div>
-              </div>
             </div>
 
             <div className="mt-8 pt-6 border-t border-[#334155] flex justify-between items-center">
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
                 {role === 'landlord' && (
                   <button 
                     onClick={() => handleDeleteRoom(tempRoom.id)}
@@ -418,6 +376,35 @@ export function RoomList() {
                     className="text-[#f59e0b] text-xs font-bold flex items-center gap-2 hover:underline border-l border-[#334155] pl-4"
                   >
                     <LogOut size={18} /> Trả phòng
+                  </button>
+                )}
+                {role === 'landlord' && tempRoom.status === 'occupied' && (
+                  <button 
+                    onClick={() => {
+                        handleSave();
+                        const now = new Date();
+                        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        addInvoice({
+                          id: `inv-${tempRoom.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                          roomId: tempRoom.id,
+                          tenantId: tenants.find(t => t.roomId === tempRoom.id)?.id || 'unknown',
+                          month: currentMonth,
+                          rent: tempRoom.price,
+                          electricity: 0,
+                          initialElectricityMeter: tempRoom.initialElectricityMeter,
+                          water: 0,
+                          other: 0,
+                          total: tempRoom.price,
+                          status: 'pending',
+                          dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+                          type: 'other',
+                          createdAt: now.toISOString()
+                        });
+                        alert('Đã tạo hóa đơn cho phòng này!');
+                    }}
+                    className="text-[#10b981] text-xs font-bold flex items-center gap-2 hover:underline border-l border-[#334155] pl-4"
+                  >
+                    <Receipt size={18} /> Tạo hóa đơn
                   </button>
                 )}
               </div>
@@ -468,16 +455,6 @@ export function RoomList() {
                     {roomIssues.length > 0 && (
                       <div className="w-6 h-6 rounded bg-[#ef4444]/10 border border-[#ef4444]/30 flex items-center justify-center" title={`${roomIssues.length} sự cố`}>
                         <Clock size={12} className="text-[#ef4444]" />
-                      </div>
-                    )}
-                    {(room.status === 'occupied' || (room.cleaningSchedule?.length || 0) > 0) && (
-                      <div className="w-6 h-6 rounded bg-[#10b981]/10 border border-[#10b981]/30 flex items-center justify-center" title="Lịch dọn dẹp">
-                         <Calendar size={12} className="text-[#10b981]" />
-                      </div>
-                    )}
-                    {((room.attachments?.length || 0) > 0) && (
-                      <div className="w-6 h-6 rounded bg-[#38bdf8]/10 border border-[#38bdf8]/30 flex items-center justify-center" title="Hồ sơ">
-                        <Paperclip size={12} className="text-[#38bdf8]" />
                       </div>
                     )}
                   </div>
