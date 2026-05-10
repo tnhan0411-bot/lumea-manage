@@ -75,6 +75,7 @@ export function Layout() {
   const navItems = getNavItems();
 
   const renderScreen = () => {
+    console.log("Rendering with user:", user, "role:", role, "activeScreen:", activeScreen, "isLoaded:", isLoaded);
     if (!user) {
       console.log("Rendering Login");
       return <Login />;
