@@ -75,6 +75,8 @@ export interface Tenant {
   contractStart: string;
   contractEnd: string;
   visaExpiry?: string;
+  secondaryName?: string;
+  secondaryVisaExpiry?: string;
   avatar?: string;
 }
 
@@ -100,6 +102,8 @@ export interface Invoice {
   other: number;
   total: number;
   status: InvoiceStatus;
+  paymentMethod?: 'cash' | 'transfer';
+  paymentDate?: string;
   dueDate: string;
 }
 

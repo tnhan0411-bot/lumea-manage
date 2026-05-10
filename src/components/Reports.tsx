@@ -167,6 +167,49 @@ export function Reports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Report */}
+        <Card className="lg:col-span-2">
+          <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]/50 flex justify-between items-center">
+            <h3 className="font-bold text-[#f8fafc] flex items-center gap-2"><DollarSign size={16} /> Báo cáo Doanh thu</h3>
+            <span className="text-xs text-[#94a3b8]">{filteredInvoices.filter(i => i.status === 'paid').length} khoản thu</span>
+          </div>
+          <CardContent className="p-0">
+            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+              <table className="w-full text-left">
+                <thead className="bg-[#0f172a] text-[#94a3b8] text-xs uppercase sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Kỳ thu</th>
+                    <th className="px-6 py-3 font-medium">Phòng</th>
+                    <th className="px-6 py-3 font-medium">Đơn giá phòng</th>
+                    <th className="px-6 py-3 font-medium">Tổng thu</th>
+                    <th className="px-6 py-3 font-medium">Ngày nhận tiền</th>
+                    <th className="px-6 py-3 font-medium">Hình thức</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#334155]">
+                  {filteredInvoices.filter(i => i.status === 'paid').map(inv => (
+                    <tr key={inv.id} className="text-sm border-b border-[#334155]/50 hover:bg-[#334155]/10">
+                       <td className="px-6 py-3 text-[#94a3b8]">{inv.month}</td>
+                       <td className="px-6 py-3 text-[#f8fafc] font-medium">P.{rooms.find(r => r.id === inv.roomId)?.number}</td>
+                       <td className="px-6 py-3 text-[#f8fafc]">{inv.rent.toLocaleString()}đ</td>
+                       <td className="px-6 py-3 text-[#10b981] font-bold">{inv.total.toLocaleString()}đ</td>
+                       <td className="px-6 py-3 text-[#94a3b8]">{inv.paymentDate || '-'}</td>
+                       <td className="px-6 py-3">
+                         {inv.paymentMethod === 'cash' ? <Badge variant="warning">Tiền mặt</Badge> : <Badge variant="info">Chuyển khoản</Badge>}
+                       </td>
+                    </tr>
+                  ))}
+                  {filteredInvoices.filter(i => i.status === 'paid').length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-[#94a3b8] italic">Không có dữ liệu</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Maintenance History */}
         <Card className="lg:col-span-2">
           <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]/50 flex justify-between items-center">

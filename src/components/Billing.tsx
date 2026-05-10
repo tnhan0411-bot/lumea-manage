@@ -28,11 +28,20 @@ export function Billing() {
     ? myInvoices.filter(i => i.status !== 'paid')
     : myInvoices.filter(i => i.status === 'paid');
 
+  const [selectedMethod, setSelectedMethod] = useState<Record<string, 'cash' | 'transfer'>>({});
+
   const handlePay = (id: string) => {
     if(window.confirm('Xác nhận thanh toán?')) {
-      payInvoice(id);
+      payInvoice(id, 'transfer');
     }
-  }
+  };
+
+  const handleLandlordPay = (id: string) => {
+    const method = selectedMethod[id] || 'transfer';
+    if(window.confirm(`Xác nhận đã thu tiền (${method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})?`)) {
+      payInvoice(id, method);
+    }
+  };
 
   const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0);
   const totalPending = invoices.filter(i => i.status !== 'paid').reduce((sum, i) => sum + i.total, 0);
@@ -141,10 +150,23 @@ export function Billing() {
                         <Button size="sm" onClick={() => handlePay(inv.id)}>Thanh toán</Button>
                       )}
                       {inv.status !== 'paid' && role === 'landlord' && (
-                        <Button variant="outline" size="sm" onClick={() => payInvoice(inv.id)}>Đánh dấu Thu</Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <select 
+                            className="bg-[#0f172a] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc] outline-none"
+                            value={selectedMethod[inv.id] || 'transfer'}
+                            onChange={e => setSelectedMethod({...selectedMethod, [inv.id]: e.target.value as 'cash'|'transfer'})}
+                          >
+                            <option value="transfer">Chuyển khoản</option>
+                            <option value="cash">Tiền mặt</option>
+                          </select>
+                          <Button variant="outline" size="sm" onClick={() => handleLandlordPay(inv.id)}>Đánh dấu Thu</Button>
+                        </div>
                       )}
                       {inv.status === 'paid' && (
-                         <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">Biên lai</Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {inv.paymentMethod && <span className="text-[10px] text-[#94a3b8] uppercase mr-2">{inv.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}</span>}
+                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">Biên lai</Button>
+                        </div>
                       )}
                     </td>
                   </tr>

@@ -33,7 +33,7 @@ interface AppState {
   addIssue: (issue: Issue) => void;
   updateIssue: (id: string, status: Issue['status']) => void;
   editIssue: (id: string, updates: Partial<Issue>) => void;
-  payInvoice: (id: string) => void;
+  payInvoice: (id: string, paymentMethod?: 'cash' | 'transfer', paymentDate?: string) => void;
   addInvoice: (invoice: Invoice) => void;
   updateRoom: (id: string, updates: Partial<Room>) => void;
   addRoom: (room: Room) => void;
@@ -176,8 +176,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIssues(newItems);
     syncToDb('issues', newItems);
   };
-  const payInvoice = (id: string) => {
-    const newItems = invoices.map(i => i.id === id ? { ...i, status: 'paid' as const } : i);
+  const payInvoice = (id: string, paymentMethod?: 'cash' | 'transfer', paymentDate?: string) => {
+    const newItems = invoices.map(i => i.id === id ? { 
+      ...i, 
+      status: 'paid' as const,
+      paymentMethod: paymentMethod || 'cash',
+      paymentDate: paymentDate || new Date().toISOString().split('T')[0]
+    } : i);
     setInvoices(newItems);
     syncToDb('invoices', newItems);
   };
