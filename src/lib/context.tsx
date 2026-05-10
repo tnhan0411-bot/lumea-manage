@@ -83,10 +83,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (data.contracts) setContracts(data.contracts);
           if (data.expenses) setExpenses(data.expenses);
           if (data.usersList) {
-            setUsersList(data.usersList);
+            const updatedUsers = data.usersList.map((u: User) => ({
+              ...u,
+              password: u.password === 'password123' ? '123456' : u.password
+            }));
+            setUsersList(updatedUsers);
           }
         } else {
           // Init remote document first time
+          const updatedUsers = INITIAL_USERS.map(u => ({
+            ...u,
+            password: '123456'
+          }));
           setDoc(doc(db, 'state', 'global'), {
             rooms: INITIAL_ROOMS,
             tenants: INITIAL_TENANTS,
@@ -94,7 +102,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             invoices: INITIAL_INVOICES,
             contracts: INITIAL_CONTRACTS,
             expenses: INITIAL_EXPENSES,
-            usersList: INITIAL_USERS
+            usersList: updatedUsers
           });
         }
       } catch (e) {
