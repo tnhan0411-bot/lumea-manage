@@ -25,13 +25,14 @@ export function Dashboard() {
     let resolvedIssues = issues.filter(i => i.status === 'resolved');
     if (techFilterMode === 'range' && techDateRange.start && techDateRange.end) {
       resolvedIssues = resolvedIssues.filter(i => i.createdAt >= techDateRange.start && i.createdAt <= techDateRange.end);
-    } else if (techFilterMode === 'period') {
-      const year = techPeriod.split('-')[0];
-      const part = techPeriod.split('-')[1];
+    } else if (techFilterMode === 'period' && techPeriod) {
+      const year = techPeriod.includes('-') ? techPeriod.split('-')[0] : '';
+      const part = techPeriod.includes('-') ? techPeriod.split('-')[1] : '';
       resolvedIssues = resolvedIssues.filter(i => {
-        if (!i.createdAt) return false;
-        const iYear = i.createdAt.split('-')[0];
-        const iMonth = parseInt(i.createdAt.split('-')[1], 10);
+        if (!i.createdAt || !i.createdAt.includes('-')) return false;
+        const parts = i.createdAt.split('-');
+        const iYear = parts[0];
+        const iMonth = parseInt(parts[1], 10);
         if (iYear !== year) return false;
         if (part === 'Q1' && iMonth >= 1 && iMonth <= 3) return true;
         if (part === 'Q2' && iMonth >= 4 && iMonth <= 6) return true;
@@ -449,14 +450,16 @@ export function Dashboard() {
       });
     }
 
-    if (filterMode === 'period') {
+    if (filterMode === 'period' && period) {
       return invoices.filter(inv => {
         // Use inv.month (YYYY-MM) for matching period
         if (period.includes('Q')) {
           const year = period.split('-')[0];
           const quarter = period.split('-')[1];
-          const monthPart = inv.month.split('-')[1];
-          const invYear = inv.month.split('-')[0];
+          if (!inv.month || typeof inv.month !== 'string' || !inv.month.includes('-')) return false;
+          const invParts = inv.month.split('-');
+          const monthPart = invParts[1];
+          const invYear = invParts[0];
           if (invYear !== year) return false;
           if (quarter === 'Q1') return ['01', '02', '03'].includes(monthPart);
           if (quarter === 'Q2') return ['04', '05', '06'].includes(monthPart);
@@ -500,17 +503,18 @@ export function Dashboard() {
       return data;
     }
 
-    if (filterMode === 'period') {
+    if (filterMode === 'period' && period) {
       if (period.includes('Q')) {
-        const year = period.split('-')[0];
-        const quarter = period.split('-')[1];
+        const parts = period.split('-');
+        const year = parts[0];
+        const quarter = parts[1];
         const months = quarter === 'Q1' ? ['01', '02', '03'] : quarter === 'Q2' ? ['04', '05', '06'] : quarter === 'Q3' ? ['07', '08', '09'] : ['10', '11', '12'];
         return months.map(m => {
           const p = `${year}-${m}`;
           const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
           return { name: `T${parseInt(m)}`, revenue: rev };
         });
-      } else {
+      } else if (period.includes('-')) {
         // Show last 4 months up to current selection
         const [year, month] = period.split('-').map(Number);
         const data = [];

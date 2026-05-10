@@ -84,12 +84,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          
+          // Sanitization function
+          const safeStr = (v: any) => (typeof v === 'string' ? v : '');
+
           if (data.rooms) setRooms(data.rooms);
           if (data.tenants) setTenants(data.tenants);
-          if (data.issues) setIssues(data.issues);
-          if (data.invoices) setInvoices(data.invoices);
+          if (data.issues) {
+            setIssues(data.issues.map((i: any) => ({
+              ...i,
+              createdAt: safeStr(i.createdAt),
+              dueDate: safeStr(i.dueDate)
+            })));
+          }
+          if (data.invoices) {
+            setInvoices(data.invoices.map((i: any) => ({
+              ...i,
+              month: safeStr(i.month),
+              issueDate: safeStr(i.issueDate),
+              dueDate: safeStr(i.dueDate),
+              paymentDate: safeStr(i.paymentDate)
+            })));
+          }
           if (data.contracts) setContracts(data.contracts);
-          if (data.expenses) setExpenses(data.expenses);
+          if (data.expenses) {
+            setExpenses(data.expenses.map((e: any) => ({
+              ...e,
+              date: safeStr(e.date)
+            })));
+          }
           if (data.usersList) {
             const updatedUsers = data.usersList.map((u: User) => ({
               ...u,
