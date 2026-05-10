@@ -74,17 +74,22 @@ export function Layout() {
   const navItems = getNavItems();
 
   const renderScreen = () => {
-    switch (activeScreen) {
-      case 'dashboard': return <Dashboard />;
-      case 'rooms': return <RoomList />;
-      case 'maintenance': return <Maintenance />;
-      case 'cleaning': return <Cleaning />;
-      case 'billing': return <Billing />;
-      case 'reports': return <Reports />;
-      case 'contracts': return <Contracts />;
-      case 'profile': return <Profile />;
-      case 'expenses': return <Expenses />;
-      default: return <div className="p-8 text-center text-gray-500">Đang tải...</div>;
+    try {
+      switch (activeScreen) {
+        case 'dashboard': return <Dashboard />;
+        case 'rooms': return <RoomList />;
+        case 'maintenance': return <Maintenance />;
+        case 'cleaning': return <Cleaning />;
+        case 'billing': return <Billing />;
+        case 'reports': return <Reports />;
+        case 'contracts': return <Contracts />;
+        case 'profile': return <Profile />;
+        case 'expenses': return <Expenses />;
+        default: return <div className="p-8 text-center text-[#94a3b8]">Đang tải... {activeScreen}</div>;
+      }
+    } catch (e) {
+      console.error("Screen render error:", e);
+      return <div className="p-8 text-center text-red-500">Lỗi render màn hình: {String(e)}</div>;
     }
   };
 
