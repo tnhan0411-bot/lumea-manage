@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
-import { Receipt, Calendar, Clock } from 'lucide-react';
+import { Receipt, Calendar, Clock, Trash2, Edit2 } from 'lucide-react';
 import { FormEvent } from 'react';
 
 export function Billing() {
-  const { role, invoices, rooms, tenants, payInvoice, expenses, checkMonthlyBilling, updateInvoice, updateRoom } = useAppContext();
+  const { role, invoices, rooms, tenants, payInvoice, expenses, checkMonthlyBilling, updateInvoice, updateRoom, deleteInvoice } = useAppContext();
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -16,6 +16,29 @@ export function Billing() {
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [tempIssueDate, setTempIssueDate] = useState<string>('');
   const [tempMonth, setTempMonth] = useState<string>('');
+
+  const [editingFullId, setEditingFullId] = useState<string | null>(null);
+  const [tempFullInvoice, setTempFullInvoice] = useState<any>(null);
+
+  const handleEditFull = (inv: any) => {
+    setEditingFullId(inv.id);
+    setTempFullInvoice({ ...inv });
+  };
+
+  const handleSaveFull = () => {
+    if (!tempFullInvoice) return;
+    const { rent, electricity, water, other } = tempFullInvoice;
+    const total = rent + electricity + water + other;
+    updateInvoice(tempFullInvoice.id, { ...tempFullInvoice, total });
+    setEditingFullId(null);
+    setTempFullInvoice(null);
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa hóa đơn này? Thao tác này không thể hoàn tác.')) {
+      deleteInvoice(id);
+    }
+  };
 
   const handleEditDate = (inv: any) => {
      setEditingDateId(inv.id);
@@ -170,7 +193,22 @@ export function Billing() {
                   <tr key={inv.id} className="hover:bg-[#334155]/30 group">
                     <td className="px-6 py-4">
                       <p className="font-bold text-[#f8fafc]">Tháng {inv.month}</p>
-                      {editingDateId === inv.id ? (
+                      {editingFullId === inv.id ? (
+                        <div className="flex flex-col gap-2 mt-1 min-w-[200px] bg-[#0f172a] p-3 rounded-lg border border-[#38bdf8]">
+                           <div>
+                              <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Kỳ hạn (YYYY-MM)</label>
+                              <input type="text" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.month} onChange={e => setTempFullInvoice({...tempFullInvoice, month: e.target.value})} />
+                           </div>
+                           <div>
+                              <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Ngày lập</label>
+                              <input type="date" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.issueDate} onChange={e => setTempFullInvoice({...tempFullInvoice, issueDate: e.target.value})} />
+                           </div>
+                           <div>
+                              <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Hạn đóng</label>
+                              <input type="date" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.dueDate} onChange={e => setTempFullInvoice({...tempFullInvoice, dueDate: e.target.value})} />
+                           </div>
+                        </div>
+                      ) : editingDateId === inv.id ? (
                         <div className="flex flex-col gap-2 mt-1">
                           <input type="text" placeholder="Tháng (YYYY-MM)" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempMonth} onChange={e => setTempMonth(e.target.value)} />
                           <input type="date" className="bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[10px] text-[#f8fafc] outline-none" value={tempIssueDate} onChange={e => setTempIssueDate(e.target.value)} />
@@ -197,7 +235,32 @@ export function Billing() {
                       </td>
                     )}
                     <td className="px-6 py-4 min-w-[240px]">
-                      {editingElecId === inv.id ? (
+                      {editingFullId === inv.id ? (
+                         <div className="flex flex-col gap-2 bg-[#0f172a] p-3 rounded-lg border border-[#38bdf8]">
+                            <div className="grid grid-cols-2 gap-2">
+                               <div>
+                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Tiền nhà</label>
+                                  <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.rent} onChange={e => setTempFullInvoice({...tempFullInvoice, rent: Number(e.target.value)})} />
+                               </div>
+                               <div>
+                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Tiền điện</label>
+                                  <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.electricity} onChange={e => setTempFullInvoice({...tempFullInvoice, electricity: Number(e.target.value)})} />
+                               </div>
+                               <div>
+                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Tiền nước</label>
+                                  <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.water} onChange={e => setTempFullInvoice({...tempFullInvoice, water: Number(e.target.value)})} />
+                               </div>
+                               <div>
+                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Khác</label>
+                                  <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.other} onChange={e => setTempFullInvoice({...tempFullInvoice, other: Number(e.target.value)})} />
+                               </div>
+                            </div>
+                            <div className="flex gap-2 justify-end mt-2 pt-2 border-t border-[#334155]">
+                               <Button variant="outline" size="sm" onClick={() => setEditingFullId(null)} className="h-7 text-[10px]">Hủy</Button>
+                               <Button size="sm" onClick={handleSaveFull} className="h-7 text-[10px]">Lưu tất cả</Button>
+                            </div>
+                         </div>
+                      ) : editingElecId === inv.id ? (
                         <div className="flex flex-col gap-2 bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[10px] uppercase text-[#94a3b8] font-bold">Số điện đầu</span>
@@ -238,6 +301,24 @@ export function Billing() {
                        <Badge variant="warning">Chờ thu</Badge>}
                     </td>
                     <td className="px-6 py-4 text-right">
+                      {inv.status !== 'paid' && role === 'landlord' && editingFullId !== inv.id && (
+                        <div className="flex items-center justify-end gap-2 mb-2">
+                           <button 
+                             onClick={() => handleEditFull(inv)}
+                             className="p-1.5 text-[#38bdf8] hover:bg-[#38bdf8]/10 rounded transition-colors"
+                             title="Sửa chi tiết"
+                           >
+                             <Edit2 size={14} />
+                           </button>
+                           <button 
+                             onClick={() => handleDelete(inv.id)}
+                             className="p-1.5 text-[#ef4444] hover:bg-[#ef4444]/10 rounded transition-colors"
+                             title="Xóa hóa đơn"
+                           >
+                             <Trash2 size={14} />
+                           </button>
+                        </div>
+                      )}
                       {inv.status !== 'paid' && role === 'tenant' && (
                         <Button size="sm" onClick={() => handlePay(inv.id)}>Thanh toán</Button>
                       )}

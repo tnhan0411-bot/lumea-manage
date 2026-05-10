@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
-import { CreditCard, Plus, Trash2, Calendar, DollarSign, Tag, FileText } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Calendar, DollarSign, Tag, FileText, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const EXPENSE_CATEGORIES = [
@@ -13,8 +13,10 @@ const EXPENSE_CATEGORIES = [
 ];
 
 export function Expenses() {
-  const { expenses, addExpense, deleteExpense } = useAppContext();
+  const { expenses, addExpense, deleteExpense, updateExpense } = useAppContext();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+
   const [category, setCategory] = useState('salary');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -24,17 +26,46 @@ export function Expenses() {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
-    addExpense({
-      id: `exp-${Date.now()}`,
-      category: category as any,
-      amount: parseFloat(amount),
-      date,
-      description
-    });
+    if (editingExpenseId) {
+      updateExpense(editingExpenseId, {
+        category: category as any,
+        amount: parseFloat(amount),
+        date,
+        description
+      });
+      setEditingExpenseId(null);
+    } else {
+      addExpense({
+        id: `exp-${Date.now()}`,
+        category: category as any,
+        amount: parseFloat(amount),
+        date,
+        description
+      });
+    }
 
     setAmount('');
     setDescription('');
     setShowAddForm(false);
+  };
+
+  const handleEdit = (exp: any) => {
+    setEditingExpenseId(exp.id);
+    setCategory(exp.category);
+    setAmount(exp.amount.toString());
+    setDate(exp.date);
+    setDescription(exp.description);
+    setShowAddForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancel = () => {
+    setShowAddForm(false);
+    setEditingExpenseId(null);
+    setAmount('');
+    setDescription('');
+    setCategory('salary');
+    setDate(new Date().toISOString().split('T')[0]);
   };
 
   const getCategoryLabel = (catId: string) => {
@@ -54,7 +85,7 @@ export function Expenses() {
           <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Chi phí</h1>
           <p className="text-[#94a3b8] text-sm">Theo dõi các khoản chi lương, vệ sinh, vật dụng...</p>
         </div>
-        <Button onClick={() => setShowAddForm(!showAddForm)} variant={showAddForm ? "outline" : "primary"}>
+        <Button onClick={showAddForm ? handleCancel : () => setShowAddForm(true)} variant={showAddForm ? "outline" : "primary"}>
           {showAddForm ? 'Hủy' : (
             <div className="flex items-center gap-2">
               <Plus size={18} />
@@ -155,7 +186,9 @@ export function Expenses() {
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full">Lưu khoản chi</Button>
+                  <Button type="submit" className="w-full">
+                    {editingExpenseId ? 'Cập nhật khoản chi' : 'Lưu khoản chi'}
+                  </Button>
                 </form>
               </CardContent>
             </Card>
@@ -186,14 +219,24 @@ export function Expenses() {
                       <p className="text-[#64748b] text-sm">{exp.description || 'Không có mô tả'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                     <span className="font-bold text-[#f8fafc]">{exp.amount.toLocaleString()} VND</span>
-                    <button 
-                      onClick={() => deleteExpense(exp.id)}
-                      className="p-2 text-[#64748b] hover:text-[#ef4444] transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center">
+                      <button 
+                        onClick={() => handleEdit(exp)}
+                        className="p-2 text-[#64748b] hover:text-[#38bdf8] transition-colors opacity-0 group-hover:opacity-100"
+                        title="Sửa"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => deleteExpense(exp.id)}
+                        className="p-2 text-[#64748b] hover:text-[#ef4444] transition-colors opacity-0 group-hover:opacity-100"
+                        title="Xóa"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
