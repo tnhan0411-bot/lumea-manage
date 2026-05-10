@@ -64,6 +64,7 @@ export interface Room {
   attachments: Attachment[];
   leaseStart?: string;
   leaseEnd?: string;
+  initialElectricityMeter?: number;
 }
 
 export interface Tenant {

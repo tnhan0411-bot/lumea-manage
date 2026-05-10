@@ -44,7 +44,8 @@ export function RoomList() {
         cleaningSchedule: tempRoom.cleaningSchedule,
         attachments: tempRoom.attachments,
         leaseStart: tempRoom.leaseStart,
-        leaseEnd: tempRoom.leaseEnd
+        leaseEnd: tempRoom.leaseEnd,
+        initialElectricityMeter: tempRoom.initialElectricityMeter
       });
       
       const tenant = tenants.find(t => t.roomId === tempRoom.id);
@@ -245,6 +246,15 @@ export function RoomList() {
                       type="number" 
                       value={tempRoom.price}
                       onChange={e => setTempRoom({...tempRoom, price: Number(e.target.value)})}
+                      className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Số điện đầu</label>
+                    <input 
+                      type="number" 
+                      value={tempRoom.initialElectricityMeter || ''}
+                      onChange={e => setTempRoom({...tempRoom, initialElectricityMeter: Number(e.target.value)})}
                       className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
                     />
                   </div>
