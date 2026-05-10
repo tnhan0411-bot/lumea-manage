@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
-import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut } from 'lucide-react';
+import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut, Receipt } from 'lucide-react';
 import { Room, cn, Attachment } from '../lib/utils';
 
 export function RoomList() {
@@ -271,92 +271,96 @@ export function RoomList() {
                       className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none"
                     />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Người thuê 1</label>
-                      <input 
-                        type="text" 
-                        value={tempTenantName}
-                        onChange={e => setTempTenantName(e.target.value)}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hộ chiếu 1</label>
-                      <input 
-                        type="text" 
-                        value={tempPassportNumber}
-                        onChange={e => setTempPassportNumber(e.target.value)}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
-                        placeholder="Số hộ chiếu"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hạn Visa 1</label>
-                      <input 
-                        type="date" 
-                        value={tempPassportExpiry}
-                        onChange={e => setTempPassportExpiry(e.target.value)}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Người thuê 2</label>
-                      <input 
-                        type="text" 
-                        value={tempSecondaryName}
-                        onChange={e => setTempSecondaryName(e.target.value)}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hộ chiếu 2</label>
-                      <input 
-                        type="text" 
-                        value={tempSecondaryPassportNumber}
-                        onChange={e => setTempSecondaryPassportNumber(e.target.value)}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
-                        placeholder="Số hộ chiếu"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hạn Visa 2</label>
-                      <input 
-                        type="date" 
-                        value={tempSecondaryPassportExpiry}
-                        onChange={e => setTempSecondaryPassportExpiry(e.target.value)}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Ngày bắt đầu thuê</label>
-                      <input 
-                        type="date" 
-                        value={tempRoom.leaseStart || ''}
-                        onChange={e => setTempRoom({...tempRoom, leaseStart: e.target.value})}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-xs focus:ring-2 focus:ring-[#38bdf8] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8]">Ngày hết hạn</label>
-                        {tempRoom.status === 'occupied' && (
-                           <div className="flex gap-1">
-                             <button type="button" onClick={() => extendLease(6)} className="text-[9px] bg-[#10b981]/10 text-[#10b981] px-1.5 py-0.5 rounded font-bold hover:bg-[#10b981]/20">Gia hạn 6T</button>
-                             <button type="button" onClick={() => extendLease(12)} className="text-[9px] bg-[#38bdf8]/10 text-[#38bdf8] px-1.5 py-0.5 rounded font-bold hover:bg-[#38bdf8]/20">Gia hạn 1N</button>
-                           </div>
-                        )}
+                  {tempRoom.status === 'occupied' && (
+                    <>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Người thuê 1</label>
+                          <input 
+                            type="text" 
+                            value={tempTenantName}
+                            onChange={e => setTempTenantName(e.target.value)}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hộ chiếu 1</label>
+                          <input 
+                            type="text" 
+                            value={tempPassportNumber}
+                            onChange={e => setTempPassportNumber(e.target.value)}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
+                            placeholder="Số hộ chiếu"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hạn Visa 1</label>
+                          <input 
+                            type="date" 
+                            value={tempPassportExpiry}
+                            onChange={e => setTempPassportExpiry(e.target.value)}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Người thuê 2</label>
+                          <input 
+                            type="text" 
+                            value={tempSecondaryName}
+                            onChange={e => setTempSecondaryName(e.target.value)}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hộ chiếu 2</label>
+                          <input 
+                            type="text" 
+                            value={tempSecondaryPassportNumber}
+                            onChange={e => setTempSecondaryPassportNumber(e.target.value)}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
+                            placeholder="Số hộ chiếu"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Hạn Visa 2</label>
+                          <input 
+                            type="date" 
+                            value={tempSecondaryPassportExpiry}
+                            onChange={e => setTempSecondaryPassportExpiry(e.target.value)}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs"
+                          />
+                        </div>
                       </div>
-                      <input 
-                        type="date" 
-                        value={tempRoom.leaseEnd || ''}
-                        onChange={e => setTempRoom({...tempRoom, leaseEnd: e.target.value})}
-                        className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-xs focus:ring-2 focus:ring-[#38bdf8] outline-none"
-                      />
-                    </div>
-                  </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Ngày bắt đầu thuê</label>
+                          <input 
+                            type="date" 
+                            value={tempRoom.leaseStart || ''}
+                            onChange={e => setTempRoom({...tempRoom, leaseStart: e.target.value})}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-xs focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8]">Ngày hết hạn</label>
+                            {tempRoom.status === 'occupied' && (
+                               <div className="flex gap-1">
+                                 <button type="button" onClick={() => extendLease(6)} className="text-[9px] bg-[#10b981]/10 text-[#10b981] px-1.5 py-0.5 rounded font-bold hover:bg-[#10b981]/20">Gia hạn 6T</button>
+                                 <button type="button" onClick={() => extendLease(12)} className="text-[9px] bg-[#38bdf8]/10 text-[#38bdf8] px-1.5 py-0.5 rounded font-bold hover:bg-[#38bdf8]/20">Gia hạn 1N</button>
+                               </div>
+                            )}
+                          </div>
+                          <input 
+                            type="date" 
+                            value={tempRoom.leaseEnd || ''}
+                            onChange={e => setTempRoom({...tempRoom, leaseEnd: e.target.value})}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-xs focus:ring-2 focus:ring-[#38bdf8] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
