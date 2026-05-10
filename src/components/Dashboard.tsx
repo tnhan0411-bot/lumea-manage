@@ -423,6 +423,7 @@ export function Dashboard() {
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
   
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
+  const [showAllVisas, setShowAllVisas] = React.useState(false);
 
   // Visa Expiration Tracking
   const visaExpirations = tenants.reduce((acc, t) => {
@@ -710,13 +711,13 @@ export function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader title="Theo dõi Visa (Stam)" />
+          <CardHeader title="Theo dõi Visa (Stamp)" />
           <CardContent>
             <div className="space-y-4">
               {visaExpirations.length === 0 ? (
                 <p className="text-sm text-[#94a3b8] italic">Không có dữ liệu visa.</p>
               ) : (
-                visaExpirations.slice(0, 5).map(v => (
+                (showAllVisas ? visaExpirations : visaExpirations.slice(0, 5)).map(v => (
                   <div key={v.id + (v._isSecondary ? '_2' : '_1')} className="group p-3 rounded-lg bg-[#0f172a] border border-[#334155] hover:border-[#38bdf8]/30 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                        <div className="flex items-center gap-3">
@@ -746,7 +747,14 @@ export function Dashboard() {
                 ))
               )}
               {visaExpirations.length > 5 && (
-                <Button variant="ghost" size="sm" className="w-full text-[10px] text-[#38bdf8]">Xem tất cả</Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full text-[10px] text-[#38bdf8]"
+                  onClick={() => setShowAllVisas(!showAllVisas)}
+                >
+                  {showAllVisas ? 'Thu gọn' : 'Xem tất cả'}
+                </Button>
               )}
             </div>
           </CardContent>

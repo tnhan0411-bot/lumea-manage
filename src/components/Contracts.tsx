@@ -235,7 +235,7 @@ export function Contracts() {
                     <input type="number" value={deposit} onChange={e => setDeposit(e.target.value)} required className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-[#94a3b8] mb-1">Hết hạn Visa (Stam)</label>
+                    <label className="block text-[10px] uppercase font-bold text-[#94a3b8] mb-1">Hết hạn Visa (Stamp)</label>
                     <input type="date" value={visaExpiry} onChange={e => setVisaExpiry(e.target.value)} className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2 text-sm text-[#f8fafc]" />
                   </div>
                </div>

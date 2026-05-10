@@ -259,6 +259,21 @@ export function Billing() {
                                <Button variant="outline" size="sm" onClick={() => setEditingFullId(null)} className="h-7 text-[10px]">Hủy</Button>
                                <Button size="sm" onClick={handleSaveFull} className="h-7 text-[10px]">Lưu tất cả</Button>
                             </div>
+                            {tempFullInvoice.status === 'paid' && (
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div>
+                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Ngày thanh toán</label>
+                                  <input type="date" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.paymentDate || ''} onChange={e => setTempFullInvoice({...tempFullInvoice, paymentDate: e.target.value})} />
+                                </div>
+                                <div>
+                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Phương thức</label>
+                                  <select className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.paymentMethod || 'transfer'} onChange={e => setTempFullInvoice({...tempFullInvoice, paymentMethod: e.target.value as 'cash'|'transfer'})}>
+                                    <option value="transfer">Chuyển khoản</option>
+                                    <option value="cash">Tiền mặt</option>
+                                  </select>
+                                </div>
+                              </div>
+                            )}
                          </div>
                       ) : editingElecId === inv.id ? (
                         <div className="flex flex-col gap-2 bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
@@ -301,7 +316,7 @@ export function Billing() {
                        <Badge variant="warning">Chờ thu</Badge>}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {inv.status !== 'paid' && role === 'landlord' && editingFullId !== inv.id && (
+                      {role === 'landlord' && editingFullId !== inv.id && (
                         <div className="flex items-center justify-end gap-2 mb-2">
                            <button 
                              onClick={() => handleEditFull(inv)}
