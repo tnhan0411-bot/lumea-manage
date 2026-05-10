@@ -22,12 +22,12 @@ export function Expenses() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
     if (editingExpenseId) {
-      updateExpense(editingExpenseId, {
+      await updateExpense(editingExpenseId, {
         category: category as any,
         amount: parseFloat(amount),
         date,
@@ -35,7 +35,7 @@ export function Expenses() {
       });
       setEditingExpenseId(null);
     } else {
-      addExpense({
+      await addExpense({
         id: `exp-${Date.now()}`,
         category: category as any,
         amount: parseFloat(amount),
@@ -230,7 +230,11 @@ export function Expenses() {
                         <Edit2 size={16} />
                       </button>
                       <button 
-                        onClick={() => deleteExpense(exp.id)}
+                        onClick={async () => {
+                          if (window.confirm('Xác nhận xóa khoản chi này?')) {
+                            await deleteExpense(exp.id);
+                          }
+                        }}
                         className="p-2 text-[#64748b] hover:text-[#ef4444] transition-colors opacity-0 group-hover:opacity-100"
                         title="Xóa"
                       >

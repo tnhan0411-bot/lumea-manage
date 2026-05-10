@@ -25,18 +25,18 @@ export function Billing() {
     setTempFullInvoice({ ...inv });
   };
 
-  const handleSaveFull = () => {
+  const handleSaveFull = async () => {
     if (!tempFullInvoice) return;
     const { rent, electricity, water, other } = tempFullInvoice;
     const total = rent + electricity + water + other;
-    updateInvoice(tempFullInvoice.id, { ...tempFullInvoice, total });
+    await updateInvoice(tempFullInvoice.id, { ...tempFullInvoice, total });
     setEditingFullId(null);
     setTempFullInvoice(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa hóa đơn này? Thao tác này không thể hoàn tác.')) {
-      deleteInvoice(id);
+      await deleteInvoice(id);
     }
   };
 
@@ -46,8 +46,8 @@ export function Billing() {
      setTempMonth(inv.month || '');
   };
 
-  const handleSaveDate = (id: string) => {
-     updateInvoice(id, { issueDate: tempIssueDate, month: tempMonth });
+  const handleSaveDate = async (id: string) => {
+     await updateInvoice(id, { issueDate: tempIssueDate, month: tempMonth });
      setEditingDateId(null);
   };
 
@@ -57,18 +57,18 @@ export function Billing() {
     setTempFinalMeter(inv.finalElectricityMeter ?? '');
   };
 
-  const handleSaveElec = (inv: any) => {
+  const handleSaveElec = async (inv: any) => {
     const init = Number(tempInitMeter) || 0;
     const final = Number(tempFinalMeter) || 0;
     const electricityAmount = Math.max(0, final - init) * 4000;
     const newTotal = inv.rent + electricityAmount + inv.water + inv.other;
-    updateInvoice(inv.id, { 
+    await updateInvoice(inv.id, { 
       initialElectricityMeter: init, 
       finalElectricityMeter: final, 
       electricity: electricityAmount,
       total: newTotal
     });
-    updateRoom(inv.roomId, { initialElectricityMeter: final });
+    await updateRoom(inv.roomId, { initialElectricityMeter: final });
     setEditingElecId(null);
   };
 
@@ -95,17 +95,17 @@ export function Billing() {
   const [selectedMethod, setSelectedMethod] = useState<Record<string, 'cash' | 'transfer'>>({});
   const [selectedPaymentDate, setSelectedPaymentDate] = useState<Record<string, string>>({});
 
-  const handlePay = (id: string) => {
+  const handlePay = async (id: string) => {
     if(window.confirm('Xác nhận thanh toán?')) {
-      payInvoice(id, 'transfer');
+      await payInvoice(id, 'transfer');
     }
   };
 
-  const handleLandlordPay = (id: string) => {
+  const handleLandlordPay = async (id: string) => {
     const method = selectedMethod[id] || 'transfer';
     const payDate = selectedPaymentDate[id] || new Date().toISOString().split('T')[0];
     if(window.confirm(`Xác nhận đã thu tiền (${method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}) vào ngày ${payDate}?`)) {
-      payInvoice(id, method, payDate);
+      await payInvoice(id, method, payDate);
     }
   };
 

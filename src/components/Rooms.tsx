@@ -17,6 +17,8 @@ export function RoomList() {
   const [newCleaningDate, setNewCleaningDate] = useState('');
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const extendLease = (months: number) => {
     if (tempRoom) {
       let date = new Date();
@@ -46,70 +48,70 @@ export function RoomList() {
     setTempSecondaryPassportNumber(tenant?.secondaryPassportNumber || '');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (tempRoom) {
-      updateRoom(tempRoom.id, { 
-        number: tempRoom.number, 
-        price: tempRoom.price,
-        status: tempRoom.status,
-        cleaningSchedule: tempRoom.cleaningSchedule,
-        attachments: tempRoom.attachments,
-        leaseStart: tempRoom.leaseStart,
-        leaseEnd: tempRoom.leaseEnd,
-        initialElectricityMeter: tempRoom.initialElectricityMeter
-      });
-      
-      const tenant = tenants.find(t => t.roomId === tempRoom.id);
-      if (tempRoom.status === 'occupied') {
-        if (tenant) {
-          updateTenant(tenant.id, { 
-            name: tempTenantName, 
-            visaExpiry: tempPassportExpiry || undefined,
-            passportNumber: tempPassportNumber || undefined,
-            secondaryName: tempSecondaryName || undefined,
-            secondaryVisaExpiry: tempSecondaryPassportExpiry || undefined,
-            secondaryPassportNumber: tempSecondaryPassportNumber || undefined,
-            contractEnd: tempRoom.leaseEnd || undefined
-          });
-        } else if (tempTenantName) {
-          // If no tenant exists but name is provided, create one
-          const newTenantId = `t-${Date.now()}`;
-          addTenant({
-            id: newTenantId,
-            name: tempTenantName,
-            roomId: tempRoom.id,
-            phone: '',
-            email: '',
-            contractStart: tempRoom.leaseStart || new Date().toISOString().split('T')[0],
-            contractEnd: tempRoom.leaseEnd || '',
-            visaExpiry: tempPassportExpiry || undefined,
-            passportNumber: tempPassportNumber || undefined,
-            secondaryName: tempSecondaryName || undefined,
-            secondaryVisaExpiry: tempSecondaryPassportExpiry || undefined,
-            secondaryPassportNumber: tempSecondaryPassportNumber || undefined
-          });
+      setIsSaving(true);
+      try {
+        // Ensure we pass all fields from tempRoom
+        await updateRoom(tempRoom.id, { ...tempRoom });
+        
+        const tenant = tenants.find(t => t.roomId === tempRoom.id);
+        if (tempRoom.status === 'occupied') {
+          if (tenant) {
+            updateTenant(tenant.id, { 
+              name: tempTenantName, 
+              visaExpiry: tempPassportExpiry || undefined,
+              passportNumber: tempPassportNumber || undefined,
+              secondaryName: tempSecondaryName || undefined,
+              secondaryVisaExpiry: tempSecondaryPassportExpiry || undefined,
+              secondaryPassportNumber: tempSecondaryPassportNumber || undefined,
+              contractEnd: tempRoom.leaseEnd || undefined
+            });
+          } else if (tempTenantName) {
+            // If no tenant exists but name is provided, create one
+            const newTenantId = `t-${Date.now()}`;
+            addTenant({
+              id: newTenantId,
+              name: tempTenantName,
+              roomId: tempRoom.id,
+              phone: '',
+              email: '',
+              contractStart: tempRoom.leaseStart || new Date().toISOString().split('T')[0],
+              contractEnd: tempRoom.leaseEnd || '',
+              visaExpiry: tempPassportExpiry || undefined,
+              passportNumber: tempPassportNumber || undefined,
+              secondaryName: tempSecondaryName || undefined,
+              secondaryVisaExpiry: tempSecondaryPassportExpiry || undefined,
+              secondaryPassportNumber: tempSecondaryPassportNumber || undefined
+            });
 
-          // Auto-generate invoice for the new stay
-          const now = new Date();
-          const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-          addInvoice({
-            id: `inv-${Date.now()}`,
-            roomId: tempRoom.id,
-            tenantId: newTenantId,
-            month: currentMonth,
-            rent: tempRoom.price,
-            electricity: 0,
-            water: 0,
-            other: 0,
-            total: tempRoom.price,
-            status: 'pending',
-            dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
-            issueDate: now.toISOString().split('T')[0]
-          });
+            // Auto-generate invoice for the new stay
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            addInvoice({
+              id: `inv-${Date.now()}`,
+              roomId: tempRoom.id,
+              tenantId: newTenantId,
+              month: currentMonth,
+              rent: tempRoom.price,
+              electricity: 0,
+              water: 0,
+              other: 0,
+              total: tempRoom.price,
+              status: 'pending',
+              dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+              issueDate: now.toISOString().split('T')[0]
+            });
+          }
         }
+        setEditingRoomId(null);
+      } catch (error) {
+        console.error("Error saving room data:", error);
+        alert("Có lỗi xảy ra khi lưu dữ liệu. Vui lòng thử lại.");
+      } finally {
+        setIsSaving(false);
       }
     }
-    setEditingRoomId(null);
   };
 
   const handleAddNewRoom = () => {
@@ -415,9 +417,18 @@ export function RoomList() {
                 )}
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setEditingRoomId(null)}>Hủy</Button>
-                <Button onClick={handleSave} className="gap-2 px-8">
-                  <Save size={18} /> Lưu cấu hình
+                <Button variant="outline" onClick={() => setEditingRoomId(null)} disabled={isSaving}>Hủy</Button>
+                <Button onClick={handleSave} className="gap-2 px-8" disabled={isSaving}>
+                  {isSaving ? (
+                    <div className="flex items-center gap-2">
+                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                       Đang lưu...
+                    </div>
+                  ) : (
+                    <>
+                      <Save size={18} /> Lưu
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

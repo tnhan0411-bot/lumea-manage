@@ -207,31 +207,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     syncToDb('usersList', newItems);
   };
 
-  const syncToDb = (key: string, data: any) => {
-    setDoc(doc(db, 'state', 'global'), { [key]: data }, { merge: true }).catch(console.error);
+  const syncToDb = async (key: string, data: any) => {
+    try {
+      await setDoc(doc(db, 'state', 'global'), { [key]: data }, { merge: true });
+    } catch (e) {
+      console.error(`Error syncing ${key} to DB:`, e);
+      throw e;
+    }
   };
 
-  const addIssue = (issue: Issue) => {
+  const addIssue = async (issue: Issue) => {
     const newItems = [issue, ...issues];
     setIssues(newItems);
-    syncToDb('issues', newItems);
+    await syncToDb('issues', newItems);
   };
-  const updateIssue = (id: string, status: Issue['status']) => {
+  const updateIssue = async (id: string, status: Issue['status']) => {
     const newItems = issues.map(i => i.id === id ? { ...i, status } : i);
     setIssues(newItems);
-    syncToDb('issues', newItems);
+    await syncToDb('issues', newItems);
   };
-  const editIssue = (id: string, updates: Partial<Issue>) => {
+  const editIssue = async (id: string, updates: Partial<Issue>) => {
     const newItems = issues.map(i => i.id === id ? { ...i, ...updates } : i);
     setIssues(newItems);
-    syncToDb('issues', newItems);
+    await syncToDb('issues', newItems);
   };
-  const deleteIssue = (id: string) => {
+  const deleteIssue = async (id: string) => {
     const newItems = issues.filter(i => i.id !== id);
     setIssues(newItems);
-    syncToDb('issues', newItems);
+    await syncToDb('issues', newItems);
   };
-  const payInvoice = (id: string, paymentMethod?: 'cash' | 'transfer', paymentDate?: string) => {
+  const payInvoice = async (id: string, paymentMethod?: 'cash' | 'transfer', paymentDate?: string) => {
     const newItems = invoices.map(i => i.id === id ? { 
       ...i, 
       status: 'paid' as const,
@@ -239,42 +244,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       paymentDate: paymentDate || new Date().toISOString().split('T')[0]
     } : i);
     setInvoices(newItems);
-    syncToDb('invoices', newItems);
+    await syncToDb('invoices', newItems);
   };
-  const addInvoice = (invoice: Invoice) => {
+  const addInvoice = async (invoice: Invoice) => {
     const newItems = [invoice, ...invoices];
     setInvoices(newItems);
-    syncToDb('invoices', newItems);
+    await syncToDb('invoices', newItems);
   };
-  const updateInvoice = (id: string, updates: Partial<Invoice>) => {
+  const updateInvoice = async (id: string, updates: Partial<Invoice>) => {
     const newItems = invoices.map(i => i.id === id ? { ...i, ...updates } : i);
     setInvoices(newItems);
-    syncToDb('invoices', newItems);
+    await syncToDb('invoices', newItems);
   };
-  const deleteInvoice = (id: string) => {
+  const deleteInvoice = async (id: string) => {
     const newItems = invoices.filter(i => i.id !== id);
     setInvoices(newItems);
-    syncToDb('invoices', newItems);
+    await syncToDb('invoices', newItems);
   };
 
-  const updateRoom = (id: string, updates: Partial<Room>) => {
+  const updateRoom = async (id: string, updates: Partial<Room>) => {
     const newItems = rooms.map(r => r.id === id ? { ...r, ...updates } : r);
     setRooms(newItems);
-    syncToDb('rooms', newItems);
+    await syncToDb('rooms', newItems);
   };
 
-  const addRoom = (room: Room) => {
+  const addRoom = async (room: Room) => {
     const newItems = [...rooms, room];
     setRooms(newItems);
-    syncToDb('rooms', newItems);
+    await syncToDb('rooms', newItems);
   };
-  const deleteRoom = (id: string) => {
+  const deleteRoom = async (id: string) => {
     const newItems = rooms.filter(r => r.id !== id);
     setRooms(newItems);
-    syncToDb('rooms', newItems);
+    await syncToDb('rooms', newItems);
   };
 
-  const checkoutRoom = (id: string) => {
+  const checkoutRoom = async (id: string) => {
     const newRooms = rooms.map(r => r.id === id ? { 
       ...r, 
       status: 'available', 
@@ -282,61 +287,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       leaseEnd: undefined 
     } : r);
     setRooms(newRooms as any);
-    syncToDb('rooms', newRooms);
+    await syncToDb('rooms', newRooms);
     
     // Also remove tenant from this room
     const newTenants = tenants.map(t => t.roomId === id ? { ...t, roomId: undefined } : t);
     setTenants(newTenants);
-    syncToDb('tenants', newTenants);
+    await syncToDb('tenants', newTenants);
   };
 
-  const updateTenant = (id: string, updates: Partial<Tenant>) => {
+  const updateTenant = async (id: string, updates: Partial<Tenant>) => {
     const newItems = tenants.map(t => t.id === id ? { ...t, ...updates } : t);
     setTenants(newItems);
-    syncToDb('tenants', newItems);
+    await syncToDb('tenants', newItems);
   };
 
-  const addTenant = (tenant: Tenant) => {
+  const addTenant = async (tenant: Tenant) => {
     const newItems = [...tenants, tenant];
     setTenants(newItems);
-    syncToDb('tenants', newItems);
+    await syncToDb('tenants', newItems);
   };
-  const deleteTenant = (id: string) => {
+  const deleteTenant = async (id: string) => {
     const newItems = tenants.filter(t => t.id !== id);
     setTenants(newItems);
-    syncToDb('tenants', newItems);
+    await syncToDb('tenants', newItems);
   };
 
-  const addExpense = (expense: Expense) => {
+  const addExpense = async (expense: Expense) => {
     const newItems = [expense, ...expenses];
     setExpenses(newItems);
-    syncToDb('expenses', newItems);
+    await syncToDb('expenses', newItems);
   };
-  const updateExpense = (id: string, updates: Partial<Expense>) => {
+  const updateExpense = async (id: string, updates: Partial<Expense>) => {
     const newItems = expenses.map(e => e.id === id ? { ...e, ...updates } : e);
     setExpenses(newItems);
-    syncToDb('expenses', newItems);
+    await syncToDb('expenses', newItems);
   };
-  const deleteExpense = (id: string) => {
+  const deleteExpense = async (id: string) => {
     const newItems = expenses.filter(e => e.id !== id);
     setExpenses(newItems);
-    syncToDb('expenses', newItems);
+    await syncToDb('expenses', newItems);
   };
   
-  const addContract = (contract: Contract) => {
+  const addContract = async (contract: Contract) => {
     const newItems = [contract, ...contracts];
     setContracts(newItems);
-    syncToDb('contracts', newItems);
+    await syncToDb('contracts', newItems);
   };
-  const updateContract = (id: string, updates: Partial<Contract>) => {
+  const updateContract = async (id: string, updates: Partial<Contract>) => {
     const newItems = contracts.map(c => c.id === id ? { ...c, ...updates } : c);
     setContracts(newItems);
-    syncToDb('contracts', newItems);
+    await syncToDb('contracts', newItems);
   };
-  const deleteContract = (id: string) => {
+  const deleteContract = async (id: string) => {
     const newItems = contracts.filter(c => c.id !== id);
     setContracts(newItems);
-    syncToDb('contracts', newItems);
+    await syncToDb('contracts', newItems);
   };
 
   const checkMonthlyBilling = () => {
