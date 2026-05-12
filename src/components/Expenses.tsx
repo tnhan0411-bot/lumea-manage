@@ -17,6 +17,10 @@ export function Expenses() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
+  const [filterMode, setFilterMode] = useState<'period' | 'range'>('period');
+  const [period, setPeriod] = useState(`${new Date().getFullYear()}-Q${Math.floor(new Date().getMonth()/3) + 1}`);
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
   const [category, setCategory] = useState('salary');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -76,7 +80,28 @@ export function Expenses() {
     return EXPENSE_CATEGORIES.find(c => c.id === catId)?.color || 'text-gray-400 bg-gray-400/10';
   };
 
-  const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const filteredExpenses = expenses.filter(exp => {
+    if (filterMode === 'period') {
+       if (period.includes('Q')) {
+          const [year, q] = period.split('-');
+          const [y, m, d] = exp.date.split('-');
+          if (y !== year) return false;
+          const month = parseInt(m);
+          if (q === 'Q1') return month >= 1 && month <= 3;
+          if (q === 'Q2') return month >= 4 && month <= 6;
+          if (q === 'Q3') return month >= 7 && month <= 9;
+          if (q === 'Q4') return month >= 10 && month <= 12;
+       } else {
+          return exp.date.startsWith(period);
+       }
+    } else { // range
+       if (dateRange.start && exp.date < dateRange.start) return false;
+       if (dateRange.end && exp.date > dateRange.end) return false;
+    }
+    return true;
+  });
+
+  const totalExpense = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   return (
     <div className="space-y-6">
@@ -85,14 +110,60 @@ export function Expenses() {
           <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Chi phí</h1>
           <p className="text-[#94a3b8] text-sm">Theo dõi các khoản chi lương, vệ sinh, vật dụng...</p>
         </div>
-        <Button onClick={showAddForm ? handleCancel : () => setShowAddForm(true)} variant={showAddForm ? "outline" : "primary"}>
-          {showAddForm ? 'Hủy' : (
-            <div className="flex items-center gap-2">
-              <Plus size={18} />
-              Nhập chi phí mới
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-1 flex">
+            <button 
+              onClick={() => setFilterMode('period')}
+              className={cn("px-4 py-1.5 text-xs font-medium rounded-lg transition-colors", filterMode === 'period' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]")}
+            >
+              Quý / Tháng
+            </button>
+            <button 
+              onClick={() => setFilterMode('range')}
+              className={cn("px-4 py-1.5 text-xs font-medium rounded-lg transition-colors", filterMode === 'range' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]")}
+            >
+              Khoảng ngày
+            </button>
+          </div>
+
+          {filterMode === 'range' ? (
+            <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1.5">
+               <input 
+                type="date" 
+                value={dateRange.start}
+                onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                className="bg-transparent text-xs text-[#f8fafc] outline-none w-[110px]"
+               />
+               <span className="text-[#64748b]">-</span>
+               <input 
+                type="date" 
+                value={dateRange.end}
+                onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                className="bg-transparent text-xs text-[#f8fafc] outline-none w-[110px]"
+               />
             </div>
+          ) : (
+            <select 
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-1.5 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9"
+            >
+              <option value="2026-Q1">Quý 1 / 2026</option>
+              <option value="2026-Q2">Quý 2 / 2026</option>
+              <option value="2026-04">Tháng 4 / 2026</option>
+              <option value="2026-05">Tháng 5 / 2026</option>
+            </select>
           )}
-        </Button>
+
+          <Button onClick={showAddForm ? handleCancel : () => setShowAddForm(true)} variant={showAddForm ? "outline" : "primary"}>
+            {showAddForm ? 'Hủy' : (
+              <div className="flex items-center gap-2">
+                <Plus size={18} />
+                Nhập chi phí
+              </div>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -112,7 +183,7 @@ export function Expenses() {
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-[#64748b] uppercase tracking-wider">Phân bổ theo hạng mục</h4>
               {EXPENSE_CATEGORIES.map(cat => {
-                const catTotal = expenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0);
+                const catTotal = filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0);
                 const percentage = totalExpense > 0 ? (catTotal / totalExpense) * 100 : 0;
                 return (
                   <div key={cat.id} className="space-y-1">
@@ -195,14 +266,14 @@ export function Expenses() {
           )}
 
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-[#64748b] uppercase tracking-wider mb-2">Lịch sử chi gần đây</h3>
-            {expenses.length === 0 ? (
+            <h3 className="text-sm font-bold text-[#64748b] uppercase tracking-wider mb-2">Lịch sử chi trong kỳ</h3>
+            {filteredExpenses.length === 0 ? (
               <div className="text-center py-12 bg-[#1e293b]/50 rounded-xl border border-dashed border-[#334155]">
                 <FileText className="mx-auto h-12 w-12 text-[#334155] mb-3" />
                 <p className="text-[#94a3b8] font-medium">Chưa có dữ liệu chi phí nào.</p>
               </div>
             ) : (
-              expenses.map(exp => (
+              filteredExpenses.sort((a,b) => b.date.localeCompare(a.date)).map(exp => (
                 <div key={exp.id} className="flex items-center justify-between p-4 bg-[#1e293b]/30 rounded-xl border border-[#334155] hover:bg-[#1e293b]/50 transition-colors group">
                   <div className="flex items-center gap-4">
                     <div className={cn("p-2.5 rounded-lg shrink-0", getCategoryColor(exp.category))}>

@@ -74,6 +74,7 @@ export interface Room {
   leaseStart?: string;
   leaseEnd?: string;
   initialElectricityMeter?: number;
+  note?: string;
 }
 
 export interface Tenant {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
-import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X, CheckCircle2 } from 'lucide-react';
+import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X, CheckCircle2, FileDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn, formatVND } from '../lib/utils';
 
@@ -577,6 +577,104 @@ export function Dashboard() {
 
   const chartData = getChartData();
 
+  const handleExportLandlordCSV = () => {
+    const headings = ['Phòng', 'Khách hàng', 'Tháng', 'Tổng tiền (VND)', 'Trạng thái', 'Ngày thu'];
+    const rows = currentPeriodInvoices.map(inv => {
+      const room = rooms.find(r => r.id === inv.roomId);
+      const tenant = tenants.find(t => t.roomId === inv.roomId);
+      return [
+        room?.number || '',
+        tenant?.name || '',
+        inv.month,
+        inv.total,
+        inv.status === 'paid' ? 'Đã thu' : inv.status === 'pending' ? 'Chờ thu' : 'Quá hạn',
+        inv.paymentDate || ''
+      ];
+    });
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + headings.join(",") + "\n" 
+      + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `DoanhThu_${filterMode === 'period' ? period : dateRange.start + '_To_' + dateRange.end}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportLandlordPDF = () => {
+    // A simple method using print mode. Opens a new window with a table and calls print.
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let html = `
+      <html>
+        <head>
+          <title>Báo Cáo Doanh Thu</title>
+          <style>
+            body { font-family: sans-serif; color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #f3f4f6; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .summary { margin-top: 20px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Báo Cáo Doanh Thu - Lumea Nest Serviced Apartment</h2>
+            <p>Kỳ báo cáo: ${filterMode === 'period' ? period : `Từ ${dateRange.start} đến ${dateRange.end}`}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Phòng</th>
+                <th>Khách hàng</th>
+                <th>Tháng</th>
+                <th>Tổng tiền (VND)</th>
+                <th>Trạng thái</th>
+                <th>Ngày thu</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    currentPeriodInvoices.forEach(inv => {
+      const room = rooms.find(r => r.id === inv.roomId);
+      const tenant = tenants.find(t => t.roomId === inv.roomId);
+      const statusText = inv.status === 'paid' ? 'Đã thu' : inv.status === 'pending' ? 'Chờ thu' : 'Quá hạn';
+      html += `
+        <tr>
+          <td>${room?.number || ''}</td>
+          <td>${tenant?.name || ''}</td>
+          <td>${inv.month}</td>
+          <td>${inv.total.toLocaleString()}</td>
+          <td>${statusText}</td>
+          <td>${inv.paymentDate || ''}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+          <div class="summary">
+            <p>Tổng doanh thu: ${totalRevenue.toLocaleString()} VND</p>
+            <p>Chờ thu: ${pendingRevenue.toLocaleString()} VND</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = function() {
+      printWindow.focus();
+      printWindow.print();
+    };
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
@@ -651,9 +749,14 @@ export function Dashboard() {
             </select>
           )}
 
-          <Button variant="outline" className="gap-2 h-9 text-sm">
-            <BarChartIcon size={16} /> Xuất
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportLandlordCSV} className="gap-2 h-9 text-sm">
+              <BarChartIcon size={16} /> Excel (CSV)
+            </Button>
+            <Button variant="outline" onClick={handleExportLandlordPDF} className="gap-2 h-9 text-sm">
+              <FileDown size={16} /> PDF
+            </Button>
+          </div>
         </div>
       </div>
 

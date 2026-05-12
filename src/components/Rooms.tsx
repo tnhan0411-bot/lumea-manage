@@ -399,7 +399,19 @@ export function RoomList() {
                 </div>
               </div>
 
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-[#38bdf8] uppercase tracking-wider flex items-center gap-2">
+                   <FileText size={16} /> Ghi chú phòng
+                </h3>
+                <textarea
+                  value={tempRoom.note || ''}
+                  onChange={e => setTempRoom({...tempRoom, note: e.target.value})}
+                  className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#38bdf8] outline-none text-xs min-h-[80px]"
+                  placeholder="Thêm ghi chú đặc biệt cho phòng này..."
+                ></textarea>
               </div>
+
+            </div>
             
             <div className="mt-8 pt-6 border-t border-[#334155] flex justify-between items-center">
               <div className="flex gap-4 items-center">
