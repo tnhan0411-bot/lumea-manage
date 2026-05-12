@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
 import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut, Receipt } from 'lucide-react';
-import { Room, cn, Attachment, formatDate } from '../lib/utils';
+import { Room, cn, Attachment, formatDate, calculateRentForMonth } from '../lib/utils';
 
 export function RoomList() {
   const { rooms, tenants, issues, invoices, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role } = useAppContext();
@@ -122,7 +122,9 @@ export function RoomList() {
               passportNumber: tempPassportNumber || "",
               secondaryName: tempSecondaryName || "",
               secondaryVisaExpiry: tempSecondaryPassportExpiry || "",
-              secondaryPassportNumber: tempSecondaryPassportNumber || ""
+              secondaryPassportNumber: tempSecondaryPassportNumber || "",
+              residenceRegistered: false,
+              secondaryResidenceRegistered: false
             });
 
             // Auto-generate invoice for the new stay
@@ -423,36 +425,7 @@ export function RoomList() {
                         const now = new Date();
                         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
                         
-                        let calculatedRent = tempRoom.price;
-                        if (tempRoom.leaseStart && tempRoom.leaseEnd) {
-                          const lStart = new Date(tempRoom.leaseStart);
-                          const lEnd = new Date(tempRoom.leaseEnd);
-                          const cycleDay = lStart.getDate();
-                          
-                          const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
-                          const billingCycleStart = new Date(curYear, curMonthNum - 1, cycleDay);
-                          const nextCycleStart = new Date(curYear, curMonthNum, cycleDay);
-                          
-                          if (lEnd < nextCycleStart) {
-                            const diffTime = lEnd.getTime() - billingCycleStart.getTime();
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                            if (diffDays > 0 && diffDays < 28) {
-                               calculatedRent = Math.round((tempRoom.price / 30) * diffDays);
-                            }
-                          }
-                        } else if (tempRoom.leaseStart) {
-                           const lStart = new Date(tempRoom.leaseStart);
-                           const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
-                           if (lStart.getFullYear() === curYear && (lStart.getMonth() + 1) === curMonthNum) {
-                              const day = lStart.getDate();
-                              if (day > 1) {
-                                 const daysStayed = 30 - day + 1;
-                                 if (daysStayed < 30) {
-                                    calculatedRent = Math.round((tempRoom.price / 30) * daysStayed);
-                                 }
-                              }
-                           }
-                        }
+                        let calculatedRent = calculateRentForMonth(tempRoom.price, tempRoom.leaseStart, tempRoom.leaseEnd, currentMonth);
 
                         handleSave();
                         addInvoice({

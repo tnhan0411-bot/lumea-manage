@@ -446,11 +446,33 @@ export function Dashboard() {
 
   const criticalVisas = visaExpirations.filter(v => v.daysLeft <= 15);
 
+  const unregisteredTenants = tenants.reduce((acc, t) => {
+    const room = rooms.find(r => r.id === t.roomId);
+    if (!room || room.status !== 'occupied') return acc;
+    
+    // We explicitly check === false so we don't show prompt for older records without this field, or we can just check !t.residenceRegistered
+    if (t.name && t.residenceRegistered === false) {
+      acc.push({ ...t, _isSecondary: false, displayTitle: t.name, displayPassportInfo: t.passportNumber });
+    }
+    if (t.secondaryName && t.secondaryResidenceRegistered === false) {
+      acc.push({ ...t, _isSecondary: true, displayTitle: t.secondaryName, displayPassportInfo: t.secondaryPassportNumber });
+    }
+    return acc;
+  }, [] as any[]);
+
   const handleDismissVisa = (v: any) => {
     if (v._isSecondary) {
       updateTenant(v.id, { secondaryVisaHandled: true });
     } else {
       updateTenant(v.id, { visaHandled: true });
+    }
+  };
+
+  const handleDismissResidence = (t: any) => {
+    if (t._isSecondary) {
+      updateTenant(t.id, { secondaryResidenceRegistered: true });
+    } else {
+      updateTenant(t.id, { residenceRegistered: true });
     }
   };
 
@@ -805,6 +827,34 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {role === 'landlord' && unregisteredTenants.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 w-80 pointer-events-none">
+          {unregisteredTenants.slice(0, 3).map((t, idx) => (
+            <div key={`${t.id}-${t._isSecondary ? 'sec' : 'pri'}-${idx}`} className="bg-[#1e293b] border border-[#8b5cf6]/50 shadow-lg shadow-[#8b5cf6]/10 rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden pointer-events-auto transition-transform hover:-translate-y-1">
+               <div className="absolute top-0 left-0 w-1 h-full bg-[#8b5cf6]"></div>
+               <div className="flex justify-between items-start">
+                 <div>
+                   <h4 className="text-[#f8fafc] font-bold text-sm">Task: ĐK Tạm trú / Tạm vắng</h4>
+                   <p className="text-[11px] text-[#94a3b8] mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]">
+                     Khách: <span className="text-[#38bdf8] font-bold">{t.displayTitle}</span> (Phòng {rooms.find(r => r.id === t.roomId)?.number})
+                   </p>
+                 </div>
+               </div>
+               <div className="flex justify-end mt-2">
+                 <Button size="sm" className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white text-[10px] h-7 px-3 border-none shadow-none" onClick={() => handleDismissResidence(t)}>
+                   <CheckCircle2 size={12} className="mr-1" /> Đã thực hiện
+                 </Button>
+               </div>
+            </div>
+          ))}
+          {unregisteredTenants.length > 3 && (
+            <div className="bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 text-[#8b5cf6] text-center text-xs font-bold rounded-lg py-2 pointer-events-none">
+              ... và {unregisteredTenants.length - 3} khách khác
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

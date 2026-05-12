@@ -92,6 +92,55 @@ export interface Tenant {
   secondaryPassportNumber?: string;
   secondaryVisaHandled?: boolean;
   avatar?: string;
+  residenceRegistered?: boolean;
+  secondaryResidenceRegistered?: boolean;
+}
+
+export function calculateRentForMonth(price: number, leaseStart: string | undefined | null, leaseEnd: string | undefined | null, currentMonth: string): number {
+  if (!leaseStart) return price;
+  
+  const getCycleDate = (year: number, month0: number, day: number) => {
+    let d = new Date(year, month0, day);
+    const expectedMonth = (month0 % 12 + 12) % 12;
+    if (d.getMonth() !== expectedMonth) {
+      d = new Date(year, month0 + 1, 0);
+    }
+    return d;
+  };
+
+  const lStart = new Date(leaseStart);
+  if (isNaN(lStart.getTime())) return price;
+  
+  const cycleDay = lStart.getDate();
+  const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
+  
+  const cycleStart = getCycleDate(curYear, curMonthNum - 1, cycleDay);
+  const nextCycleStart = getCycleDate(curYear, curMonthNum, cycleDay);
+  
+  cycleStart.setHours(0,0,0,0);
+  nextCycleStart.setHours(0,0,0,0);
+  
+  const cycleEnd = new Date(nextCycleStart.getTime() - 24 * 60 * 60 * 1000);
+  
+  if (leaseEnd) {
+    const lEnd = new Date(leaseEnd);
+    lEnd.setHours(0,0,0,0);
+    
+    if (!isNaN(lEnd.getTime())) {
+      if (lEnd < cycleStart) return 0;
+      
+      if (lEnd <= cycleEnd) {
+        if (lEnd.getTime() === cycleEnd.getTime()) {
+          return price;
+        }
+        const diffTime = lEnd.getTime() - cycleStart.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        return Math.round((price / 30) * diffDays);
+      }
+    }
+  }
+  
+  return price;
 }
 
 export interface Issue {

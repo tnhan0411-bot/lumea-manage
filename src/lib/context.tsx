@@ -4,7 +4,8 @@ import { getFirestore, initializeFirestore, persistentLocalCache, persistentMult
 import firebaseConfig from '../../firebase-applet-config.json';
 import { 
   Room, Tenant, Issue, Invoice, Contract, Expense, User, 
-  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS 
+  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS,
+  calculateRentForMonth
 } from './utils';
 
 const app = initializeApp(firebaseConfig);
@@ -361,43 +362,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newInvoices: Invoice[] = pendingBillingRooms.map(room => {
         const tenant = tenants.find(t => t.roomId === room.id);
         
-        let calculatedRent = room.price;
-        if (room.leaseStart && room.leaseEnd) {
-          const lStart = new Date(room.leaseStart);
-          const lEnd = new Date(room.leaseEnd);
-          const cycleDay = lStart.getDate();
-          
-          // Current billing cycle start in this month
-          const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
-          const billingCycleStart = new Date(curYear, curMonthNum - 1, cycleDay);
-          
-          // Next cycle start
-          const nextCycleStart = new Date(curYear, curMonthNum, cycleDay);
-          
-          // If the stay ends before or on the next cycle, and it's partial
-          if (lEnd < nextCycleStart) {
-            // Calculate days from current cycle start to lease end
-            const diffTime = lEnd.getTime() - billingCycleStart.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            
-            if (diffDays > 0 && diffDays < 28) { // Less than a full month
-               calculatedRent = Math.round((room.price / 30) * diffDays);
-            }
-          }
-        } else if (room.leaseStart && !room.leaseEnd) {
-           // If it's the very first month and starts late
-           const lStart = new Date(room.leaseStart);
-           const [curYear, curMonthNum] = currentMonth.split('-').map(Number);
-           if (lStart.getFullYear() === curYear && (lStart.getMonth() + 1) === curMonthNum) {
-              const day = lStart.getDate();
-              if (day > 1) {
-                 const daysStayed = 30 - day + 1;
-                 if (daysStayed < 30) {
-                    calculatedRent = Math.round((room.price / 30) * daysStayed);
-                 }
-              }
-           }
-        }
+        let calculatedRent = calculateRentForMonth(room.price, room.leaseStart, room.leaseEnd, currentMonth);
 
         return {
           id: `inv-${room.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
