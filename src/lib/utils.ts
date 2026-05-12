@@ -69,7 +69,8 @@ export interface Room {
   status: RoomStatus;
   price: number;
   features: string[];
-  cleaningSchedule: { date: string; note?: string }[]; 
+  cleaningSchedule: { dayOfWeek: string; time: string; note?: string }[]; 
+  lastCleanedAt?: string;
   attachments: Attachment[];
   leaseStart?: string;
   leaseEnd?: string;
@@ -142,6 +143,39 @@ export function calculateRentForMonth(price: number, leaseStart: string | undefi
   }
   
   return price;
+}
+
+export function getNextCleaningDates(room: Room, maxDays: number = 14) {
+  if (!room.cleaningSchedule || room.cleaningSchedule.length === 0) return [];
+  const daysMap: Record<string, number> = {
+    'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
+  };
+  const tasks = [];
+  const now = new Date();
+  
+  for (let i = 0; i < maxDays; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const w = d.getDay();
+    const dateStr = d.toISOString().split('T')[0];
+    
+    for (const schedule of room.cleaningSchedule) {
+      if (typeof schedule === 'string') continue;
+      const targetW = daysMap[schedule.dayOfWeek];
+      if (targetW === w) {
+        const fullDateTime = `${dateStr}T${schedule.time}`;
+        if (!room.lastCleanedAt || new Date(fullDateTime) > new Date(room.lastCleanedAt)) {
+          tasks.push({
+            date: dateStr,
+            dayOfWeek: schedule.dayOfWeek,
+            time: schedule.time,
+            note: schedule.note,
+            fullDateTime
+          });
+        }
+      }
+    }
+  }
+  return tasks.sort((a,b) => a.fullDateTime.localeCompare(b.fullDateTime));
 }
 
 export interface Issue {

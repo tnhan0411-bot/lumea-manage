@@ -3,10 +3,10 @@ import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
 import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X, CheckCircle2, FileDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { cn, formatVND } from '../lib/utils';
+import { cn, formatVND, getNextCleaningDates, Room } from '../lib/utils';
 
 export function Dashboard() {
-  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue } = useAppContext();
+  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom } = useAppContext();
   const [period, setPeriod] = React.useState('2026-Q2');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
@@ -42,14 +42,17 @@ export function Dashboard() {
       });
     }
 
-    const cleaningTasks = rooms.filter(r => (r.cleaningSchedule?.length ?? 0) > 0)
-      .flatMap(r => r.cleaningSchedule?.map(item => ({ 
-        roomId: r.id, 
-        roomNumber: r.number, 
-        date: typeof item === 'string' ? item : item.date,
-        note: typeof item === 'string' ? '' : item.note 
-      })) || [])
-      .sort((a, b) => a.date.localeCompare(b.date));
+    const cleaningTasks = rooms.flatMap(r => {
+      const nextDates = getNextCleaningDates(r as any, 7);
+      return nextDates.map(item => ({
+        roomId: r.id,
+        roomNumber: r.number,
+        date: item.date,
+        time: item.time,
+        note: item.note,
+        fullDateTime: item.fullDateTime
+      }));
+    }).sort((a, b) => a.fullDateTime.localeCompare(b.fullDateTime));
 
     // Handle CSV Export
     const handleExport = () => {
@@ -187,18 +190,31 @@ export function Dashboard() {
                 {cleaningTasks.length === 0 ? (
                   <div className="text-center py-8 text-[#94a3b8]">Không có lịch dọn vệ sinh.</div>
                 ) : cleaningTasks.slice(0, 5).map((task, idx) => (
-                  <div key={idx} className="p-4 bg-[#10b981]/5 rounded-xl border border-[#10b981]/10 flex items-center justify-between">
+                  <div key={idx} className="p-4 bg-[#10b981]/5 rounded-xl border border-[#10b981]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#10b981]/10 rounded-lg flex items-center justify-center font-bold text-[#10b981]">
+                        <div className="w-10 h-10 bg-[#10b981]/10 rounded-lg flex items-center justify-center font-bold text-[#10b981] shrink-0">
                           {task.roomNumber}
                         </div>
                         <div>
                            <p className="font-bold text-[#f8fafc]">Vệ sinh phòng</p>
-                           <p className="text-xs text-[#94a3b8] mt-1">Dự kiến: {task.date}</p>
+                           <p className="text-xs text-[#94a3b8] mt-1">Dự kiến: {task.dayOfWeek} • {task.date} {task.time}</p>
                            {task.note && <p className="text-[10px] text-[#10b981] mt-1 italic">Ghi chú: {task.note}</p>}
                         </div>
                      </div>
-                     <Badge variant="success">Yêu cầu</Badge>
+                     <div className="flex justify-end">
+                       <Button 
+                          size="sm" 
+                          variant="primary" 
+                          onClick={async () => {
+                             const room = rooms.find(r => r.id === task.roomId);
+                             if (room) {
+                               await updateRoom(room.id, { ...room, lastCleanedAt: task.fullDateTime });
+                             }
+                          }}
+                       >
+                          Hoàn thành
+                       </Button>
+                     </div>
                   </div>
                 ))}
               </div>
