@@ -15,32 +15,8 @@ export function RoomList() {
   const [tempSecondaryPassportExpiry, setTempSecondaryPassportExpiry] = useState('');
   const [tempSecondaryPassportNumber, setTempSecondaryPassportNumber] = useState('');
   const [newAttachmentName, setNewAttachmentName] = useState('');
-  const [newCleaningDayOfWeek, setNewCleaningDayOfWeek] = useState('Monday');
-  const [newCleaningTime, setNewCleaningTime] = useState('10:00');
-  const [newCleaningNote, setNewCleaningNote] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
-
-  const addCleaningSchedule = () => {
-    if (newCleaningDayOfWeek && newCleaningTime && tempRoom) {
-      setTempRoom({
-        ...tempRoom,
-        cleaningSchedule: [...(tempRoom.cleaningSchedule || []), { dayOfWeek: newCleaningDayOfWeek, time: newCleaningTime, note: newCleaningNote }]
-      });
-      setNewCleaningNote('');
-    }
-  };
-
-  const removeCleaningSchedule = (index: number) => {
-    if (tempRoom) {
-      const updated = [...(tempRoom.cleaningSchedule || [])];
-      updated.splice(index, 1);
-      setTempRoom({
-        ...tempRoom,
-        cleaningSchedule: updated
-      });
-    }
-  };
 
   const handleExportReport = () => {
     const headings = ['Số phòng', 'Trạng thái', 'Giá thuê', 'Người thuê 1', 'Hạn Visa 1', 'Người thuê 2', 'Hạn Visa 2', 'Bắt đầu thuê', 'Kết thúc thuê', 'Doanh thu (Đã thu)'];
@@ -420,69 +396,6 @@ export function RoomList() {
                       </div>
                     </>
                   )}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-[#38bdf8] uppercase tracking-wider flex items-center gap-2">
-                   <Sparkles size={16} /> Lịch vệ sinh phòng
-                </h3>
-                <div className="bg-[#0f172a] rounded-lg p-3 border border-[#334155] space-y-3">
-                  <div className="flex gap-2">
-                    <select 
-                      value={newCleaningDayOfWeek}
-                      onChange={e => setNewCleaningDayOfWeek(e.target.value)}
-                      className="bg-[#1e293b] border-[#334155] rounded-md px-2 py-1 text-xs text-[#f8fafc] flex-1"
-                    >
-                      <option value="Monday">Thứ Hai</option>
-                      <option value="Tuesday">Thứ Ba</option>
-                      <option value="Wednesday">Thứ Tư</option>
-                      <option value="Thursday">Thứ Năm</option>
-                      <option value="Friday">Thứ Sáu</option>
-                      <option value="Saturday">Thứ Bảy</option>
-                      <option value="Sunday">Chủ Nhật</option>
-                    </select>
-                    <input 
-                      type="time" 
-                      value={newCleaningTime}
-                      onChange={e => setNewCleaningTime(e.target.value)}
-                      className="bg-[#1e293b] border-[#334155] rounded-md px-2 py-1 text-xs text-[#f8fafc] w-24"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={newCleaningNote}
-                      onChange={e => setNewCleaningNote(e.target.value)}
-                      placeholder="Ghi chú (vd: lau dọn kỹ phòng tắm)"
-                      className="bg-[#1e293b] border-[#334155] rounded-md px-2 py-1 text-xs text-[#f8fafc] flex-1"
-                    />
-                    <Button onClick={addCleaningSchedule} size="sm" type="button" className="h-[26px]">Thêm</Button>
-                  </div>
-                  <ul className="space-y-2 mt-2">
-                    {tempRoom.cleaningSchedule?.map((schedule, i) => {
-                      const daysMap: Record<string, string> = {
-                        'Monday': 'Thứ Hai',
-                        'Tuesday': 'Thứ Ba',
-                        'Wednesday': 'Thứ Tư',
-                        'Thursday': 'Thứ Năm',
-                        'Friday': 'Thứ Sáu',
-                        'Saturday': 'Thứ Bảy',
-                        'Sunday': 'Chủ Nhật'
-                      };
-                      return (
-                        <li key={i} className="flex justify-between items-center bg-[#1e293b]/50 p-2 rounded text-xs">
-                          <div className="text-[#f8fafc]">
-                             <span className="font-bold text-[#38bdf8] mr-2">{daysMap[schedule.dayOfWeek] || schedule.dayOfWeek} {schedule.time}</span>
-                             <span className="text-[#94a3b8]">{schedule.note}</span>
-                          </div>
-                          <button onClick={() => removeCleaningSchedule(i)} className="text-[#ef4444] hover:text-[#f87171]">
-                            <X size={14} />
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
                 </div>
               </div>
 
