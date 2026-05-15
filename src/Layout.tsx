@@ -10,6 +10,7 @@ import { Reports } from './components/Reports';
 import { Contracts } from './components/Contracts';
 import { Profile } from './components/Profile';
 import { Expenses } from './components/Expenses';
+import { ElectricityTracking } from './components/ElectricityTracking';
 import { Login } from './components/Login';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
@@ -46,6 +47,7 @@ export function Layout() {
           { id: 'contracts', label: 'Hợp đồng & Hồ sơ', icon: Users },
           { id: 'maintenance', label: 'Bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
           { id: 'cleaning', label: 'Vệ sinh phòng', icon: Zap },
+          { id: 'electricity', label: 'Theo dõi tiền điện', icon: Zap },
           { id: 'billing', label: 'Hóa đơn & Thu chi', icon: Receipt },
           { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
           { id: 'expenses', label: 'Quản lý chi phí', icon: CreditCard },
@@ -91,6 +93,7 @@ export function Layout() {
         case 'billing': return <Billing />;
         case 'reports': return <Reports />;
         case 'contracts': return <Contracts />;
+        case 'electricity': return <ElectricityTracking />;
         case 'profile': return <Profile />;
         case 'expenses': return <Expenses />;
         default: return <div className="p-8 text-center text-[#94a3b8]">Màn hình {activeScreen} chưa được cấu hình.</div>;
