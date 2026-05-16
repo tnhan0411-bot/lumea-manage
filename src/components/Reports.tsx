@@ -14,7 +14,7 @@ export function Reports() {
 
   const monthlyRevenue = filteredInvoices
     .filter(inv => inv.status === 'paid')
-    .reduce((acc, inv) => acc + inv.total, 0);
+    .reduce((acc, inv) => acc + inv.total - (inv.electricity || 0), 0);
 
   const monthlyExpenses = filteredExpenses.reduce((acc, exp) => acc + exp.amount, 0);
   
@@ -25,7 +25,7 @@ export function Reports() {
     const months = ['2026-02', '2026-03', '2026-04', '2026-05'];
     return months.map(m => ({
       name: `T${parseInt(m.split('-')[1])}`,
-      thu: invoices.filter(i => i.month === m && i.status === 'paid').reduce((a, b) => a + b.total, 0),
+      thu: invoices.filter(i => i.month === m && i.status === 'paid').reduce((a, b) => a + b.total - (b.electricity || 0), 0),
       chi: expenses.filter(e => e.date.startsWith(m)).reduce((a, b) => a + b.amount, 0),
     }));
   };
@@ -38,6 +38,7 @@ export function Reports() {
     { name: 'Công cụ', value: filteredExpenses.filter(e => e.category === 'tools').reduce((a, b) => a + b.amount, 0) },
     { name: 'Vận hành', value: filteredExpenses.filter(e => e.category === 'operation').reduce((a, b) => a + b.amount, 0) },
     { name: 'Bảo trì', value: filteredExpenses.filter(e => e.category === 'maintenance').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Lãi vay', value: filteredExpenses.filter(e => e.category === 'interest').reduce((a, b) => a + b.amount, 0) },
   ].filter(d => d.value > 0);
 
   const COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -116,8 +117,9 @@ export function Reports() {
               <BarChart data={financialData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(0)}M` : value.toLocaleString('vi-VN')} />
                 <Tooltip 
+                  formatter={(value: number) => value.toLocaleString('vi-VN')}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                   itemStyle={{ fontSize: '12px' }}
                 />
@@ -150,6 +152,7 @@ export function Reports() {
                   ))}
                 </Pie>
                 <Tooltip 
+                  formatter={(value: number) => value.toLocaleString('vi-VN')}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                 />
               </PieChart>
@@ -192,7 +195,7 @@ export function Reports() {
                        <td className="px-6 py-3 text-[#94a3b8]">{inv.month}</td>
                        <td className="px-6 py-3 text-[#f8fafc] font-medium">P.{rooms.find(r => r.id === inv.roomId)?.number}</td>
                        <td className="px-6 py-3 text-[#f8fafc]">{inv.rent.toLocaleString()}đ</td>
-                       <td className="px-6 py-3 text-[#10b981] font-bold">{inv.total.toLocaleString()}đ</td>
+                       <td className="px-6 py-3 text-[#10b981] font-bold">{(inv.total - (inv.electricity || 0)).toLocaleString()}đ</td>
                        <td className="px-6 py-3 text-[#94a3b8]">{inv.paymentDate || '-'}</td>
                        <td className="px-6 py-3">
                          {inv.paymentMethod === 'cash' ? <Badge variant="warning">Tiền mặt</Badge> : <Badge variant="info">Chuyển khoản</Badge>}

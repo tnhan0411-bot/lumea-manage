@@ -515,8 +515,8 @@ export function Dashboard() {
   };
 
   const currentPeriodInvoices = getInvoicesForPeriod();
-  const totalRevenue = currentPeriodInvoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
-  const pendingRevenue = currentPeriodInvoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + inv.total, 0);
+  const totalRevenue = currentPeriodInvoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
+  const pendingRevenue = currentPeriodInvoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
 
   // Dynamic Chart Data based on period/range
   const getChartData = () => {
@@ -534,7 +534,7 @@ export function Dashboard() {
         const y = currentMonth.getFullYear();
         const mStr = m < 10 ? `0${m}` : `${m}`;
         const p = `${y}-${mStr}`;
-        const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
+        const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
         data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev });
         currentMonth.setMonth(currentMonth.getMonth() + 1);
       }
@@ -549,7 +549,7 @@ export function Dashboard() {
         const months = quarter === 'Q1' ? ['01', '02', '03'] : quarter === 'Q2' ? ['04', '05', '06'] : quarter === 'Q3' ? ['07', '08', '09'] : ['10', '11', '12'];
         return months.map(m => {
           const p = `${year}-${m}`;
-          const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
+          const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
           return { name: `T${parseInt(m)}`, revenue: rev };
         });
       } else if (period.includes('-')) {
@@ -565,7 +565,7 @@ export function Dashboard() {
           }
           const mStr = m < 10 ? `0${m}` : `${m}`;
           const p = `${y}-${mStr}`;
-          const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
+          const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
           data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev });
         }
         return data;
@@ -821,7 +821,7 @@ export function Dashboard() {
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tickFormatter={(value) => `${value / 1000000}Tr`}
+                  tickFormatter={(value) => `${(value / 1000000).toFixed(0)}Tr`}
                   tick={{fill: '#f8fafc', fontSize: 12}}
                 />
                 <Tooltip 

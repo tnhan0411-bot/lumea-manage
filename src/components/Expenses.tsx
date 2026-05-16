@@ -10,6 +10,7 @@ const EXPENSE_CATEGORIES = [
   { id: 'tools', label: 'Mua công cụ/dụng cụ', color: 'text-amber-400 bg-amber-400/10' },
   { id: 'operation', label: 'Chi phí vận hành khác', color: 'text-emerald-400 bg-emerald-400/10' },
   { id: 'maintenance', label: 'Chi phí bảo trì/sửa chữa', color: 'text-rose-400 bg-rose-400/10' },
+  { id: 'interest', label: 'Chi phí lãi vay', color: 'text-red-400 bg-red-400/10' },
 ];
 
 export function Expenses() {
