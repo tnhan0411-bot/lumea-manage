@@ -3,6 +3,7 @@ import { useAppContext } from '../lib/context';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
 import { CreditCard, Plus, Trash2, Calendar, DollarSign, Tag, FileText, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 const EXPENSE_CATEGORIES = [
   { id: 'salary', label: 'Lương nhân sự', color: 'text-blue-400 bg-blue-400/10' },
@@ -181,26 +182,70 @@ export function Expenses() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-[#64748b] uppercase tracking-wider">Phân bổ theo hạng mục</h4>
-              {EXPENSE_CATEGORIES.map(cat => {
-                const catTotal = filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0);
-                const percentage = totalExpense > 0 ? (catTotal / totalExpense) * 100 : 0;
-                return (
-                  <div key={cat.id} className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-[#94a3b8]">{cat.label}</span>
-                      <span className="text-[#f8fafc] font-medium">{catTotal.toLocaleString()}</span>
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold text-[#64748b] uppercase tracking-wider">Tỷ lệ theo hạng mục</h4>
+              {totalExpense > 0 ? (
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={EXPENSE_CATEGORIES.map(cat => ({
+                          name: cat.label,
+                          value: filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0),
+                          color: cat.color.split('bg-')[1].split('/')[0] // extract rough tailwind color, or mapping
+                        })).filter(d => d.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {EXPENSE_CATEGORIES.map((cat, index) => {
+                           const val = filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0);
+                           if (val === 0) return null;
+                           // Mappings for colors
+                           const colorMap: Record<string, string> = {
+                             'salary': '#60a5fa',
+                             'cleaning': '#c084fc',
+                             'tools': '#fbbf24',
+                             'operation': '#34d399',
+                             'maintenance': '#fb7185',
+                             'interest': '#f87171'
+                           };
+                           return <Cell key={`cell-${index}`} fill={colorMap[cat.id] || '#94a3b8'} />;
+                        })}
+                      </Pie>
+                      <RechartsTooltip 
+                        formatter={(value: number) => value.toLocaleString('vi-VN')}
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                 <div className="h-[200px] flex items-center justify-center text-[#94a3b8] text-sm">Chưa có chi phí</div>
+              )}
+              
+              <div className="space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar pr-2">
+                {EXPENSE_CATEGORIES.map(cat => {
+                  const catTotal = filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0);
+                  const percentage = totalExpense > 0 ? ((catTotal / totalExpense) * 100).toFixed(1) : '0';
+                  if (catTotal === 0) return null;
+                  return (
+                    <div key={cat.id} className="flex justify-between text-xs items-center">
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-3 h-3 rounded-full", cat.color.split(' ')[1])}></div>
+                        <span className="text-[#94a3b8]">{cat.label}</span>
+                      </div>
+                      <div className="text-right flex items-center gap-2">
+                         <span className="text-[#f8fafc] font-medium">{catTotal.toLocaleString()}</span>
+                         <span className="text-[#64748b] text-[10px] w-8">{percentage}%</span>
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full bg-[#1e293b] rounded-full overflow-hidden">
-                      <div 
-                        className={cn("h-full rounded-full transition-all duration-1000", cat.color.split(' ')[1])}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>

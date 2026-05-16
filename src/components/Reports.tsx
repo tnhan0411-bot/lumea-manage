@@ -6,11 +6,63 @@ import { TrendingUp, TrendingDown, DollarSign, Wrench, Sparkles, Receipt, FileBa
 
 export function Reports() {
   const { invoices, expenses, issues, rooms } = useAppContext();
-  const [period, setPeriod] = React.useState('2026-04');
+  const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
+  const [period, setPeriod] = React.useState('2026-Q2');
+  const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
 
   // Filter data based on selected period
-  const filteredInvoices = invoices.filter(inv => inv.month === period);
-  const filteredExpenses = expenses.filter(exp => exp.date.startsWith(period));
+  const getFilteredInvoices = () => {
+    return invoices.filter(inv => {
+      // Invoices use 'YYYY-MM' for 'month' normally, or we check paymentDate?
+      // Since it's revenue, we probably check `paymentDate` or `month`.
+      // The original code used `inv.month === period`.
+      if (filterMode === 'period') {
+        if (period.includes('Q')) {
+          const [year, q] = period.split('-');
+          const [y, m] = inv.month.split('-');
+          if (y !== year) return false;
+          const month = parseInt(m);
+          if (q === 'Q1') return month >= 1 && month <= 3;
+          if (q === 'Q2') return month >= 4 && month <= 6;
+          if (q === 'Q3') return month >= 7 && month <= 9;
+          if (q === 'Q4') return month >= 10 && month <= 12;
+        } else {
+          return inv.month === period;
+        }
+      } else {
+        // Range check usually uses paymentDate or month. Assuming month "2026-04" fits between start/end strings
+        if (dateRange.start && inv.month < dateRange.start.slice(0, 7)) return false;
+        if (dateRange.end && inv.month > dateRange.end.slice(0, 7)) return false;
+      }
+      return true;
+    });
+  };
+
+  const getFilteredExpenses = () => {
+    return expenses.filter(exp => {
+      if (filterMode === 'period') {
+        if (period.includes('Q')) {
+          const [year, q] = period.split('-');
+          const [y, m, d] = exp.date.split('-');
+          if (y !== year) return false;
+          const month = parseInt(m);
+          if (q === 'Q1') return month >= 1 && month <= 3;
+          if (q === 'Q2') return month >= 4 && month <= 6;
+          if (q === 'Q3') return month >= 7 && month <= 9;
+          if (q === 'Q4') return month >= 10 && month <= 12;
+        } else {
+          return exp.date.startsWith(period);
+        }
+      } else {
+        if (dateRange.start && exp.date < dateRange.start) return false;
+        if (dateRange.end && exp.date > dateRange.end) return false;
+      }
+      return true;
+    });
+  };
+
+  const filteredInvoices = getFilteredInvoices();
+  const filteredExpenses = getFilteredExpenses();
 
   const monthlyRevenue = filteredInvoices
     .filter(inv => inv.status === 'paid')
@@ -20,14 +72,62 @@ export function Reports() {
   
   const profit = monthlyRevenue - monthlyExpenses;
 
-  // Chart Data (showing a range near the selected period)
+  // Dynamic Chart Data based on period/range filter
   const getFinancialData = () => {
-    const months = ['2026-02', '2026-03', '2026-04', '2026-05'];
-    return months.map(m => ({
-      name: `T${parseInt(m.split('-')[1])}`,
-      thu: invoices.filter(i => i.month === m && i.status === 'paid').reduce((a, b) => a + b.total - (b.electricity || 0), 0),
-      chi: expenses.filter(e => e.date.startsWith(m)).reduce((a, b) => a + b.amount, 0),
-    }));
+    let data: { name: string; thu: number; chi: number }[] = [];
+    
+    if (filterMode === 'period') {
+      if (period.includes('Q')) {
+        const [year, quarter] = period.split('-');
+        const months = quarter === 'Q1' ? ['01', '02', '03'] : quarter === 'Q2' ? ['04', '05', '06'] : quarter === 'Q3' ? ['07', '08', '09'] : ['10', '11', '12'];
+        return months.map(m => {
+          const p = `${year}-${m}`;
+          const thu = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
+          const chi = expenses.filter(e => e.date.startsWith(p)).reduce((sum, exp) => sum + exp.amount, 0);
+          return { name: `T${parseInt(m)}`, thu, chi };
+        });
+      } else {
+        // Individual month: show last 4 months up to this one
+        const [yearStr, monthStr] = period.split('-');
+        let currentMonth = new Date(parseInt(yearStr), parseInt(monthStr) - 1);
+        currentMonth.setMonth(currentMonth.getMonth() - 3); // Start 3 months back
+        
+        for (let i = 0; i < 4; i++) {
+          const y = currentMonth.getFullYear();
+          const m = currentMonth.getMonth() + 1;
+          const mStr = m < 10 ? `0${m}` : `${m}`;
+          const p = `${y}-${mStr}`;
+          
+          const thu = invoices.filter(inv => inv.status === 'paid' && inv.month === p).reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
+          const chi = expenses.filter(exp => exp.date.startsWith(p)).reduce((sum, exp) => sum + exp.amount, 0);
+          data.push({ name: `T${m}/${y.toString().slice(-2)}`, thu, chi });
+          
+          currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        return data;
+      }
+    } else if (period.includes('-')) {
+        // Range logic: bin by month if range is > 2 months, else show whatever? 
+        // Just group by months within range.
+        let sd = dateRange.start ? new Date(dateRange.start) : new Date(new Date().getFullYear(), Math.floor(new Date().getMonth()/3)*3, 1);
+        let ed = dateRange.end ? new Date(dateRange.end) : new Date();
+        
+        let currentMonth = new Date(sd.getFullYear(), sd.getMonth(), 1);
+        while (currentMonth <= ed) {
+          const y = currentMonth.getFullYear();
+          const m = currentMonth.getMonth() + 1;
+          const mStr = m < 10 ? `0${m}` : `${m}`;
+          const p = `${y}-${mStr}`;
+          
+          const thu = invoices.filter(inv => inv.status === 'paid' && inv.month === p).reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
+          const chi = expenses.filter(exp => exp.date.startsWith(p)).reduce((sum, exp) => sum + exp.amount, 0);
+          
+          data.push({ name: `T${m}/${y.toString().slice(-2)}`, thu, chi });
+          currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        return data;
+    }
+    return data;
   };
 
   const financialData = getFinancialData();
@@ -52,18 +152,52 @@ export function Reports() {
         <h1 className="text-2xl font-bold text-[#f8fafc] flex items-center gap-2">
           <FileBarChart className="text-[#38bdf8]" /> Báo cáo Tổng hợp
         </h1>
-        <div className="flex gap-2">
-          <select 
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-1.5 text-xs text-[#f8fafc] outline-none"
-          >
-             <option value="2026-01">Tháng 1 / 2026</option>
-             <option value="2026-02">Tháng 2 / 2026</option>
-             <option value="2026-03">Tháng 3 / 2026</option>
-             <option value="2026-04">Tháng 4 / 2026</option>
-             <option value="2026-05">Tháng 5 / 2026</option>
-          </select>
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-1 flex">
+            <button 
+              onClick={() => setFilterMode('period')}
+              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${filterMode === 'period' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]"}`}
+            >
+              Quý / Tháng
+            </button>
+            <button 
+              onClick={() => setFilterMode('range')}
+              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${filterMode === 'range' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]"}`}
+            >
+              Khoảng ngày
+            </button>
+          </div>
+
+          {filterMode === 'range' ? (
+            <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1.5 text-xs">
+               <input 
+                type="date" 
+                value={dateRange.start}
+                onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                className="bg-transparent text-[#f8fafc] outline-none w-[110px]"
+               />
+               <span className="text-[#64748b]">-</span>
+               <input 
+                type="date" 
+                value={dateRange.end}
+                onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                className="bg-transparent text-[#f8fafc] outline-none w-[110px]"
+               />
+            </div>
+          ) : (
+            <select 
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-1.5 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9"
+            >
+              <option value="2026-Q1">Quý 1 / 2026</option>
+              <option value="2026-Q2">Quý 2 / 2026</option>
+              <option value="2026-03">Tháng 3 / 2026</option>
+              <option value="2026-04">Tháng 4 / 2026</option>
+              <option value="2026-05">Tháng 5 / 2026</option>
+            </select>
+          )}
+
           <Button variant="outline" size="sm">Xuất PDF</Button>
           <Button variant="outline" size="sm">Xuất Excel</Button>
         </div>
@@ -117,9 +251,9 @@ export function Reports() {
               <BarChart data={financialData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(0)}M` : value.toLocaleString('vi-VN')} />
+                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} tickFormatter={(value) => value >= 1000000 ? `${parseFloat((value / 1000000).toFixed(1))}M` : Math.round(value).toLocaleString('vi-VN')} />
                 <Tooltip 
-                  formatter={(value: number) => value.toLocaleString('vi-VN')}
+                  formatter={(value: number) => Math.round(value).toLocaleString('vi-VN') + 'đ'}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                   itemStyle={{ fontSize: '12px' }}
                 />
@@ -152,7 +286,7 @@ export function Reports() {
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number) => value.toLocaleString('vi-VN')}
+                  formatter={(value: number) => Math.round(value).toLocaleString('vi-VN') + 'đ'}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                 />
               </PieChart>

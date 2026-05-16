@@ -31,7 +31,8 @@ export function ElectricityTracking() {
   }, [selectedMonth]);
 
   const handleTotalBuildingChange = async (val: string) => {
-    const num = parseInt(val) || 0;
+    let num = parseFloat(val);
+    if (isNaN(num)) num = 0;
     setTotalBuildingElectricity(num);
     try {
       await setDoc(doc(db, 'state', 'electricity_meta'), { [selectedMonth]: num }, { merge: true });
@@ -53,8 +54,8 @@ export function ElectricityTracking() {
       
       const initial = invoice?.initialElectricityMeter ?? room.initialElectricityMeter ?? 0;
       const final = invoice?.finalElectricityMeter ?? 0;
-      const used = Math.max(0, final - initial);
-      const amount = used * 4000;
+      const used = Math.round(Math.max(0, final - initial) * 10) / 10;
+      const amount = Math.round(used * 4000);
       
       return {
         roomId: room.id,
@@ -73,8 +74,8 @@ export function ElectricityTracking() {
     });
 
   // Calculate Landlord stats
-  const totalGuestUsed = baseTrackingData.reduce((sum, item) => sum + item.used, 0);
-  const landlordUsed = Math.max(0, totalBuildingElectricity - totalGuestUsed);
+  const totalGuestUsed = Math.round(baseTrackingData.reduce((sum, item) => sum + item.used, 0) * 10) / 10;
+  const landlordUsed = Math.round(Math.max(0, totalBuildingElectricity - totalGuestUsed) * 10) / 10;
 
   // Handle local edits
   const handleEdit = (roomId: string, field: 'initial' | 'final', value: string) => {
@@ -91,8 +92,8 @@ export function ElectricityTracking() {
     const edit = editedData[roomId];
     if (!edit) return;
     
-    let initialNum = parseInt(edit.initial);
-    let finalNum = parseInt(edit.final);
+    let initialNum = parseFloat(edit.initial);
+    let finalNum = parseFloat(edit.final);
     
     const trackingItem = baseTrackingData.find(d => d.roomId === roomId);
     if (!trackingItem) return;
@@ -100,8 +101,8 @@ export function ElectricityTracking() {
     if (isNaN(initialNum)) initialNum = trackingItem.initial;
     if (isNaN(finalNum)) finalNum = trackingItem.final;
 
-    const used = Math.max(0, finalNum - initialNum);
-    const cost = used * 4000;
+    const used = Math.round(Math.max(0, finalNum - initialNum) * 10) / 10;
+    const cost = Math.round(used * 4000);
 
     if (trackingItem.invoiceId) {
       updateInvoice(trackingItem.invoiceId, {
@@ -189,6 +190,7 @@ export function ElectricityTracking() {
             <div className="flex items-center gap-2">
               <input 
                 type="number" 
+                step="any"
                 value={totalBuildingElectricity || ''} 
                 onChange={(e) => handleTotalBuildingChange(e.target.value)} 
                 className="bg-[#0f172a] border border-[#334155] text-2xl font-bold text-[#f8fafc] rounded-lg px-3 py-1 w-full outline-none focus:border-[#38bdf8]"
@@ -275,6 +277,7 @@ export function ElectricityTracking() {
                       <td className="px-6 py-4">
                         <input 
                           type="number"
+                          step="any"
                           value={currentInitial}
                           onChange={(e) => handleEdit(item.roomId, 'initial', e.target.value)}
                           className="bg-[#0f172a] border border-[#334155] rounded px-2 py-1 text-sm text-[#f8fafc] w-20 outline-none focus:border-[#38bdf8]"
@@ -283,6 +286,7 @@ export function ElectricityTracking() {
                       <td className="px-6 py-4">
                         <input 
                           type="number"
+                          step="any"
                           value={currentFinal}
                           onChange={(e) => handleEdit(item.roomId, 'final', e.target.value)}
                           className="bg-[#0f172a] border border-[#334155] rounded px-2 py-1 text-sm text-[#f8fafc] w-20 outline-none focus:border-[#38bdf8]"

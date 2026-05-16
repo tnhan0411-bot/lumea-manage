@@ -24,7 +24,7 @@ export function RoomList() {
       const tenant = tenants.find(t => t.roomId === r.id);
       const roomRevenue = invoices
         .filter(inv => inv.roomId === r.id && inv.status === 'paid')
-        .reduce((sum, inv) => sum + inv.total, 0);
+        .reduce((sum, inv) => sum + inv.total - (inv.electricity || 0), 0);
         
       return [
         r.number,

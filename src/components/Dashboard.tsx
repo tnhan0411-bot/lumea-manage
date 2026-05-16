@@ -821,11 +821,11 @@ export function Dashboard() {
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tickFormatter={(value) => `${(value / 1000000).toFixed(0)}Tr`}
+                  tickFormatter={(value) => value >= 1000000 ? `${parseFloat((value / 1000000).toFixed(1))}Tr` : Math.round(value).toLocaleString('vi-VN')}
                   tick={{fill: '#f8fafc', fontSize: 12}}
                 />
                 <Tooltip 
-                  formatter={(value: number) => [`${value.toLocaleString()} ₫`, 'Doanh thu']}
+                  formatter={(value: number) => [`${Math.round(value).toLocaleString('vi-VN')} ₫`, 'Doanh thu']}
                   cursor={{fill: 'rgba(255,255,255,0.05)'}}
                   contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '12px', border: '1px solid #334155' }}
                 />
