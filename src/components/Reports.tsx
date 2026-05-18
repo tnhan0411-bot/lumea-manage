@@ -7,6 +7,7 @@ import { TrendingUp, TrendingDown, DollarSign, Wrench, Sparkles, Receipt, FileBa
 export function Reports() {
   const { invoices, expenses, issues, rooms } = useAppContext();
   const [period, setPeriod] = React.useState('2026-04');
+  const [pieFormat, setPieFormat] = React.useState<'value' | 'percent'>('value');
 
   // Filter data based on selected period
   const filteredInvoices = invoices.filter(inv => inv.month === period);
@@ -38,12 +39,45 @@ export function Reports() {
     { name: 'Công cụ', value: filteredExpenses.filter(e => e.category === 'tools').reduce((a, b) => a + b.amount, 0) },
     { name: 'Vận hành', value: filteredExpenses.filter(e => e.category === 'operation').reduce((a, b) => a + b.amount, 0) },
     { name: 'Bảo trì', value: filteredExpenses.filter(e => e.category === 'maintenance').reduce((a, b) => a + b.amount, 0) },
+    { name: 'Lãi vay', value: filteredExpenses.filter(e => e.category === 'interest').reduce((a, b) => a + b.amount, 0) },
   ].filter(d => d.value > 0);
 
-  const COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const totalExpenseFiltered = expenseCategoryData.reduce((sum, item) => sum + item.value, 0);
+
+  const COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#818cf8'];
 
   const maintenanceHistory = issues.filter(i => i.type === 'repair');
   const cleaningHistory = issues.filter(i => i.status === 'resolved' && i.type === 'cleaning');
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
+
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, index }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    
+    if (pieFormat === 'percent' && totalExpenseFiltered > 0) {
+      const percentage = (value / totalExpenseFiltered) * 100;
+      if (percentage < 3) return null;
+      return (
+        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize="10px" fontWeight="bold">
+          {`${percentage.toFixed(1)}%`}
+        </text>
+      );
+    } else {
+      if (value === 0) return null;
+      return (
+        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize="10px" fontWeight="bold">
+          {formatNumber(value)}
+        </text>
+      );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -116,8 +150,9 @@ export function Reports() {
               <BarChart data={financialData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} tickFormatter={formatNumber} />
                 <Tooltip 
+                  formatter={(value: number) => `${value.toLocaleString()} đ`}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                   itemStyle={{ fontSize: '12px' }}
                 />
@@ -130,8 +165,18 @@ export function Reports() {
 
         {/* Expense Breakdown */}
         <Card>
-          <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]/50">
+          <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]/50 flex justify-between items-center">
             <h3 className="font-bold text-[#f8fafc]">Cơ cấu Chi phí</h3>
+            <div className="flex bg-[#1e293b] p-0.5 rounded border border-[#334155]">
+               <button 
+                 onClick={() => setPieFormat('value')}
+                 className={`px-2 py-1 text-[10px] rounded transition-colors ${pieFormat === 'value' ? 'bg-[#38bdf8]/20 text-[#38bdf8] font-bold' : 'text-[#94a3b8] hover:text-[#f8fafc]'}`}
+               >Số tiền</button>
+               <button 
+                 onClick={() => setPieFormat('percent')}
+                 className={`px-2 py-1 text-[10px] rounded transition-colors ${pieFormat === 'percent' ? 'bg-[#38bdf8]/20 text-[#38bdf8] font-bold' : 'text-[#94a3b8] hover:text-[#f8fafc]'}`}
+               >Tỷ lệ %</button>
+            </div>
           </div>
           <CardContent className="p-6 h-[300px] flex items-center">
             <ResponsiveContainer width="100%" height="100%">
@@ -141,15 +186,23 @@ export function Reports() {
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
+                  outerRadius={100}
+                  paddingAngle={2}
                   dataKey="value"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
                 >
                   {expenseCategoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
+                  formatter={(value: number, name: string, props: any) => {
+                     if (pieFormat === 'percent' && totalExpenseFiltered > 0) {
+                        return [((value / totalExpenseFiltered) * 100).toFixed(1) + '%', name];
+                     }
+                     return [`${value.toLocaleString()} đ`, name];
+                  }}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                 />
               </PieChart>

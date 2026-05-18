@@ -365,29 +365,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const checkMonthlyBilling = () => {
     const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     
+    // Instead of a single 'currentMonth', we calculate target month per room based on leaseStart
+
+    const getTargetMonthStr = (room: Room) => {
+       let cycleDay = 1;
+       if (room.leaseStart) {
+          const lDate = new Date(room.leaseStart);
+          if (!isNaN(lDate.getTime())) {
+             cycleDay = lDate.getDate();
+          }
+       }
+       
+       let targetDate = new Date(now.getFullYear(), now.getMonth(), 1);
+       if (now.getDate() < cycleDay) {
+          targetDate.setMonth(targetDate.getMonth() - 1);
+       }
+       return `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+    };
+
     const pendingBillingRooms = rooms.filter(room => {
       if (room.status !== 'occupied') return false;
-      return !invoices.some(inv => inv.roomId === room.id && inv.month === currentMonth);
+      const targetMonthStr = getTargetMonthStr(room);
+      return !invoices.some(inv => inv.roomId === room.id && inv.month === targetMonthStr);
     });
 
     const generateAll = () => {
       const newInvoices: Invoice[] = pendingBillingRooms.map(room => {
         const tenant = tenants.find(t => t.roomId === room.id);
-        let calculatedRent = calculateRentForMonth(room.price, room.leaseStart, room.leaseEnd, currentMonth);
+        const targetMonthStr = getTargetMonthStr(room);
+        let calculatedRent = calculateRentForMonth(room.price, room.leaseStart, room.leaseEnd, targetMonthStr);
+
+        let cycleDay = 1;
+        if (room.leaseStart) {
+           const lDate = new Date(room.leaseStart);
+           if (!isNaN(lDate.getTime())) cycleDay = lDate.getDate();
+        }
+
+        const [y, m] = targetMonthStr.split('-');
+        let due = new Date(parseInt(y), parseInt(m) - 1, cycleDay);
+        due.setDate(due.getDate() + 5); // 5 days after cycle date
 
         return {
           id: `inv-${room.id}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           roomId: room.id,
           tenantId: tenant?.id || 'unknown',
-          month: currentMonth,
+          month: targetMonthStr,
           rent: calculatedRent,
           water: 0,
           other: 0,
           total: calculatedRent,
           status: 'pending',
-          dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-05`,
+          dueDate: due.toISOString().split('T')[0],
           issueDate: now.toISOString().split('T')[0]
         };
       });

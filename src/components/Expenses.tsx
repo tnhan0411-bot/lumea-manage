@@ -3,13 +3,15 @@ import { useAppContext } from '../lib/context';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
 import { CreditCard, Plus, Trash2, Calendar, DollarSign, Tag, FileText, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const EXPENSE_CATEGORIES = [
-  { id: 'salary', label: 'Lương nhân sự', color: 'text-blue-400 bg-blue-400/10' },
-  { id: 'cleaning', label: 'Dịch vụ vệ sinh', color: 'text-purple-400 bg-purple-400/10' },
-  { id: 'tools', label: 'Mua công cụ/dụng cụ', color: 'text-amber-400 bg-amber-400/10' },
-  { id: 'operation', label: 'Chi phí vận hành khác', color: 'text-emerald-400 bg-emerald-400/10' },
-  { id: 'maintenance', label: 'Chi phí bảo trì/sửa chữa', color: 'text-rose-400 bg-rose-400/10' },
+  { id: 'salary', label: 'Lương nhân sự', color: 'text-blue-400 bg-blue-400/10', fill: '#60a5fa' },
+  { id: 'cleaning', label: 'Dịch vụ vệ sinh', color: 'text-purple-400 bg-purple-400/10', fill: '#c084fc' },
+  { id: 'tools', label: 'Mua công cụ/dụng cụ', color: 'text-amber-400 bg-amber-400/10', fill: '#fbbf24' },
+  { id: 'operation', label: 'Chi phí vận hành khác', color: 'text-emerald-400 bg-emerald-400/10', fill: '#34d399' },
+  { id: 'maintenance', label: 'Chi phí bảo trì/sửa chữa', color: 'text-rose-400 bg-rose-400/10', fill: '#fb7185' },
+  { id: 'interest', label: 'Chi phí lãi vay', color: 'text-indigo-400 bg-indigo-400/10', fill: '#818cf8' },
 ];
 
 export function Expenses() {
@@ -179,6 +181,36 @@ export function Expenses() {
                 {totalExpense.toLocaleString()} <span className="text-sm font-normal text-[#94a3b8]">VND</span>
               </div>
             </div>
+
+            {totalExpense > 0 && (
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={EXPENSE_CATEGORIES.map(cat => ({
+                        name: cat.label,
+                        value: filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0),
+                        fill: cat.fill
+                      })).filter(d => d.value > 0)}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {EXPENSE_CATEGORIES.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => `${value.toLocaleString()} đ`}
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc', fontSize: '12px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-[#64748b] uppercase tracking-wider">Phân bổ theo hạng mục</h4>
