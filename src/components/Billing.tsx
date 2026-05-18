@@ -6,8 +6,24 @@ import { FormEvent } from 'react';
 
 export function Billing() {
   const { role, invoices, rooms, tenants, payInvoice, expenses, checkMonthlyBilling, updateInvoice, updateRoom, deleteInvoice } = useAppContext();
-  const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'history' | 'calculator'>('pending');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Calculator State
+  const [calcPrice, setCalcPrice] = useState<number>(9000000);
+  const [calcCheckIn, setCalcCheckIn] = useState<string>('2026-05-17');
+  const [calcCheckOut, setCalcCheckOut] = useState<string>('2026-06-20');
+  const [calcResult, setCalcResult] = useState<any>(null);
+
+  const handleCalculateRent = async () => {
+    try {
+      const { calculateRentDetails } = await import('../lib/utils');
+      const result = calculateRentDetails(calcPrice, calcCheckIn, calcCheckOut);
+      setCalcResult(result);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [tempIssueDate, setTempIssueDate] = useState<string>('');
@@ -131,21 +147,116 @@ export function Billing() {
         </Card>
       </div>
 
-      <div className="flex gap-4 border-b border-[#334155]">
+      <div className="flex gap-4 border-b border-[#334155] overflow-x-auto">
         <button 
           onClick={() => setActiveTab('pending')}
-          className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pending' ? 'border-[#38bdf8] text-[#38bdf8]' : 'border-transparent text-[#94a3b8] hover:text-[#f8fafc]'}`}
+          className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'pending' ? 'border-[#38bdf8] text-[#38bdf8]' : 'border-transparent text-[#94a3b8] hover:text-[#f8fafc]'}`}
         >
           Cần thanh toán ({myInvoices.filter(i => i.status !== 'paid').length})
         </button>
         <button 
           onClick={() => setActiveTab('history')}
-          className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'history' ? 'border-[#38bdf8] text-[#38bdf8]' : 'border-transparent text-[#94a3b8] hover:text-[#f8fafc]'}`}
+          className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'history' ? 'border-[#38bdf8] text-[#38bdf8]' : 'border-transparent text-[#94a3b8] hover:text-[#f8fafc]'}`}
         >
           Lịch sử thanh toán
         </button>
+        {role === 'landlord' && (
+          <button 
+            onClick={() => setActiveTab('calculator')}
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'calculator' ? 'border-[#38bdf8] text-[#38bdf8]' : 'border-transparent text-[#94a3b8] hover:text-[#f8fafc]'}`}
+          >
+            Máy Tính Tiền Thuê
+          </button>
+        )}
       </div>
 
+      {activeTab === 'calculator' && role === 'landlord' && (
+        <Card className="bg-[#1e293b] border-[#334155]">
+          <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]">
+            <h2 className="text-lg font-bold text-[#f8fafc]">Công cụ tính tiền thuê phòng lẻ</h2>
+            <p className="text-xs text-[#94a3b8]">Tính toán chính xác tiền phòng theo chu kỳ tháng và ngày lẻ khi check-out.</p>
+          </div>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div>
+                <label className="block text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest mb-2">Giá Thuê Tháng</label>
+                <input 
+                  type="number" 
+                  value={calcPrice}
+                  onChange={(e) => setCalcPrice(Number(e.target.value))}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-lg px-4 py-2 text-[#f8fafc] focus:outline-none focus:border-[#38bdf8]"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest mb-2">Check-in</label>
+                <input 
+                  type="date" 
+                  value={calcCheckIn}
+                  onChange={(e) => setCalcCheckIn(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-lg px-4 py-2 text-[#f8fafc] focus:outline-none focus:border-[#38bdf8]"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest mb-2">Check-out</label>
+                <input 
+                  type="date" 
+                  value={calcCheckOut}
+                  onChange={(e) => setCalcCheckOut(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-lg px-4 py-2 text-[#f8fafc] focus:outline-none focus:border-[#38bdf8]"
+                />
+              </div>
+            </div>
+            
+            <Button onClick={handleCalculateRent} className="w-full mb-8 bg-[#38bdf8] text-[#0f172a] hover:bg-[#0284c7]">
+              Tính Tiền
+            </Button>
+
+            {calcResult && (
+              <div className="bg-[#0f172a] rounded-lg border border-[#334155] p-6 space-y-4">
+                <h3 className="font-bold text-[#f8fafc] flex items-center border-b border-[#334155] pb-2 mb-4">
+                  Kết Quả Tính Toán
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Ngày tính tiền đầu</span>
+                    <span className="font-medium text-[#f8fafc]">{calcResult.checkInDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Ngày check-out</span>
+                    <span className="font-medium text-[#f8fafc]">{calcResult.checkOutDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Ngày tính tiền cuối</span>
+                    <span className="font-medium text-[#f8fafc]">{calcResult.billingEndDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Đơn giá tháng</span>
+                    <span className="font-medium text-[#f8fafc]">{calcResult.monthlyRate.toLocaleString()}đ</span>
+                  </div>
+                  <div>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Tháng tròn</span>
+                    <span className="font-medium text-[#f8fafc]">{calcResult.months} tháng</span>
+                  </div>
+                  <div>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Ngày lẻ</span>
+                    <span className="font-medium text-[#f8fafc]">{calcResult.oddDays} ngày</span>
+                  </div>
+                  <div>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Đơn giá ngày (giá/30)</span>
+                    <span className="font-medium text-[#f8fafc]">{calcResult.dailyRate.toLocaleString()}đ</span>
+                  </div>
+                  <div className="col-span-2 md:col-span-4 mt-4 pt-4 border-t border-[#334155] flex justify-between items-end">
+                    <span className="text-[#94a3b8] text-sm uppercase font-bold tracking-widest">Tổng tiền thuê</span>
+                    <span className="text-3xl font-bold text-[#10b981]">{calcResult.totalRent.toLocaleString()}đ</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab !== 'calculator' && (
       <div className="bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -217,14 +328,6 @@ export function Billing() {
                                   <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.rent} onChange={e => setTempFullInvoice({...tempFullInvoice, rent: Number(e.target.value)})} />
                                </div>
                                <div>
-                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Tiền điện</label>
-                                  <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.electricity} onChange={e => setTempFullInvoice({...tempFullInvoice, electricity: Number(e.target.value)})} />
-                               </div>
-                               <div>
-                                  <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Tiền nước</label>
-                                  <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.water} onChange={e => setTempFullInvoice({...tempFullInvoice, water: Number(e.target.value)})} />
-                               </div>
-                               <div>
                                   <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Khác</label>
                                   <input type="number" className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.other} onChange={e => setTempFullInvoice({...tempFullInvoice, other: Number(e.target.value)})} />
                                </div>
@@ -243,20 +346,20 @@ export function Billing() {
                                   <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Phương thức</label>
                                   <select className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.paymentMethod || 'transfer'} onChange={e => setTempFullInvoice({...tempFullInvoice, paymentMethod: e.target.value as 'cash'|'transfer'})}>
                                     <option value="transfer">Chuyển khoản</option>
-                                    <option value="cash">Tiền mặt</optio                       ) : (
-                        <div>
-                          <span className="font-bold text-[#10b981] text-base">{inv.total.toLocaleString()}đ</span>
-                          <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
-                            <p>Phòng: {inv.rent.toLocaleString()}đ</p>
+                                    <option value="cash">Tiền mặt</option>
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+                         </div>
+                       ) : (
+                         <div>
+                           <span className="font-bold text-[#10b981] text-base">{inv.total.toLocaleString()}đ</span>
+                           <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
+                             <p>Phòng: {inv.rent.toLocaleString()}đ</p>
                             {(inv.water || inv.other) ? (
                                <p>Khác (Nước, DV..): {(inv.water + inv.other).toLocaleString()}đ</p>
                             ) : null}
-                          </div>
-                        </div>
-                      )}��' : 'Chốt số'}
-                                </button>
-                              )}
-                            </div>
                           </div>
                         </div>
                       )}
@@ -334,6 +437,7 @@ export function Billing() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

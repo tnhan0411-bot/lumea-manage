@@ -97,6 +97,80 @@ export interface Tenant {
   secondaryResidenceRegistered?: boolean;
 }
 
+export interface RentCalculationResult {
+  checkInDate: string;
+  checkOutDate: string;
+  billingEndDate: string;
+  months: number;
+  oddDays: number;
+  monthlyRate: number;
+  dailyRate: number;
+  totalRent: number;
+}
+
+export function calculateRentDetails(
+  pricePerMonth: number,
+  checkIn: string,
+  checkOut: string
+): RentCalculationResult {
+  const checkInDate = new Date(checkIn);
+  let checkOutDate = new Date(checkOut);
+  
+  if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+    return {
+      checkInDate: checkIn,
+      checkOutDate: checkOut,
+      billingEndDate: '',
+      months: 0,
+      oddDays: 0,
+      monthlyRate: pricePerMonth,
+      dailyRate: 0,
+      totalRent: 0
+    };
+  }
+
+  checkInDate.setHours(0, 0, 0, 0);
+  checkOutDate.setHours(0, 0, 0, 0);
+
+  const billingEndDateObj = new Date(checkOutDate.getTime() - 24 * 60 * 60 * 1000);
+  const billingEndDate = billingEndDateObj.toISOString().split('T')[0];
+
+  let months = 0;
+  let currentCycleStart = new Date(checkInDate);
+  while (true) {
+    let nextStart = new Date(currentCycleStart);
+    nextStart.setMonth(nextStart.getMonth() + 1);
+    let cycleEnd = new Date(nextStart.getTime() - 24 * 60 * 60 * 1000);
+    
+    if (cycleEnd <= billingEndDateObj) {
+      months++;
+      currentCycleStart = nextStart;
+    } else {
+      break;
+    }
+  }
+
+  let oddDays = 0;
+  if (currentCycleStart <= billingEndDateObj) {
+    const diffTime = billingEndDateObj.getTime() - currentCycleStart.getTime();
+    oddDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+
+  const dailyRate = Math.round(pricePerMonth / 30);
+  const totalRent = (months * pricePerMonth) + (oddDays * dailyRate);
+
+  return {
+    checkInDate: checkIn,
+    checkOutDate: checkOut,
+    billingEndDate,
+    months,
+    oddDays,
+    monthlyRate: pricePerMonth,
+    dailyRate,
+    totalRent
+  };
+}
+
 export function calculateRentForMonth(price: number, leaseStart: string | undefined | null, leaseEnd: string | undefined | null, currentMonth: string): number {
   if (!leaseStart) return price;
   
