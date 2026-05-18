@@ -8,7 +8,7 @@ export function Profile() {
   const { user, role, logout, contracts, rooms, usersList, addUser, updateUser, deleteUser, tenants, deleteTenant } = useAppContext();
   
   // Building settings
-  const [apartmentName, setApartmentName] = React.useState('Lumea Nest Serviced Apartment');
+  const [apartmentName, setApartmentName] = React.useState('Căn Hộ Nam Cầu Trần Thị Lý');
   const [isEditingName, setIsEditingName] = React.useState(false);
 
   // Profile editing state

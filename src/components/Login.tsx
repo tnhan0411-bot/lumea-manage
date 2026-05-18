@@ -33,7 +33,7 @@ export function Login() {
           <div className="inline-flex items-center justify-center p-4 bg-[#38bdf8] text-[#0f172a] rounded-2xl mb-4 shadow-xl shadow-[#38bdf8]/10">
             <Building2 size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-[#f8fafc] tracking-tight">Lumea Nest</h1>
+          <h1 className="text-3xl font-bold text-[#f8fafc] tracking-tight">Căn Hộ Nam Cầu Trần Thị Lý</h1>
           <p className="text-[#94a3b8] mt-2">Hệ thống quản lý căn hộ dịch vụ cao cấp</p>
         </div>
 

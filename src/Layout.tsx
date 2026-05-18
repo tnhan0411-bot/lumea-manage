@@ -122,7 +122,7 @@ export function Layout() {
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3 font-bold text-xl mb-1 text-[#38bdf8]">
             <Building2 size={24} />
-            <span className="truncate">Lumea Nest</span>
+            <span className="truncate">Căn Hộ Nam Cầu Trần Thị Lý</span>
           </div>
           <button 
             className="md:hidden text-[#94a3b8] hover:text-[#f8fafc]"

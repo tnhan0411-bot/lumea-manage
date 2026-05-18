@@ -623,7 +623,7 @@ export function Dashboard() {
         </head>
         <body>
           <div class="header">
-            <h2>Báo Cáo Doanh Thu - Lumea Nest Serviced Apartment</h2>
+            <h2>Báo Cáo Doanh Thu - Căn Hộ Nam Cầu Trần Thị Lý</h2>
             <p>Kỳ báo cáo: ${filterMode === 'period' ? period : `Từ ${dateRange.start} đến ${dateRange.end}`}</p>
           </div>
           <table>
@@ -679,7 +679,7 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#f8fafc]">Lumea Nest Serviced Apartment</h1>
+          <h1 className="text-2xl font-bold text-[#f8fafc]">Căn Hộ Nam Cầu Trần Thị Lý</h1>
           <p className="text-sm text-[#94a3b8]">Báo cáo hiệu suất kinh doanh • Chào {user?.name}</p>
         </div>
         <div className="flex flex-col lg:flex-row items-end lg:items-center gap-3">
