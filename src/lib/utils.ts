@@ -161,9 +161,6 @@ export interface Invoice {
   tenantId: string;
   month: string; // YYYY-MM
   rent: number;
-  electricity: number;
-  initialElectricityMeter?: number;
-  finalElectricityMeter?: number;
   water: number;
   other: number;
   total: number;
@@ -172,6 +169,19 @@ export interface Invoice {
   paymentDate?: string;
   dueDate: string;
   issueDate?: string; // Add issueDate to determine exact time
+}
+
+export interface ElectricityRecord {
+  id: string;
+  roomId: string;
+  month: string; // YYYY-MM
+  initialMeter: number;
+  finalMeter?: number;
+  usage: number;
+  cost: number;
+  status: 'pending' | 'paid';
+  paymentDate?: string;
+  paymentMethod?: 'cash' | 'transfer';
 }
 
 export const INITIAL_ROOMS: Room[] = [
@@ -199,3 +209,4 @@ export const INITIAL_CONTRACTS: Contract[] = [];
 export const INITIAL_EXPENSES: Expense[] = [];
 export const INITIAL_ISSUES: Issue[] = [];
 export const INITIAL_INVOICES: Invoice[] = [];
+export const INITIAL_ELECTRICITY: ElectricityRecord[] = [];

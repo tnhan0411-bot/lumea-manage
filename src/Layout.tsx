@@ -10,6 +10,7 @@ import { Reports } from './components/Reports';
 import { Contracts } from './components/Contracts';
 import { Profile } from './components/Profile';
 import { Expenses } from './components/Expenses';
+import { Electricity } from './components/Electricity';
 import { Login } from './components/Login';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
@@ -45,8 +46,9 @@ export function Layout() {
           { id: 'rooms', label: 'Quản lý phòng', icon: Building2 },
           { id: 'contracts', label: 'Hợp đồng & Hồ sơ', icon: Users },
           { id: 'maintenance', label: 'Bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
-          { id: 'cleaning', label: 'Vệ sinh phòng', icon: Zap },
-          { id: 'billing', label: 'Hóa đơn & Thu chi', icon: Receipt },
+          { id: 'cleaning', label: 'Vệ sinh phòng', icon: CheckCircle2 },
+          { id: 'electricity', label: 'Quản lý tiền điện', icon: Zap },
+          { id: 'billing', label: 'Hóa đơn tiền nhà', icon: Receipt },
           { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
           { id: 'expenses', label: 'Quản lý chi phí', icon: CreditCard },
           { id: 'profile', label: 'Hồ sơ của tôi', icon: Settings },
@@ -55,16 +57,17 @@ export function Layout() {
         return [
           { id: 'dashboard', label: 'Trạng thái chung', icon: LayoutDashboard },
           { id: 'maintenance', label: 'Lịch bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
-          { id: 'cleaning', label: 'Lịch dọn vệ sinh', icon: Zap },
+          { id: 'cleaning', label: 'Lịch dọn vệ sinh', icon: CheckCircle2 },
           { id: 'profile', label: 'Hồ sơ kỹ thuật', icon: User },
         ];
       case 'tenant':
         return [
           { id: 'dashboard', label: 'Trang chủ của tôi', icon: LayoutDashboard },
           { id: 'contracts', label: 'Hợp đồng của tôi', icon: FileText },
-          { id: 'billing', label: 'Thanh toán & Hóa đơn', icon: Receipt, badge: invoices.filter(i => i.tenantId === 't1' && i.status !== 'paid').length },
+          { id: 'electricity', label: 'Tiền điện', icon: Zap },
+          { id: 'billing', label: 'Hóa đơn tiền nhà', icon: Receipt, badge: invoices.filter(i => i.tenantId === 't1' && i.status !== 'paid').length },
           { id: 'maintenance', label: 'Yêu cầu bảo trì', icon: Wrench },
-          { id: 'cleaning', label: 'Lịch vệ sinh', icon: Zap },
+          { id: 'cleaning', label: 'Lịch vệ sinh', icon: CheckCircle2 },
           { id: 'profile', label: 'Hồ sơ cá nhân', icon: User },
         ];
       default:
@@ -88,6 +91,7 @@ export function Layout() {
         case 'rooms': return <RoomList />;
         case 'maintenance': return <Maintenance />;
         case 'cleaning': return <Cleaning />;
+        case 'electricity': return <Electricity />;
         case 'billing': return <Billing />;
         case 'reports': return <Reports />;
         case 'contracts': return <Contracts />;

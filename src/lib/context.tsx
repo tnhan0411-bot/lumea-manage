@@ -3,8 +3,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { 
-  Room, Tenant, Issue, Invoice, Contract, Expense, User, 
-  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS,
+  Room, Tenant, Issue, Invoice, Contract, Expense, User, ElectricityRecord,
+  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY,
   calculateRentForMonth
 } from './utils';
 
@@ -25,6 +25,7 @@ interface AppState {
   contracts: Contract[];
   expenses: Expense[];
   usersList: User[];
+  electricityRecords: ElectricityRecord[];
   isLoaded: boolean;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
@@ -52,6 +53,10 @@ interface AppState {
   updateInvoice: (id: string, updates: Partial<Invoice>) => void;
   deleteInvoice: (id: string) => void;
   deleteIssue: (id: string) => void;
+  addElectricityRecord: (record: ElectricityRecord) => void;
+  updateElectricityRecord: (id: string, updates: Partial<ElectricityRecord>) => void;
+  deleteElectricityRecord: (id: string) => void;
+  payElectricity: (id: string, paymentMethod?: 'cash' | 'transfer', paymentDate?: string) => void;
   checkMonthlyBilling: () => { pendingRooms: Room[], generateAll: () => void };
 }
 
@@ -67,6 +72,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [contracts, setContracts] = useState<Contract[]>(INITIAL_CONTRACTS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
+  const [electricityRecords, setElectricityRecords] = useState<ElectricityRecord[]>(INITIAL_ELECTRICITY);
  
   // Persistence: Load from Firestore on mount
   useEffect(() => {
@@ -107,6 +113,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               paymentDate: safeStr(i.paymentDate)
             })));
           }
+          if (data.electricityRecords) {
+            setElectricityRecords(data.electricityRecords.map((e: any) => ({
+              ...e,
+              month: safeStr(e.month),
+              paymentDate: safeStr(e.paymentDate)
+            })));
+          }
           if (data.contracts) setContracts(data.contracts);
           if (data.expenses) {
             setExpenses(data.expenses.map((e: any) => ({
@@ -132,6 +145,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             tenants: INITIAL_TENANTS,
             issues: INITIAL_ISSUES,
             invoices: INITIAL_INVOICES,
+            electricityRecords: INITIAL_ELECTRICITY,
             contracts: INITIAL_CONTRACTS,
             expenses: INITIAL_EXPENSES,
             usersList: updatedUsers
@@ -361,7 +375,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const generateAll = () => {
       const newInvoices: Invoice[] = pendingBillingRooms.map(room => {
         const tenant = tenants.find(t => t.roomId === room.id);
-        
         let calculatedRent = calculateRentForMonth(room.price, room.leaseStart, room.leaseEnd, currentMonth);
 
         return {
@@ -370,8 +383,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           tenantId: tenant?.id || 'unknown',
           month: currentMonth,
           rent: calculatedRent,
-          electricity: 0,
-          initialElectricityMeter: room.initialElectricityMeter,
           water: 0,
           other: 0,
           total: calculatedRent,
@@ -386,6 +397,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     return { pendingRooms: pendingBillingRooms, generateAll };
+  };
+
+  const addElectricityRecord = async (record: ElectricityRecord) => {
+    const newItems = [record, ...electricityRecords];
+    setElectricityRecords(newItems);
+    await syncToDb('electricityRecords', newItems);
+  };
+  const updateElectricityRecord = async (id: string, updates: Partial<ElectricityRecord>) => {
+    const newItems = electricityRecords.map(e => e.id === id ? { ...e, ...updates } : e);
+    setElectricityRecords(newItems);
+    await syncToDb('electricityRecords', newItems);
+  };
+  const deleteElectricityRecord = async (id: string) => {
+    const newItems = electricityRecords.filter(e => e.id !== id);
+    setElectricityRecords(newItems);
+    await syncToDb('electricityRecords', newItems);
+  };
+  const payElectricity = async (id: string, paymentMethod?: 'cash' | 'transfer', paymentDate?: string) => {
+    const newItems = electricityRecords.map(e => e.id === id ? { 
+      ...e, 
+      status: 'paid' as const,
+      paymentMethod: paymentMethod || 'cash',
+      paymentDate: paymentDate || new Date().toISOString().split('T')[0]
+    } : e);
+    setElectricityRecords(newItems);
+    await syncToDb('electricityRecords', newItems);
   };
 
   const role = user?.role || null;
@@ -413,6 +450,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       contracts,
       expenses,
       usersList,
+      electricityRecords,
       isLoaded,
       login,
       logout,
@@ -440,6 +478,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteContract,
       updateInvoice,
       deleteInvoice,
+      addElectricityRecord,
+      updateElectricityRecord,
+      deleteElectricityRecord,
+      payElectricity,
       checkMonthlyBilling,
     }}>
       {children}

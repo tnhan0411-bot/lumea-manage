@@ -9,10 +9,6 @@ export function Billing() {
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [editingElecId, setEditingElecId] = useState<string | null>(null);
-  const [tempInitMeter, setTempInitMeter] = useState<number | ''>('');
-  const [tempFinalMeter, setTempFinalMeter] = useState<number | ''>('');
-
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [tempIssueDate, setTempIssueDate] = useState<string>('');
   const [tempMonth, setTempMonth] = useState<string>('');
@@ -27,8 +23,8 @@ export function Billing() {
 
   const handleSaveFull = async () => {
     if (!tempFullInvoice) return;
-    const { rent, electricity, water, other } = tempFullInvoice;
-    const total = rent + electricity + water + other;
+    const { rent, water, other } = tempFullInvoice;
+    const total = rent + water + other;
     await updateInvoice(tempFullInvoice.id, { ...tempFullInvoice, total });
     setEditingFullId(null);
     setTempFullInvoice(null);
@@ -50,28 +46,6 @@ export function Billing() {
      await updateInvoice(id, { issueDate: tempIssueDate, month: tempMonth });
      setEditingDateId(null);
   };
-
-  const handleEditElec = (inv: any) => {
-    setEditingElecId(inv.id);
-    setTempInitMeter(inv.initialElectricityMeter ?? '');
-    setTempFinalMeter(inv.finalElectricityMeter ?? '');
-  };
-
-  const handleSaveElec = async (inv: any) => {
-    const init = Number(tempInitMeter) || 0;
-    const final = Number(tempFinalMeter) || 0;
-    const electricityAmount = Math.max(0, final - init) * 4000;
-    const newTotal = inv.rent + electricityAmount + inv.water + inv.other;
-    await updateInvoice(inv.id, { 
-      initialElectricityMeter: init, 
-      finalElectricityMeter: final, 
-      electricity: electricityAmount,
-      total: newTotal
-    });
-    await updateRoom(inv.roomId, { initialElectricityMeter: final });
-    setEditingElecId(null);
-  };
-
 
   const { pendingRooms, generateAll } = checkMonthlyBilling();
 
@@ -269,40 +243,17 @@ export function Billing() {
                                   <label className="text-[9px] text-[#94a3b8] uppercase font-bold">Phương thức</label>
                                   <select className="w-full bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-xs text-[#f8fafc]" value={tempFullInvoice.paymentMethod || 'transfer'} onChange={e => setTempFullInvoice({...tempFullInvoice, paymentMethod: e.target.value as 'cash'|'transfer'})}>
                                     <option value="transfer">Chuyển khoản</option>
-                                    <option value="cash">Tiền mặt</option>
-                                  </select>
-                                </div>
-                              </div>
-                            )}
-                         </div>
-                      ) : editingElecId === inv.id ? (
-                        <div className="flex flex-col gap-2 bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] uppercase text-[#94a3b8] font-bold">Số điện đầu</span>
-                            <input type="number" className="w-20 bg-[#1e293b] rounded px-2 py-1 text-xs text-[#f8fafc] border border-[#334155] outline-none" value={tempInitMeter} onChange={e => setTempInitMeter(Number(e.target.value))} />
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] uppercase text-[#94a3b8] font-bold">Số điện cuối</span>
-                            <input type="number" className="w-20 bg-[#1e293b] rounded px-2 py-1 text-xs text-[#f8fafc] border border-[#334155] outline-none" value={tempFinalMeter} onChange={e => setTempFinalMeter(Number(e.target.value))} />
-                          </div>
-                          <div className="flex gap-2 justify-end mt-2">
-                            <Button variant="outline" size="sm" onClick={() => setEditingElecId(null)} className="h-7 text-[10px]">Hủy</Button>
-                            <Button size="sm" onClick={() => handleSaveElec(inv)} className="h-7 text-[10px]">Lưu</Button>
-                          </div>
-                        </div>
-                      ) : (
+                                    <option value="cash">Tiền mặt</optio                       ) : (
                         <div>
                           <span className="font-bold text-[#10b981] text-base">{inv.total.toLocaleString()}đ</span>
                           <div className="text-[10px] text-[#94a3b8] mt-1 space-y-0.5">
                             <p>Phòng: {inv.rent.toLocaleString()}đ</p>
-                            <div className="flex items-center gap-2 group/elec">
-                              <p>
-                                Điện: {inv.electricity.toLocaleString()}đ 
-                                {inv.finalElectricityMeter ? ` (${inv.finalElectricityMeter} - ${inv.initialElectricityMeter || 0})` : ''}
-                              </p>
-                              {role === 'landlord' && inv.status !== 'paid' && (
-                                <button onClick={() => handleEditElec(inv)} className="text-[#38bdf8] opacity-0 group-hover/elec:opacity-100 transition-opacity">
-                                  {inv.finalElectricityMeter ? 'Sửa số' : 'Chốt số'}
+                            {(inv.water || inv.other) ? (
+                               <p>Khác (Nước, DV..): {(inv.water + inv.other).toLocaleString()}đ</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      )}��' : 'Chốt số'}
                                 </button>
                               )}
                             </div>
