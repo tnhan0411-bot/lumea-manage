@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
-import { Receipt, Calendar, Clock, Trash2, Edit2 } from 'lucide-react';
+import { Receipt, Calendar, Clock, Trash2, Edit2, RefreshCw } from 'lucide-react';
 import { FormEvent } from 'react';
 
 export function Billing() {
@@ -61,6 +61,21 @@ export function Billing() {
   const handleSaveDate = async (id: string) => {
      await updateInvoice(id, { issueDate: tempIssueDate, month: tempMonth });
      setEditingDateId(null);
+  };
+
+  const handleRecalculateRent = async (inv: any) => {
+    const room = rooms.find(r => r.id === inv.roomId);
+    if (!room) return;
+    try {
+      const { calculateRentForMonth } = await import('../lib/utils');
+      const calculatedRent = calculateRentForMonth(room.price, room.leaseStart, room.leaseEnd, inv.month);
+      const newTotal = calculatedRent + (inv.water || 0) + (inv.other || 0);
+      await updateInvoice(inv.id, { rent: calculatedRent, total: newTotal });
+      alert(`Đã tính lại tiền phòng thành công: ${calculatedRent.toLocaleString()}đ`);
+    } catch (e) {
+      console.error(e);
+      alert('Có lỗi xảy ra khi tính lại tiền!');
+    }
   };
 
   const { pendingRooms, generateAll } = checkMonthlyBilling();
@@ -378,6 +393,13 @@ export function Billing() {
                              title="Sửa chi tiết"
                            >
                              <Edit2 size={14} />
+                           </button>
+                           <button 
+                             onClick={() => handleRecalculateRent(inv)}
+                             className="p-1.5 text-[#10b981] hover:bg-[#10b981]/10 rounded transition-colors"
+                             title="Tính lại tiền phòng"
+                           >
+                             <RefreshCw size={14} />
                            </button>
                            <button 
                              onClick={() => handleDelete(inv.id)}

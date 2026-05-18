@@ -202,13 +202,15 @@ export function calculateRentForMonth(price: number, leaseStart: string | undefi
     lEnd.setHours(0,0,0,0);
     
     if (!isNaN(lEnd.getTime())) {
-      if (lEnd < cycleStart) return 0;
+      const billingEndDateObj = new Date(lEnd.getTime() - 24 * 60 * 60 * 1000);
       
-      if (lEnd <= cycleEnd) {
-        if (lEnd.getTime() === cycleEnd.getTime()) {
+      if (billingEndDateObj < cycleStart) return 0;
+      
+      if (billingEndDateObj <= cycleEnd) {
+        if (billingEndDateObj.getTime() === cycleEnd.getTime()) {
           return price;
         }
-        const diffTime = lEnd.getTime() - cycleStart.getTime();
+        const diffTime = billingEndDateObj.getTime() - cycleStart.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         return Math.round((price / 30) * diffDays);
       }

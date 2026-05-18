@@ -17,6 +17,7 @@ export function RoomList() {
   const [newAttachmentName, setNewAttachmentName] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
+  const [showExtensionReminder, setShowExtensionReminder] = useState<boolean>(false);
 
   const handleExportReport = () => {
     const headings = ['Số phòng', 'Trạng thái', 'Giá thuê', 'Người thuê 1', 'Hạn Visa 1', 'Người thuê 2', 'Hạn Visa 2', 'Bắt đầu thuê', 'Kết thúc thuê', 'Doanh thu (Đã thu)'];
@@ -84,8 +85,20 @@ export function RoomList() {
     if (tempRoom) {
       setIsSaving(true);
       try {
+        const originalRoom = rooms.find(r => r.id === tempRoom.id);
+        
         // Ensure we pass all fields from tempRoom
         await updateRoom(tempRoom.id, { ...tempRoom });
+        
+        // Check for lease extension to remind about related tasks
+        let isLeaseExtended = false;
+        if (originalRoom?.status === 'occupied' && originalRoom.leaseEnd && tempRoom.leaseEnd) {
+          const d1 = new Date(originalRoom.leaseEnd);
+          const d2 = new Date(tempRoom.leaseEnd);
+          if (d2 > d1) {
+            isLeaseExtended = true;
+          }
+        }
         
         // Handle tenant detachment if room becomes available/maintenance
         if (tempRoom.status !== 'occupied') {
@@ -147,6 +160,9 @@ export function RoomList() {
           }
         }
         setEditingRoomId(null);
+        if (isLeaseExtended) {
+           setShowExtensionReminder(true);
+        }
       } catch (error) {
         console.error("Error saving room data:", error);
         alert("Có lỗi xảy ra khi lưu dữ liệu. Vui lòng thử lại.");
@@ -392,6 +408,11 @@ export function RoomList() {
                             onChange={e => setTempRoom({...tempRoom, leaseEnd: e.target.value})}
                             className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] text-xs focus:ring-2 focus:ring-[#38bdf8] outline-none"
                           />
+                          {editingRoomId && tempRoom.leaseEnd && rooms.find(r => r.id === editingRoomId)?.leaseEnd && (new Date(tempRoom.leaseEnd) > new Date(rooms.find(r => r.id === editingRoomId)!.leaseEnd!)) && (
+                             <p className="mt-2 text-[10px] text-[#f59e0b] bg-[#f59e0b]/10 p-1.5 rounded flex items-start">
+                               <strong className="mr-1">⚠ Chú ý gia hạn:</strong> Hãy nhớ gia hạn tạm trú tạm vắng và thẻ từ cổng/phòng sau khi lưu!
+                             </p>
+                          )}
                         </div>
                       </div>
                     </>
@@ -533,6 +554,56 @@ export function RoomList() {
           );
         })}
       </div>
+
+      {showExtensionReminder && (
+        <div className="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1e293b] border border-[#38bdf8] rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-[#38bdf8]/10 p-4 border-b border-[#38bdf8]/20 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#38bdf8] flex items-center justify-center shadow-lg shadow-[#38bdf8]/20">
+                <Check size={24} className="text-[#0f172a]" />
+              </div>
+              <h3 className="text-lg font-bold text-[#f8fafc]">Lưu Hợp Đồng Thành Công</h3>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-[#94a3b8] mb-4">
+                Vì phòng đang cho thuê mới được gia hạn tháng lưu trú, hệ thống tự động nhắc nhở bạn thực hiện các công việc sau để đảm bảo quy trình vận hành:
+              </p>
+              
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-3 bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
+                  <div className="mt-0.5"><Save size={16} className="text-[#38bdf8]" /></div>
+                  <div className="flex-1">
+                    <span className="text-[#f8fafc] font-medium text-sm block">1. Gia hạn tạm trú, tạm vắng</span>
+                    <span className="text-xs text-[#94a3b8]">Xin gia hạn tạm trú cho người thuê trên cổng thông tin để đảm bảo đúng pháp luật.</span>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3 bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
+                  <div className="mt-0.5"><Clock size={16} className="text-[#10b981]" /></div>
+                  <div className="flex-1">
+                    <span className="text-[#f8fafc] font-medium text-sm block">2. Gia hạn thẻ từ cổng chung</span>
+                    <span className="text-xs text-[#94a3b8]">Cập nhật thời hạn thẻ khóa từ để người thuê tiếp tục sử dụng bãi xe, thang máy.</span>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3 bg-[#0f172a] p-3 rounded-lg border border-[#334155]">
+                  <div className="mt-0.5"><Badge variant="default" className="w-4 h-4 p-0 flex items-center justify-center rounded-full"><Plus size={10} /></Badge></div>
+                  <div className="flex-1">
+                    <span className="text-[#f8fafc] font-medium text-sm block">3. Gia hạn thẻ từ thẻ phòng</span>
+                    <span className="text-xs text-[#94a3b8]">Ghi lại thời hạn mới cho thẻ mở cửa của phòng.</span>
+                  </div>
+                </li>
+              </ul>
+              
+              <Button 
+                onClick={() => setShowExtensionReminder(false)} 
+                className="w-full bg-[#38bdf8] text-[#0f172a] hover:bg-[#0284c7] py-6 font-bold uppercase tracking-widest"
+              >
+                Đã ghi nhớ & Đóng thông báo
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
