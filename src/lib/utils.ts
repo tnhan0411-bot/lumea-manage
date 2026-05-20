@@ -67,6 +67,7 @@ export interface Room {
   id: string;
   number: string;
   status: RoomStatus;
+  cleanStatus?: 'clean' | 'dirty' | 'cleaning';
   price: number;
   features: string[];
   cleaningSchedule: { date: string; note?: string }[]; 
@@ -75,6 +76,16 @@ export interface Room {
   leaseEnd?: string;
   initialElectricityMeter?: number;
   note?: string;
+}
+
+export interface CleaningSchedule {
+  id: string;
+  roomId: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  assignedTo?: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  createdAt: string;
 }
 
 export interface Tenant {
@@ -261,16 +272,18 @@ export interface ElectricityRecord {
 }
 
 export const INITIAL_ROOMS: Room[] = [
-  { id: 'r1', number: '101', status: 'available', price: 5000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r2', number: '201', status: 'available', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r3', number: '202', status: 'available', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r4', number: '301', status: 'available', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r5', number: '302', status: 'available', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r6', number: '401', status: 'available', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r7', number: '402', status: 'available', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r8', number: '501', status: 'available', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r9', number: '502', status: 'available', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r1', number: '101', status: 'available', cleanStatus: 'clean', price: 5000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r2', number: '201', status: 'available', cleanStatus: 'clean', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r3', number: '202', status: 'available', cleanStatus: 'clean', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r4', number: '301', status: 'available', cleanStatus: 'clean', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r5', number: '302', status: 'available', cleanStatus: 'clean', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r6', number: '401', status: 'available', cleanStatus: 'clean', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r7', number: '402', status: 'available', cleanStatus: 'clean', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r8', number: '501', status: 'available', cleanStatus: 'clean', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r9', number: '502', status: 'available', cleanStatus: 'clean', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
 ];
+
+export const INITIAL_CLEANING_SCHEDULES: CleaningSchedule[] = [];
 
 export const INITIAL_USERS: User[] = [
   { id: 'u1', name: 'Quản lý', email: 'admin1@lumea.vn', role: 'landlord', phone: '0911001100', password: '123456' },

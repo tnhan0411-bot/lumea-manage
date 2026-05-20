@@ -3,8 +3,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { 
-  Room, Tenant, Issue, Invoice, Contract, Expense, User, ElectricityRecord,
-  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY,
+  Room, Tenant, Issue, Invoice, Contract, Expense, User, ElectricityRecord, CleaningSchedule,
+  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY, INITIAL_CLEANING_SCHEDULES,
   calculateRentForMonth
 } from './utils';
 
@@ -26,6 +26,7 @@ interface AppState {
   expenses: Expense[];
   usersList: User[];
   electricityRecords: ElectricityRecord[];
+  cleaningSchedules: CleaningSchedule[];
   isLoaded: boolean;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
@@ -57,6 +58,9 @@ interface AppState {
   updateElectricityRecord: (id: string, updates: Partial<ElectricityRecord>) => void;
   deleteElectricityRecord: (id: string) => void;
   payElectricity: (id: string, paymentMethod?: 'cash' | 'transfer', paymentDate?: string) => void;
+  addCleaningSchedule: (schedule: CleaningSchedule) => void;
+  updateCleaningSchedule: (id: string, updates: Partial<CleaningSchedule>) => void;
+  deleteCleaningSchedule: (id: string) => void;
   checkMonthlyBilling: () => { pendingRooms: Room[], generateAll: () => void };
 }
 
@@ -73,6 +77,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
   const [electricityRecords, setElectricityRecords] = useState<ElectricityRecord[]>(INITIAL_ELECTRICITY);
+  const [cleaningSchedules, setCleaningSchedules] = useState<CleaningSchedule[]>(INITIAL_CLEANING_SCHEDULES);
  
   // Persistence: Load from Firestore on mount
   useEffect(() => {
@@ -97,6 +102,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           if (data.rooms) setRooms(data.rooms);
           if (data.tenants) setTenants(data.tenants);
+          if (data.cleaningSchedules) setCleaningSchedules(data.cleaningSchedules);
           if (data.issues) {
             setIssues(data.issues.map((i: any) => ({
               ...i,
@@ -454,6 +460,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await syncToDb('electricityRecords', newItems);
   };
 
+  const addCleaningSchedule = async (schedule: CleaningSchedule) => {
+    const newItems = [schedule, ...cleaningSchedules];
+    setCleaningSchedules(newItems);
+    await syncToDb('cleaningSchedules', newItems);
+  };
+
+  const updateCleaningSchedule = async (id: string, updates: Partial<CleaningSchedule>) => {
+    const newItems = cleaningSchedules.map(c => c.id === id ? { ...c, ...updates } : c);
+    setCleaningSchedules(newItems);
+    await syncToDb('cleaningSchedules', newItems);
+  };
+
+  const deleteCleaningSchedule = async (id: string) => {
+    const newItems = cleaningSchedules.filter(c => c.id !== id);
+    setCleaningSchedules(newItems);
+    await syncToDb('cleaningSchedules', newItems);
+  };
+
   const role = user?.role || null;
 
   useEffect(() => {
@@ -480,6 +504,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       expenses,
       usersList,
       electricityRecords,
+      cleaningSchedules,
       isLoaded,
       login,
       logout,
@@ -511,6 +536,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateElectricityRecord,
       deleteElectricityRecord,
       payElectricity,
+      addCleaningSchedule,
+      updateCleaningSchedule,
+      deleteCleaningSchedule,
       checkMonthlyBilling,
     }}>
       {children}
