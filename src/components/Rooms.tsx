@@ -415,6 +415,17 @@ export function RoomList() {
                           )}
                         </div>
                       </div>
+                      <div className="mt-4 flex flex-col gap-2">
+                        <label className="flex w-fit items-center gap-2 text-[#f8fafc] text-sm font-bold cursor-pointer bg-[#f59e0b]/10 p-2 rounded-lg border border-[#f59e0b]/20 hover:bg-[#f59e0b]/20 transition-colors">
+                          <input 
+                            type="checkbox" 
+                            checked={tempRoom.isExtended || false}
+                            onChange={e => setTempRoom({...tempRoom, isExtended: e.target.checked})}
+                            className="w-4 h-4 rounded border-[#f59e0b] bg-transparent text-[#f59e0b] focus:ring-[#f59e0b]"
+                          />
+                          Khách gia hạn lưu trú
+                        </label>
+                      </div>
                     </>
                   )}
                 </div>
@@ -517,9 +528,19 @@ export function RoomList() {
             <Card key={room.id} className={cn("transition-all hover:bg-[#334155]/20 bg-[#1e293b] flex flex-col justify-between cursor-pointer", getStatusColor(room.status), editingRoomId === room.id && "ring-2 ring-[#38bdf8]")} onClick={() => handleEditClick(room)}>
               <CardContent className="p-4 flex flex-col h-full">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-bold text-[#f8fafc]">
-                    P.{room.number}
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-bold text-[#f8fafc]">
+                      P.{room.number}
+                    </h3>
+                    {room.isExtended && (
+                      <span className="relative flex h-5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded bg-[#ef4444] opacity-40"></span>
+                        <span className="relative inline-flex rounded bg-gradient-to-r from-[#ef4444] to-[#f97316] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm border border-[#ef4444]/50 flex items-center justify-center uppercase tracking-wider">
+                          GIA HẠN
+                        </span>
+                      </span>
+                    )}
+                  </div>
                   {getStatusBadge(room.status)}
                 </div>
                 

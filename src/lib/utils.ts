@@ -68,6 +68,7 @@ export interface Room {
   number: string;
   status: RoomStatus;
   cleanStatus?: 'clean' | 'dirty' | 'cleaning';
+  isExtended?: boolean;
   price: number;
   features: string[];
   cleaningSchedule: { date: string; note?: string }[]; 

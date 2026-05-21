@@ -310,7 +310,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...r, 
       status: 'available' as const, 
       leaseStart: null, 
-      leaseEnd: null 
+      leaseEnd: null,
+      isExtended: false
     } : r);
     setRooms(newRooms as any);
     await syncToDb('rooms', newRooms);
