@@ -16,16 +16,25 @@ export function Cleaning() {
     e.preventDefault();
     if (!selectedRoomId) return;
 
-    const newSchedule: CleaningSchedule = {
-      id: `cs-${Date.now()}`,
-      roomId: selectedRoomId,
-      scheduledDate: date,
-      scheduledTime: time,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
+    const existingTask = getRoomTask(selectedRoomId);
+
+    if (existingTask) {
+       updateCleaningSchedule(existingTask.id, {
+          scheduledDate: date,
+          scheduledTime: time,
+       });
+    } else {
+       const newSchedule: CleaningSchedule = {
+         id: `cs-${Date.now()}`,
+         roomId: selectedRoomId,
+         scheduledDate: date,
+         scheduledTime: time,
+         status: 'pending',
+         createdAt: new Date().toISOString()
+       };
+       addCleaningSchedule(newSchedule);
+    }
     
-    addCleaningSchedule(newSchedule);
     updateRoom(selectedRoomId, { cleanStatus: 'dirty' });
     setShowForm(false);
     setSelectedRoomId('');
@@ -119,6 +128,15 @@ export function Cleaning() {
      return cleaningSchedules.find(s => s.roomId === roomId && s.status !== 'completed');
   };
 
+  const formatScheduleText = (dateStr: string, timeStr: string) => {
+     const dateObj = new Date(dateStr);
+     const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+     const dayName = days[dateObj.getDay()];
+     const dd = String(dateObj.getDate()).padStart(2, '0');
+     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+     return `${dayName}, ${dd}/${mm} - ${timeStr}`;
+  };
+
   const floors = computeFloors();
 
   return (
@@ -133,23 +151,24 @@ export function Cleaning() {
       {showForm && (
         <Card className="bg-[#10b981]/5 border-[#10b981]/20 border-dashed animate-in fade-in zoom-in duration-200">
           <CardContent className="p-6">
-            <h3 className="text-sm font-bold text-[#f8fafc] mb-4">Lên lịch / Gán lại lịch dọn dẹp</h3>
+            <h3 className="text-sm font-bold text-[#f8fafc] mb-4">Lên lịch / Điều chỉnh nhanh lượt kế tiếp</h3>
             <form onSubmit={handleAddSchedule} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                  <div>
-                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Chọn phòng</label>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Cập nhật cho phòng</label>
                   <select 
                     value={selectedRoomId}
                     onChange={e => setSelectedRoomId(e.target.value)}
                     className="w-full rounded-lg bg-[#0f172a] border-[#334155] text-[#f8fafc] border p-2 text-sm"
                     required
+                    disabled
                   >
                     <option value="" disabled>-- Chọn phòng --</option>
                     {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.number}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ngày dọn</label>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Ngày dọn chỉnh sửa</label>
                   <input 
                     type="date"
                     value={date}
@@ -159,7 +178,7 @@ export function Cleaning() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Giờ dọn</label>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Giờ dọn chỉnh sửa</label>
                   <input 
                     type="time"
                     value={time}
@@ -170,7 +189,7 @@ export function Cleaning() {
                 </div>
               </div>
               <div className="flex gap-4">
-                <Button type="submit" className="px-8 bg-[#10b981] hover:bg-[#059669] text-[#0f172a]">Lưu Lịch</Button>
+                <Button type="submit" className="px-8 bg-[#10b981] hover:bg-[#059669] text-[#0f172a]">Lưu Lịch Mới</Button>
                 <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Hủy</Button>
               </div>
             </form>
@@ -186,7 +205,6 @@ export function Cleaning() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {floor.rooms.map(room => {
                 const pendingTask = getRoomTask(room.id);
-                // Compute visual status mapping
                 const cleanStatus = room.cleanStatus || 'clean';
                 
                 return (
@@ -207,11 +225,16 @@ export function Cleaning() {
                        </div>
                        
                        <div className="flex-1 mt-2 bg-[#0f172a] p-3 rounded-lg border border-[#334155] space-y-2">
-                          <div className="text-xs text-[#94a3b8] font-medium uppercase tracking-wider">Lịch dự kiến</div>
+                          <div className="text-xs text-[#94a3b8] font-medium uppercase tracking-wider flex justify-between">
+                            Lịch dự kiến
+                            {room.recurringCleaning && (
+                               <span className="text-[10px] text-[#22c55e]">Định kỳ</span>
+                            )}
+                          </div>
                           {pendingTask ? (
                              <div className="flex items-center gap-2 text-[#f8fafc]">
-                               <Clock size={14} className="text-[#38bdf8]" />
-                               <span className="text-sm">{pendingTask.scheduledTime} - {pendingTask.scheduledDate.split('-').reverse().join('/')}</span>
+                               <Clock size={14} className="text-[#38bdf8] flex-shrink-0" />
+                               <span className="text-sm font-medium">{formatScheduleText(pendingTask.scheduledDate, pendingTask.scheduledTime)}</span>
                              </div>
                           ) : (
                              <div className="flex items-center gap-2 text-[#64748b] italic">
@@ -227,10 +250,14 @@ export function Cleaning() {
                             className="w-full text-xs hover:bg-[#38bdf8]/10 hover:text-[#38bdf8]"
                             onClick={() => {
                                setSelectedRoomId(room.id);
+                               if (pendingTask) {
+                                  setDate(pendingTask.scheduledDate);
+                                  setTime(pendingTask.scheduledTime);
+                               }
                                setShowForm(true);
                             }}
                           >
-                            {pendingTask ? 'Đổi lịch dọn' : 'Gán lịch dọn'}
+                            Điều chỉnh thủ công (Override)
                           </Button>
                        </div>
                     </CardContent>

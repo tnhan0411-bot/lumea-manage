@@ -7,6 +7,7 @@ import {
   INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY, INITIAL_CLEANING_SCHEDULES,
   calculateRentForMonth
 } from './utils';
+import { calculateNextCleaningDate } from './scheduleHelper';
 
 const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(app, {
@@ -467,7 +468,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCleaningSchedule = async (id: string, updates: Partial<CleaningSchedule>) => {
-    const newItems = cleaningSchedules.map(c => c.id === id ? { ...c, ...updates } : c);
+    let newItems = cleaningSchedules.map(c => c.id === id ? { ...c, ...updates } : c);
+    
+    // Auto scheduling next clean if completed
+    if (updates.status === 'completed') {
+       const completedSchedule = cleaningSchedules.find(c => c.id === id);
+       if (completedSchedule) {
+          const room = rooms.find(r => r.id === completedSchedule.roomId);
+          if (room && room.recurringCleaning && room.recurringCleaning.daysOfWeek.length > 0) {
+             const nextDate = calculateNextCleaningDate(room.recurringCleaning.daysOfWeek, room.recurringCleaning.time, completedSchedule.scheduledDate);
+             if (nextDate) {
+                const nextSchedule: CleaningSchedule = {
+                   id: `cs-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+                   roomId: room.id,
+                   scheduledDate: nextDate.date,
+                   scheduledTime: nextDate.time,
+                   status: 'pending',
+                   createdAt: new Date().toISOString()
+                };
+                newItems = [nextSchedule, ...newItems];
+             }
+          }
+       }
+    }
+
     setCleaningSchedules(newItems);
     await syncToDb('cleaningSchedules', newItems);
   };

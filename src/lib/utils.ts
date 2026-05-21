@@ -74,6 +74,7 @@ export interface Room {
   attachments: Attachment[];
   leaseStart?: string;
   leaseEnd?: string;
+  recurringCleaning?: { daysOfWeek: number[], time: string }; // 0 = Sunday, 1 = Monday...
   initialElectricityMeter?: number;
   note?: string;
 }
@@ -272,18 +273,35 @@ export interface ElectricityRecord {
 }
 
 export const INITIAL_ROOMS: Room[] = [
-  { id: 'r1', number: '101', status: 'available', cleanStatus: 'clean', price: 5000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r2', number: '201', status: 'available', cleanStatus: 'clean', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r3', number: '202', status: 'available', cleanStatus: 'clean', price: 5500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r4', number: '301', status: 'available', cleanStatus: 'clean', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r5', number: '302', status: 'available', cleanStatus: 'clean', price: 6000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r6', number: '401', status: 'available', cleanStatus: 'clean', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r7', number: '402', status: 'available', cleanStatus: 'clean', price: 6500000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r8', number: '501', status: 'available', cleanStatus: 'clean', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
-  { id: 'r9', number: '502', status: 'available', cleanStatus: 'clean', price: 7000000, features: [], cleaningSchedule: [], attachments: [] },
+  { id: 'r1', number: '101', status: 'available', cleanStatus: 'clean', price: 5000000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [1, 4], time: '09:00' } },
+  { id: 'r2', number: '201', status: 'available', cleanStatus: 'clean', price: 5500000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [2, 5], time: '09:30' } },
+  { id: 'r3', number: '202', status: 'available', cleanStatus: 'clean', price: 5500000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [2, 5], time: '10:00' } },
+  { id: 'r4', number: '301', status: 'available', cleanStatus: 'clean', price: 6000000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [3, 6], time: '09:00' } },
+  { id: 'r5', number: '302', status: 'available', cleanStatus: 'clean', price: 6000000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [3, 6], time: '09:30' } },
+  { id: 'r6', number: '401', status: 'available', cleanStatus: 'clean', price: 6500000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [0, 4], time: '10:00' } },
+  { id: 'r7', number: '402', status: 'available', cleanStatus: 'clean', price: 6500000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [0, 4], time: '10:30' } },
+  { id: 'r8', number: '501', status: 'available', cleanStatus: 'clean', price: 7000000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [1, 5], time: '11:00' } },
+  { id: 'r9', number: '502', status: 'available', cleanStatus: 'clean', price: 7000000, features: [], cleaningSchedule: [], attachments: [], recurringCleaning: { daysOfWeek: [2, 6], time: '11:30' } },
 ];
 
-export const INITIAL_CLEANING_SCHEDULES: CleaningSchedule[] = [];
+import { calculateNextCleaningDate } from './scheduleHelper';
+
+export const INITIAL_CLEANING_SCHEDULES: CleaningSchedule[] = INITIAL_ROOMS.map(room => {
+  if (room.recurringCleaning) {
+    const nextDate = calculateNextCleaningDate(room.recurringCleaning.daysOfWeek, room.recurringCleaning.time);
+    if (nextDate) {
+      return {
+        id: `cs-init-${room.id}`,
+        roomId: room.id,
+        scheduledDate: nextDate.date,
+        scheduledTime: nextDate.time,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+    }
+  }
+  return null;
+}).filter(Boolean) as CleaningSchedule[];
 
 export const INITIAL_USERS: User[] = [
   { id: 'u1', name: 'Quản lý', email: 'admin1@lumea.vn', role: 'landlord', phone: '0911001100', password: '123456' },
