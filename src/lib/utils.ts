@@ -318,3 +318,14 @@ export const INITIAL_EXPENSES: Expense[] = [];
 export const INITIAL_ISSUES: Issue[] = [];
 export const INITIAL_INVOICES: Invoice[] = [];
 export const INITIAL_ELECTRICITY: ElectricityRecord[] = [];
+export interface TodoTask {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'todo' | 'in-progress' | 'done';
+  createdAt: string;
+  dueDate?: string;
+}
+
+export const INITIAL_TASKS: TodoTask[] = [];
+

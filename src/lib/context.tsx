@@ -3,8 +3,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { 
-  Room, Tenant, Issue, Invoice, Contract, Expense, User, ElectricityRecord, CleaningSchedule,
-  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY, INITIAL_CLEANING_SCHEDULES,
+  Room, Tenant, Issue, Invoice, Contract, Expense, User, ElectricityRecord, CleaningSchedule, TodoTask,
+  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY, INITIAL_CLEANING_SCHEDULES, INITIAL_TASKS,
   calculateRentForMonth
 } from './utils';
 import { calculateNextCleaningDate } from './scheduleHelper';
@@ -28,6 +28,7 @@ interface AppState {
   usersList: User[];
   electricityRecords: ElectricityRecord[];
   cleaningSchedules: CleaningSchedule[];
+  tasks: TodoTask[];
   isLoaded: boolean;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
@@ -63,6 +64,9 @@ interface AppState {
   updateCleaningSchedule: (id: string, updates: Partial<CleaningSchedule>) => void;
   deleteCleaningSchedule: (id: string) => void;
   checkMonthlyBilling: () => { pendingRooms: Room[], generateAll: () => void };
+  addTask: (task: TodoTask) => void;
+  updateTask: (id: string, updates: Partial<TodoTask>) => void;
+  deleteTask: (id: string) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -79,6 +83,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
   const [electricityRecords, setElectricityRecords] = useState<ElectricityRecord[]>(INITIAL_ELECTRICITY);
   const [cleaningSchedules, setCleaningSchedules] = useState<CleaningSchedule[]>(INITIAL_CLEANING_SCHEDULES);
+  const [tasks, setTasks] = useState<TodoTask[]>(INITIAL_TASKS);
  
   // Persistence: Load from Firestore on mount
   useEffect(() => {
@@ -141,6 +146,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }));
             setUsersList(updatedUsers);
           }
+          if (data.cleaningSchedules) setCleaningSchedules(data.cleaningSchedules);
+          if (data.tasks) setTasks(data.tasks);
         } else {
           // Init remote document first time
           const updatedUsers = INITIAL_USERS.map(u => ({
@@ -155,7 +162,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             electricityRecords: INITIAL_ELECTRICITY,
             contracts: INITIAL_CONTRACTS,
             expenses: INITIAL_EXPENSES,
-            usersList: updatedUsers
+            usersList: updatedUsers,
+            cleaningSchedules: INITIAL_CLEANING_SCHEDULES,
+            tasks: INITIAL_TASKS
           });
         }
       } catch (e) {
@@ -503,6 +512,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await syncToDb('cleaningSchedules', newItems);
   };
 
+  const addTask = async (task: TodoTask) => {
+    const newItems = [task, ...tasks];
+    setTasks(newItems);
+    await syncToDb('tasks', newItems);
+  };
+
+  const updateTask = async (id: string, updates: Partial<TodoTask>) => {
+    const newItems = tasks.map(t => t.id === id ? { ...t, ...updates } : t);
+    setTasks(newItems);
+    await syncToDb('tasks', newItems);
+  };
+
+  const deleteTask = async (id: string) => {
+    const newItems = tasks.filter(t => t.id !== id);
+    setTasks(newItems);
+    await syncToDb('tasks', newItems);
+  };
+
   const role = user?.role || null;
 
   useEffect(() => {
@@ -530,6 +557,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       usersList,
       electricityRecords,
       cleaningSchedules,
+      tasks,
       isLoaded,
       login,
       logout,
@@ -565,6 +593,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateCleaningSchedule,
       deleteCleaningSchedule,
       checkMonthlyBilling,
+      addTask,
+      updateTask,
+      deleteTask,
     }}>
       {children}
     </AppContext.Provider>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2 } from 'lucide-react';
+import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2, ListTodo } from 'lucide-react';
 import { useAppContext } from './lib/context';
 import { Dashboard } from './components/Dashboard';
 import { RoomList } from './components/Rooms';
@@ -11,6 +11,7 @@ import { Contracts } from './components/Contracts';
 import { Profile } from './components/Profile';
 import { Expenses } from './components/Expenses';
 import { Electricity } from './components/Electricity';
+import { Tasks } from './components/Tasks';
 import { Login } from './components/Login';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
@@ -49,6 +50,7 @@ export function Layout() {
           { id: 'cleaning', label: 'Vệ sinh phòng', icon: CheckCircle2 },
           { id: 'electricity', label: 'Quản lý tiền điện', icon: Zap },
           { id: 'billing', label: 'Hóa đơn tiền nhà', icon: Receipt },
+          { id: 'tasks', label: 'Ghi chú & Việc cần làm', icon: ListTodo },
           { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
           { id: 'expenses', label: 'Quản lý chi phí', icon: CreditCard },
           { id: 'profile', label: 'Hồ sơ của tôi', icon: Settings },
@@ -58,6 +60,7 @@ export function Layout() {
           { id: 'dashboard', label: 'Trạng thái chung', icon: LayoutDashboard },
           { id: 'maintenance', label: 'Lịch bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
           { id: 'cleaning', label: 'Lịch dọn vệ sinh', icon: CheckCircle2 },
+          { id: 'tasks', label: 'Ghi chú cá nhân', icon: ListTodo },
           { id: 'profile', label: 'Hồ sơ kỹ thuật', icon: User },
         ];
       case 'tenant':
@@ -97,6 +100,7 @@ export function Layout() {
         case 'contracts': return <Contracts />;
         case 'profile': return <Profile />;
         case 'expenses': return <Expenses />;
+        case 'tasks': return <Tasks />;
         default: return <div className="p-8 text-center text-[#94a3b8]">Màn hình {activeScreen} chưa được cấu hình.</div>;
       }
     } catch (e) {
