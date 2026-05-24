@@ -12,6 +12,7 @@ import { Profile } from './components/Profile';
 import { Expenses } from './components/Expenses';
 import { Electricity } from './components/Electricity';
 import { Login } from './components/Login';
+import { Tasks } from './components/Tasks';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
 
@@ -45,6 +46,7 @@ export function Layout() {
           { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
           { id: 'rooms', label: 'Quản lý phòng', icon: Building2 },
           { id: 'contracts', label: 'Hợp đồng & Hồ sơ', icon: Users },
+          { id: 'tasks', label: 'Giao Việc & Checklist', icon: CheckCircle2 },
           { id: 'maintenance', label: 'Bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
           { id: 'cleaning', label: 'Vệ sinh phòng', icon: CheckCircle2 },
           { id: 'electricity', label: 'Quản lý tiền điện', icon: Zap },
@@ -56,6 +58,7 @@ export function Layout() {
       case 'technician':
         return [
           { id: 'dashboard', label: 'Trạng thái chung', icon: LayoutDashboard },
+          { id: 'tasks', label: 'Checklist công việc', icon: CheckCircle2 },
           { id: 'maintenance', label: 'Lịch bảo trì', icon: Wrench, badge: issues.filter(i => i.status !== 'resolved' && i.type === 'repair').length },
           { id: 'cleaning', label: 'Lịch dọn vệ sinh', icon: CheckCircle2 },
           { id: 'profile', label: 'Hồ sơ kỹ thuật', icon: User },
@@ -88,6 +91,7 @@ export function Layout() {
     try {
       switch (activeScreen) {
         case 'dashboard': return <Dashboard />;
+        case 'tasks': return <Tasks />;
         case 'rooms': return <RoomList />;
         case 'maintenance': return <Maintenance />;
         case 'cleaning': return <Cleaning />;

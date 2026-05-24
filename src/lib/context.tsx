@@ -3,8 +3,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { 
-  Room, Tenant, Issue, Invoice, Contract, Expense, User, ElectricityRecord, CleaningSchedule,
-  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY, INITIAL_CLEANING_SCHEDULES,
+  Room, Tenant, Issue, Invoice, Contract, Expense, User, ElectricityRecord, CleaningSchedule, Task,
+  INITIAL_ROOMS, INITIAL_TENANTS, INITIAL_ISSUES, INITIAL_TASKS, INITIAL_INVOICES, INITIAL_CONTRACTS, INITIAL_EXPENSES, INITIAL_USERS, INITIAL_ELECTRICITY, INITIAL_CLEANING_SCHEDULES,
   calculateRentForMonth
 } from './utils';
 import { calculateNextCleaningDate } from './scheduleHelper';
@@ -28,6 +28,7 @@ interface AppState {
   usersList: User[];
   electricityRecords: ElectricityRecord[];
   cleaningSchedules: CleaningSchedule[];
+  tasks: Task[];
   isLoaded: boolean;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
@@ -62,6 +63,9 @@ interface AppState {
   addCleaningSchedule: (schedule: CleaningSchedule) => void;
   updateCleaningSchedule: (id: string, updates: Partial<CleaningSchedule>) => void;
   deleteCleaningSchedule: (id: string) => void;
+  addTask: (task: Task) => void;
+  updateTask: (id: string, updates: Partial<Task>) => void;
+  deleteTask: (id: string) => void;
   checkMonthlyBilling: () => { pendingRooms: Room[], generateAll: () => void };
 }
 
@@ -79,6 +83,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [usersList, setUsersList] = useState<User[]>(INITIAL_USERS);
   const [electricityRecords, setElectricityRecords] = useState<ElectricityRecord[]>(INITIAL_ELECTRICITY);
   const [cleaningSchedules, setCleaningSchedules] = useState<CleaningSchedule[]>(INITIAL_CLEANING_SCHEDULES);
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
  
   // Persistence: Load from Firestore on mount
   useEffect(() => {
@@ -104,6 +109,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (data.rooms) setRooms(data.rooms);
           if (data.tenants) setTenants(data.tenants);
           if (data.cleaningSchedules) setCleaningSchedules(data.cleaningSchedules);
+          if (data.tasks) setTasks(data.tasks);
           if (data.issues) {
             setIssues(data.issues.map((i: any) => ({
               ...i,
@@ -155,7 +161,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             electricityRecords: INITIAL_ELECTRICITY,
             contracts: INITIAL_CONTRACTS,
             expenses: INITIAL_EXPENSES,
-            usersList: updatedUsers
+            usersList: updatedUsers,
+            tasks: INITIAL_TASKS
           });
         }
       } catch (e) {
@@ -503,6 +510,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await syncToDb('cleaningSchedules', newItems);
   };
 
+  const addTask = async (task: Task) => {
+    const newItems = [task, ...tasks];
+    setTasks(newItems);
+    await syncToDb('tasks', newItems);
+  };
+
+  const updateTask = async (id: string, updates: Partial<Task>) => {
+    const newItems = tasks.map(t => {
+      if (t.id === id) {
+        const merged = { ...t, ...updates };
+        // auto-detect if all items are checked and status was not updated explicitly
+        if (merged.items.length > 0 && merged.items.every(item => item.isCompleted)) {
+           merged.status = 'completed';
+        } else if (merged.items.length > 0 && merged.items.some(item => item.isCompleted)) {
+           if (merged.status === 'pending') {
+              merged.status = 'in-progress';
+           }
+        }
+        return merged;
+      }
+      return t;
+    });
+    setTasks(newItems);
+    await syncToDb('tasks', newItems);
+  };
+
+  const deleteTask = async (id: string) => {
+    const newItems = tasks.filter(t => t.id !== id);
+    setTasks(newItems);
+    await syncToDb('tasks', newItems);
+  };
+
   const role = user?.role || null;
 
   useEffect(() => {
@@ -564,6 +603,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addCleaningSchedule,
       updateCleaningSchedule,
       deleteCleaningSchedule,
+      tasks,
+      addTask,
+      updateTask,
+      deleteTask,
       checkMonthlyBilling,
     }}>
       {children}

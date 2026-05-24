@@ -244,6 +244,23 @@ export interface Issue {
   type: 'repair' | 'cleaning' | 'other';
 }
 
+export interface TaskItem {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  assignedTo: string; // userId of technician
+  deadline: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  items: TaskItem[];
+  createdAt: string;
+}
+
 export interface Invoice {
   id: string;
   roomId: string;
@@ -316,5 +333,6 @@ export const INITIAL_TENANTS: Tenant[] = [];
 export const INITIAL_CONTRACTS: Contract[] = [];
 export const INITIAL_EXPENSES: Expense[] = [];
 export const INITIAL_ISSUES: Issue[] = [];
+export const INITIAL_TASKS: Task[] = [];
 export const INITIAL_INVOICES: Invoice[] = [];
 export const INITIAL_ELECTRICITY: ElectricityRecord[] = [];
