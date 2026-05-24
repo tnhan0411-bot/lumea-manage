@@ -25,15 +25,14 @@ export function Reports() {
 
   // Chart Data (showing a range near the selected period)
   const getFinancialData = () => {
-    // Chỉ hiển thị dữ liệu tháng 4 và tháng 5 do hệ thống mới hoạt động
-    const months = ['2026-04', '2026-05'];
-    const mockThu = [210000000, 230000000];
-    const mockChi = [60000000, 70000000];
+    const months = ['2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05'];
+    const mockThu = [120000000, 150000000, 135000000, 180000000, 210000000, 230000000];
+    const mockChi = [30000000, 45000000, 35000000, 50000000, 60000000, 70000000];
     return months.map((m, index) => {
       const realThu = invoices.filter(i => i.month === m && i.status === 'paid').reduce((a, b) => a + b.total, 0);
       const realChi = expenses.filter(e => e.date.startsWith(m)).reduce((a, b) => a + b.amount, 0);
       return {
-        name: `Tháng ${parseInt(m.split('-')[1])}`,
+        name: `T${parseInt(m.split('-')[1])}`,
         thu: realThu > 0 ? realThu : mockThu[index],
         chi: realChi > 0 ? realChi : mockChi[index],
       };
@@ -152,7 +151,7 @@ export function Reports() {
         {/* Financial Growth */}
         <Card>
           <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]/50 flex justify-between items-center">
-            <h3 className="font-bold text-[#f8fafc]">Doanh thu Tháng 4 & Tháng 5</h3>
+            <h3 className="font-bold text-[#f8fafc]">Doanh thu 6 tháng gần nhất</h3>
             <div className="flex gap-2 text-xs">
               <label className="flex items-center gap-1 text-[#94a3b8] cursor-pointer hover:text-[#f8fafc]">
                  <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} className="rounded border-[#334155] bg-transparent text-[#38bdf8] focus:ring-[#38bdf8]/50" /> Nhãn
@@ -187,8 +186,8 @@ export function Reports() {
                   itemStyle={{ fontSize: '12px' }}
                 />
                 <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                <Bar dataKey="thu" name="Doanh thu" fill="url(#colorThu)" radius={[6, 6, 0, 0]} maxBarSize={80}>
-                  {showLabels && <LabelList dataKey="thu" position="top" formatter={formatNumber} fill="#f8fafc" fontSize={12} fontWeight="bold" dy={-5} />}
+                <Bar dataKey="thu" name="Doanh thu" fill="url(#colorThu)" radius={[6, 6, 0, 0]} maxBarSize={50}>
+                  {showLabels && <LabelList dataKey="thu" position="top" formatter={formatNumber} fill="#f8fafc" fontSize={10} fontWeight="bold" dy={-5} />}
                 </Bar>
                 {showTrendline && (
                   <>
