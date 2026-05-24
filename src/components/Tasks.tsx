@@ -200,7 +200,7 @@ export function Tasks() {
                      {task.description && <p className="text-sm text-[#94a3b8] mb-4">{task.description}</p>}
                      
                      <div className="flex flex-wrap gap-4 text-xs font-medium text-[#94a3b8]">
-                        <div className="flex items-center gap-1.5"><CalendarClock size={14} className="text-[#f59e0b]"/> Hạn: {formatDate(task.deadline.split('T')[0])} {task.deadline.split('T')[1]}</div>
+                        <div className="flex items-center gap-1.5"><CalendarClock size={14} className="text-[#f59e0b]"/> Hạn: {task.deadline ? `${formatDate(task.deadline.split('T')[0])} ${task.deadline.split('T')[1] || ''}` : 'Chưa cập nhật'}</div>
                         <div className="flex items-center gap-1.5"><User size={14} className="text-[#38bdf8]"/> {assignee?.name || 'Vô danh'}</div>
                      </div>
                   </div>
