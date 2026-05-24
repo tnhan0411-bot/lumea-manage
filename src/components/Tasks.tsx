@@ -55,11 +55,13 @@ export function Tasks() {
     setItems([]);
   };
 
-  const technicians = usersList.filter(u => u.role === 'technician');
+  const safeUsersList = usersList || [];
+  const safeTasks = tasks || [];
+  const technicians = safeUsersList.filter(u => u.role === 'technician');
 
   const visibleTasks = role === 'landlord' 
-       ? tasks.sort((a,b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
-       : tasks.filter(t => t.assignedTo === user?.id).sort((a,b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+       ? safeTasks.sort((a,b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+       : safeTasks.filter(t => t.assignedTo === user?.id).sort((a,b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
 
   const getStatusBadge = (status: Task['status']) => {
     const map = {
@@ -188,7 +190,7 @@ export function Tasks() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
          {visibleTasks.map(task => {
-            const assignee = usersList.find(u => u.id === task.assignedTo);
+            const assignee = safeUsersList.find(u => u.id === task.assignedTo);
             const progress = calculateProgress(task.items);
             return (
                <Card key={task.id} className="flex flex-col border-[#334155] bg-[#1e293b] transition-all hover:bg-[#334155]/20">
@@ -207,7 +209,7 @@ export function Tasks() {
                   <div className="p-5 flex-1 flex flex-col">
                      <div className="mb-4">
                         <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                           <span className="text-[#e2e8f0]">Tiến độ ({task.items.filter(i => i.isCompleted).length}/{task.items.length})</span>
+                           <span className="text-[#e2e8f0]">Tiến độ ({(task.items || []).filter(i => i.isCompleted).length}/{(task.items || []).length})</span>
                            <span className={cn(
                               progress === 100 ? "text-[#22c55e]" : "text-[#38bdf8]"
                            )}>{progress}%</span>
@@ -224,7 +226,7 @@ export function Tasks() {
                      </div>
 
                      <div className="space-y-2 mt-auto">
-                        {task.items.map(item => (
+                        {(task.items || []).map(item => (
                            <label key={item.id} className={cn(
                               "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
                               item.isCompleted ? "bg-[#22c55e]/5 border-[#22c55e]/20 text-[#94a3b8]" : "bg-[#0f172a] border-[#334155] hover:border-[#38bdf8]/50 text-[#f8fafc]"
