@@ -253,9 +253,10 @@ export interface TaskItem {
 export interface Task {
   id: string;
   title: string;
+  type: 'daily' | 'ad_hoc';
   description?: string;
   assignedTo: string; // userId of technician
-  deadline: string;
+  deadline?: string;
   status: 'pending' | 'in-progress' | 'completed';
   items: TaskItem[];
   createdAt: string;

@@ -9,13 +9,16 @@ export function Tasks() {
   const { user, role, tasks, addTask, updateTask, deleteTask, usersList } = useAppContext();
   
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [title, setTitle] = useState('');
+  const [type, setType] = useState<'daily'|'ad_hoc'>('ad_hoc');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [deadline, setDeadline] = useState('');
   const [items, setItems] = useState<TaskItem[]>([]);
   const [newItemTitle, setNewItemTitle] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'daily' | 'ad_hoc'>('all');
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,25 +33,45 @@ export function Tasks() {
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !assignedTo || !deadline) return;
+    if (!title || !assignedTo) return;
 
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title,
-      description,
-      assignedTo,
-      deadline,
-      status: 'pending',
-      items,
-      createdAt: new Date().toISOString()
-    };
-    addTask(newTask);
+    if (editingId) {
+       updateTask(editingId, {
+          title, type, description, assignedTo, deadline: deadline || undefined, items
+       });
+    } else {
+       const newTask: Task = {
+         id: `task-${Date.now()}`,
+         title,
+         type,
+         description,
+         assignedTo,
+         deadline: deadline || undefined,
+         status: 'pending',
+         items,
+         createdAt: new Date().toISOString()
+       };
+       addTask(newTask);
+    }
     setShowForm(false);
     resetForm();
   };
   
+  const handleEditTask = (task: Task) => {
+     setEditingId(task.id);
+     setTitle(task.title);
+     setType(task.type || 'ad_hoc');
+     setDescription(task.description || '');
+     setAssignedTo(task.assignedTo);
+     setDeadline(task.deadline || '');
+     setItems(task.items || []);
+     setShowForm(true);
+  };
+
   const resetForm = () => {
+    setEditingId(null);
     setTitle('');
+    setType('ad_hoc');
     setDescription('');
     setAssignedTo('');
     setDeadline('');
@@ -59,9 +82,20 @@ export function Tasks() {
   const safeTasks = tasks || [];
   const technicians = safeUsersList.filter(u => u.role === 'technician');
 
-  const visibleTasks = role === 'landlord' 
-       ? safeTasks.sort((a,b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
-       : safeTasks.filter(t => t.assignedTo === user?.id).sort((a,b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+  let visibleTasks = role === 'landlord' 
+       ? safeTasks
+       : safeTasks.filter(t => t.assignedTo === user?.id);
+
+  if (filterType !== 'all') {
+      visibleTasks = visibleTasks.filter(t => t.type === filterType);
+  }
+
+  visibleTasks = [...visibleTasks].sort((a,b) => {
+      if (!a.deadline && !b.deadline) return 0;
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+  });
 
   const getStatusBadge = (status: Task['status']) => {
     const map = {
@@ -93,16 +127,23 @@ export function Tasks() {
            <p className="text-[#94a3b8] mt-1 text-sm">Theo dõi tiến độ công việc bảo trì & dọn dẹp</p>
         </div>
         
-        {role === 'landlord' && (
-           <Button onClick={() => setShowForm(!showForm)}>
-             {showForm ? 'Hủy' : 'Giao Việc Mới'}
-           </Button>
-        )}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+           <div className="flex bg-[#1e293b] rounded-lg p-1 border border-[#334155]">
+              <button onClick={() => setFilterType('all')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'all' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Tất cả</button>
+              <button onClick={() => setFilterType('daily')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'daily' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Hàng ngày</button>
+              <button onClick={() => setFilterType('ad_hoc')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'ad_hoc' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Đột xuất</button>
+           </div>
+           {role === 'landlord' && (
+              <Button onClick={() => { setShowForm(!showForm); if(!showForm) resetForm(); }}>
+                {showForm ? 'Hủy' : 'Giao Việc Mới'}
+              </Button>
+           )}
+        </div>
       </div>
 
       {showForm && role === 'landlord' && (
         <Card className="bg-[#1e293b] border-2 border-[#38bdf8]">
-          <CardHeader title="Giao Việc Mới" subtitle="Điền thông tin và tạo các đầu mục Checklist chi tiết" />
+          <CardHeader title={editingId ? "Thêm/Sửa Checklist" : "Giao Việc Mới"} subtitle="Điền thông tin và tạo các đầu mục Checklist chi tiết" />
           <CardContent className="space-y-6 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <div>
@@ -115,12 +156,14 @@ export function Tasks() {
                   />
                </div>
                <div>
-                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Hạn chót (Deadline)</label>
-                  <input 
-                     type="datetime-local" 
-                     className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-[#f8fafc] focus:outline-none focus:border-[#38bdf8]" 
-                     value={deadline} onChange={(e) => setDeadline(e.target.value)} required 
-                  />
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Loại công việc</label>
+                  <select 
+                     className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-[#f8fafc] focus:outline-none focus:border-[#38bdf8]"
+                     value={type} onChange={(e) => setType(e.target.value as 'daily' | 'ad_hoc')} required
+                  >
+                     <option value="ad_hoc">Đột xuất (Một lần)</option>
+                     <option value="daily">Hàng ngày (Lặp lại)</option>
+                  </select>
                </div>
                <div>
                   <label className="block text-sm font-medium text-[#94a3b8] mb-1">Giao cho nhân viên</label>
@@ -131,6 +174,14 @@ export function Tasks() {
                      <option value="" disabled>-- Chọn kỹ thuật viên --</option>
                      {technicians.map(t => <option key={t.id} value={t.id}>{t.name} ({t.phone})</option>)}
                   </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Hạn chót (Deadline - Tùy chọn)</label>
+                  <input 
+                     type="datetime-local" 
+                     className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-[#f8fafc] focus:outline-none focus:border-[#38bdf8]" 
+                     value={deadline} onChange={(e) => setDeadline(e.target.value)}
+                  />
                </div>
                <div>
                   <label className="block text-sm font-medium text-[#94a3b8] mb-1">Mô tả thêm (Tùy chọn)</label>
@@ -196,13 +247,20 @@ export function Tasks() {
                <Card key={task.id} className="flex flex-col border-[#334155] bg-[#1e293b] transition-all hover:bg-[#334155]/20">
                   <div className="p-5 border-b border-[#334155] bg-[#0f172a]/30">
                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-[#f8fafc] text-lg pr-4">{task.title}</h3>
+                        <div className="flex flex-col gap-1 pr-4">
+                           <h3 className="font-bold text-[#f8fafc] text-lg">{task.title}</h3>
+                           <div>
+                              <Badge variant="outline" className={cn("text-[10px] font-normal tracking-wide", task.type === 'daily' ? "border-[#10b981]/30 text-[#10b981]" : "border-[#f59e0b]/30 text-[#f59e0b]")}>
+                                 {task.type === 'daily' ? 'HẰNG NGÀY' : 'ĐỘT XUẤT'}
+                              </Badge>
+                           </div>
+                        </div>
                         {getStatusBadge(task.status)}
                      </div>
                      {task.description && <p className="text-sm text-[#94a3b8] mb-4">{task.description}</p>}
                      
-                     <div className="flex flex-wrap gap-4 text-xs font-medium text-[#94a3b8]">
-                        <div className="flex items-center gap-1.5"><CalendarClock size={14} className="text-[#f59e0b]"/> Hạn: {task.deadline ? `${formatDate(task.deadline.split('T')[0])} ${task.deadline.split('T')[1] || ''}` : 'Chưa cập nhật'}</div>
+                     <div className="flex flex-wrap gap-4 text-xs font-medium text-[#94a3b8] mt-2">
+                        <div className="flex items-center gap-1.5"><CalendarClock size={14} className="text-[#f59e0b]"/> Hạn: {task.deadline && task.deadline.includes('T') ? `${formatDate(task.deadline.split('T')[0])} ${task.deadline.split('T')[1] || ''}` : 'Linh hoạt'}</div>
                         <div className="flex items-center gap-1.5"><User size={14} className="text-[#38bdf8]"/> {assignee?.name || 'Vô danh'}</div>
                      </div>
                   </div>
@@ -236,7 +294,7 @@ export function Tasks() {
                                  checked={item.isCompleted}
                                  onChange={() => handleToggleSubtask(task.id, item.id, item.isCompleted)}
                                  className="mt-0.5 rounded border-[#334155] bg-transparent text-[#22c55e] focus:ring-[#22c55e]"
-                                 disabled={role !== 'technician'}
+                                 disabled={role !== 'technician' && role !== 'landlord'}
                               />
                               <span className={cn("text-sm", item.isCompleted && "line-through italic")}>{item.title}</span>
                            </label>
@@ -244,7 +302,8 @@ export function Tasks() {
                      </div>
                   </div>
                   {role === 'landlord' && (
-                     <div className="p-3 bg-[#0f172a] border-t border-[#334155] rounded-b-xl flex justify-end">
+                     <div className="p-3 bg-[#0f172a] border-t border-[#334155] rounded-b-xl flex justify-end gap-2">
+                        <Button variant="ghost" className="text-[#38bdf8] hover:bg-[#38bdf8]/10 h-8 px-3 text-xs" onClick={() => handleEditTask(task)}>Sửa</Button>
                         <Button variant="ghost" className="text-[#ef4444] hover:bg-[#ef4444]/10 h-8 px-3 text-xs" onClick={() => deleteTask(task.id)}>Xóa Task</Button>
                      </div>
                   )}

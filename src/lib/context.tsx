@@ -517,21 +517,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
+    let clonedTask: Task | null = null;
     const newItems = tasks.map(t => {
       if (t.id === id) {
         const merged = { ...t, ...updates };
         // auto-detect if all items are checked and status was not updated explicitly
         if (merged.items.length > 0 && merged.items.every(item => item.isCompleted)) {
-           merged.status = 'completed';
+           if (merged.status !== 'completed') {
+               merged.status = 'completed';
+               if (merged.type === 'daily') {
+                   clonedTask = {
+                       ...merged,
+                       id: `task-${Date.now()}`,
+                       status: 'pending',
+                       createdAt: new Date().toISOString(),
+                       items: merged.items.map(i => ({ ...i, isCompleted: false }))
+                   };
+                   if (clonedTask.deadline && clonedTask.deadline.includes('T')) {
+                       const [datePart, timePart] = clonedTask.deadline.split('T');
+                       const [yr, mo, da] = datePart.split('-');
+                       const localDate = new Date(Number(yr), Number(mo) - 1, Number(da) + 1);
+                       const nextYr = localDate.getFullYear();
+                       const nextMo = String(localDate.getMonth() + 1).padStart(2, '0');
+                       const nextDa = String(localDate.getDate()).padStart(2, '0');
+                       clonedTask.deadline = `${nextYr}-${nextMo}-${nextDa}T${timePart}`;
+                   }
+               }
+           }
         } else if (merged.items.length > 0 && merged.items.some(item => item.isCompleted)) {
-           if (merged.status === 'pending') {
+           if (merged.status !== 'in-progress') {
               merged.status = 'in-progress';
            }
+        } else if (merged.items.length > 0) {
+           merged.status = 'pending';
         }
         return merged;
       }
       return t;
     });
+
+    if (clonedTask) {
+        newItems.unshift(clonedTask);
+    }
+    
     setTasks(newItems);
     await syncToDb('tasks', newItems);
   };
