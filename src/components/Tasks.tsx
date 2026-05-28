@@ -250,7 +250,7 @@ export function Tasks() {
                         <div className="flex flex-col gap-1 pr-4">
                            <h3 className="font-bold text-[#f8fafc] text-lg">{task.title}</h3>
                            <div>
-                              <Badge variant="outline" className={cn("text-[10px] font-normal tracking-wide", task.type === 'daily' ? "border-[#10b981]/30 text-[#10b981]" : "border-[#f59e0b]/30 text-[#f59e0b]")}>
+                              <Badge variant="ghost" className={cn("text-[10px] font-normal tracking-wide", task.type === 'daily' ? "border-[#10b981]/30 text-[#10b981]" : "border-[#f59e0b]/30 text-[#f59e0b]")}>
                                  {task.type === 'daily' ? 'HẰNG NGÀY' : 'ĐỘT XUẤT'}
                               </Badge>
                            </div>

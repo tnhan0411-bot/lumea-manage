@@ -28,6 +28,9 @@ export function Expenses() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
 
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [pieLabelType, setPieLabelType] = useState<'none' | 'value' | 'percent'>('none');
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
@@ -83,6 +86,7 @@ export function Expenses() {
   };
 
   const filteredExpenses = expenses.filter(exp => {
+    if (categoryFilter !== 'all' && exp.category !== categoryFilter) return false;
     if (filterMode === 'period') {
        if (period.includes('Q')) {
           const [year, q] = period.split('-');
@@ -105,6 +109,37 @@ export function Expenses() {
 
   const totalExpense = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
+  const handleExportCSV = () => {
+    let csvContent = "ID,Ngày,Hạng mục,Số tiền,Mô tả\n";
+    filteredExpenses.forEach(exp => {
+      const catLabel = getCategoryLabel(exp.category);
+      const desc = exp.description ? `"${exp.description.replace(/"/g, '""')}"` : "";
+      csvContent += `${exp.id},${exp.date},"${catLabel}",${exp.amount},${desc}\n`;
+    });
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Bao_Cao_Chi_Phi_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) => {
+    if (pieLabelType === 'none') return null;
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    const text = pieLabelType === 'percent' ? `${((value / totalExpense) * 100).toFixed(1)}%` : value.toLocaleString();
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize="10px" fontWeight="bold">
+        {text}
+      </text>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -112,7 +147,7 @@ export function Expenses() {
           <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Chi phí</h1>
           <p className="text-[#94a3b8] text-sm">Theo dõi các khoản chi lương, vệ sinh, vật dụng...</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-1 flex">
             <button 
               onClick={() => setFilterMode('period')}
@@ -157,6 +192,21 @@ export function Expenses() {
             </select>
           )}
 
+          <select 
+             value={categoryFilter}
+             onChange={(e) => setCategoryFilter(e.target.value)}
+             className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-1.5 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9"
+          >
+             <option value="all">Tất cả hạng mục</option>
+             {EXPENSE_CATEGORIES.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.label}</option>
+             ))}
+          </select>
+          
+          <Button variant="outline" onClick={handleExportCSV}>
+            <FileText size={18} className="mr-2" /> Xuất Excel
+          </Button>
+
           <Button onClick={showAddForm ? handleCancel : () => setShowAddForm(true)} variant={showAddForm ? "outline" : "primary"}>
             {showAddForm ? 'Hủy' : (
               <div className="flex items-center gap-2">
@@ -183,32 +233,41 @@ export function Expenses() {
             </div>
 
             {totalExpense > 0 && (
-              <div className="h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={EXPENSE_CATEGORIES.map(cat => ({
-                        name: cat.label,
-                        value: filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0),
-                        fill: cat.fill
-                      })).filter(d => d.value > 0)}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={70}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {EXPENSE_CATEGORIES.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `${value.toLocaleString()} đ`}
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc', fontSize: '12px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="space-y-4">
+                <div className="flex bg-[#1e293b] p-1 rounded-lg border border-[#334155]">
+                   <button onClick={() => setPieLabelType('none')} className={cn("flex-1 text-xs py-1 rounded-md transition-colors", pieLabelType === 'none' ? "bg-[#334155] text-white" : "text-[#94a3b8] hover:text-white")}>Ẩn nhãn</button>
+                   <button onClick={() => setPieLabelType('value')} className={cn("flex-1 text-xs py-1 rounded-md transition-colors", pieLabelType === 'value' ? "bg-[#334155] text-white" : "text-[#94a3b8] hover:text-white")}>Số tiền</button>
+                   <button onClick={() => setPieLabelType('percent')} className={cn("flex-1 text-xs py-1 rounded-md transition-colors", pieLabelType === 'percent' ? "bg-[#334155] text-white" : "text-[#94a3b8] hover:text-white")}>Phần trăm</button>
+                </div>
+                <div className="h-48 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={EXPENSE_CATEGORIES.map(cat => ({
+                          name: cat.label,
+                          value: filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0),
+                          fill: cat.fill
+                        })).filter(d => d.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={2}
+                        dataKey="value"
+                        labelLine={false}
+                        label={renderPieLabel}
+                      >
+                        {EXPENSE_CATEGORIES.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => `${value.toLocaleString()} đ`}
+                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc', fontSize: '12px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             )}
 

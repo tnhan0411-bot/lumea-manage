@@ -156,7 +156,7 @@ export function Electricity() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-white font-medium">{record.usage} kWh</p>
+                    <p className="text-white font-medium">{parseFloat(Number(record.usage || 0).toFixed(3))} kWh</p>
                     <p className="text-[#10b981] font-bold mt-1 text-base">{record.cost.toLocaleString()}đ</p>
                   </td>
                   <td className="px-6 py-4">

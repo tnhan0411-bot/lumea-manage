@@ -6,14 +6,56 @@ import { TrendingUp, TrendingDown, DollarSign, Wrench, Sparkles, Receipt, FileBa
 
 export function Reports() {
   const { invoices, expenses, issues, rooms } = useAppContext();
+  const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
   const [period, setPeriod] = React.useState('2026-04');
+  const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   const [pieFormat, setPieFormat] = React.useState<'value' | 'percent'>('value');
   const [showLabels, setShowLabels] = React.useState(true);
   const [showTrendline, setShowTrendline] = React.useState(true);
 
-  // Filter data based on selected period
-  const filteredInvoices = invoices.filter(inv => inv.month === period);
-  const filteredExpenses = expenses.filter(exp => exp.date.startsWith(period));
+  // Filter data based on selected period or range
+  const filteredInvoices = invoices.filter(inv => {
+    if (filterMode === 'period') {
+       if (period.includes('Q')) {
+          const [year, q] = period.split('-');
+          const [y, m] = inv.month.split('-');
+          if (y !== year) return false;
+          const month = parseInt(m);
+          if (q === 'Q1') return month >= 1 && month <= 3;
+          if (q === 'Q2') return month >= 4 && month <= 6;
+          if (q === 'Q3') return month >= 7 && month <= 9;
+          if (q === 'Q4') return month >= 10 && month <= 12;
+       } else {
+          return inv.month === period;
+       }
+    } else { 
+       const targetDate = inv.paymentDate || inv.issueDate || `${inv.month}-01`;
+       if (dateRange.start && targetDate < dateRange.start) return false;
+       if (dateRange.end && targetDate > dateRange.end) return false;
+    }
+    return true;
+  });
+
+  const filteredExpenses = expenses.filter(exp => {
+    if (filterMode === 'period') {
+       if (period.includes('Q')) {
+          const [year, q] = period.split('-');
+          const [y, m, d] = exp.date.split('-');
+          if (y !== year) return false;
+          const month = parseInt(m);
+          if (q === 'Q1') return month >= 1 && month <= 3;
+          if (q === 'Q2') return month >= 4 && month <= 6;
+          if (q === 'Q3') return month >= 7 && month <= 9;
+          if (q === 'Q4') return month >= 10 && month <= 12;
+       } else {
+          return exp.date.startsWith(period);
+       }
+    } else {
+       if (dateRange.start && exp.date < dateRange.start) return false;
+       if (dateRange.end && exp.date > dateRange.end) return false;
+    }
+    return true;
+  });
 
   const monthlyRevenue = filteredInvoices
     .filter(inv => inv.status === 'paid')
@@ -94,20 +136,59 @@ export function Reports() {
         <h1 className="text-2xl font-bold text-[#f8fafc] flex items-center gap-2">
           <FileBarChart className="text-[#38bdf8]" /> Báo cáo Tổng hợp
         </h1>
-        <div className="flex gap-2">
-          <select 
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-1.5 text-xs text-[#f8fafc] outline-none"
-          >
-             <option value="2026-01">Tháng 1 / 2026</option>
-             <option value="2026-02">Tháng 2 / 2026</option>
-             <option value="2026-03">Tháng 3 / 2026</option>
-             <option value="2026-04">Tháng 4 / 2026</option>
-             <option value="2026-05">Tháng 5 / 2026</option>
-          </select>
-          <Button variant="outline" size="sm">Xuất PDF</Button>
-          <Button variant="outline" size="sm">Xuất Excel</Button>
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-1 flex">
+            <button 
+              onClick={() => setFilterMode('period')}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${filterMode === 'period' ? 'bg-[#38bdf8]/20 text-[#38bdf8]' : 'text-[#94a3b8] hover:text-[#f8fafc]'}`}
+            >
+              Quý / Tháng
+            </button>
+            <button 
+              onClick={() => setFilterMode('range')}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${filterMode === 'range' ? 'bg-[#38bdf8]/20 text-[#38bdf8]' : 'text-[#94a3b8] hover:text-[#f8fafc]'}`}
+            >
+              Khoảng ngày
+            </button>
+          </div>
+
+          {filterMode === 'range' ? (
+            <div className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] rounded-lg px-2 py-1">
+               <input 
+                type="date" 
+                value={dateRange.start}
+                onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                className="bg-transparent text-xs text-[#f8fafc] outline-none max-w-[105px]"
+               />
+               <span className="text-[#64748b]">-</span>
+               <input 
+                type="date" 
+                value={dateRange.end}
+                onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                className="bg-transparent text-xs text-[#f8fafc] outline-none max-w-[105px]"
+               />
+            </div>
+          ) : (
+            <select 
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-1.5 text-xs text-[#f8fafc] outline-none"
+            >
+               <option value="2026-Q1">Quý 1 / 2026 (T1-T3)</option>
+               <option value="2026-Q2">Quý 2 / 2026 (T4-T6)</option>
+               <option value="2026-Q3">Quý 3 / 2026 (T7-T9)</option>
+               <option value="2026-01">Tháng 1 / 2026</option>
+               <option value="2026-02">Tháng 2 / 2026</option>
+               <option value="2026-03">Tháng 3 / 2026</option>
+               <option value="2026-04">Tháng 4 / 2026</option>
+               <option value="2026-05">Tháng 5 / 2026</option>
+            </select>
+          )}
+
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">Xuất PDF</Button>
+            <Button variant="outline" size="sm">Xuất Excel</Button>
+          </div>
         </div>
       </div>
 
