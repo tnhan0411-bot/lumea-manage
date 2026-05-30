@@ -296,7 +296,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateRoom = async (id: string, updates: Partial<Room>) => {
-    const newItems = rooms.map(r => r.id === id ? { ...r, ...updates } : r);
+    let wasRecurringSettingAddedOrChanged = false;
+    let newRecurringConfig = updates.recurringCleaning;
+
+    const newItems = rooms.map(r => {
+      if (r.id === id) {
+         if (updates.recurringCleaning && JSON.stringify(r.recurringCleaning) !== JSON.stringify(updates.recurringCleaning)) {
+            wasRecurringSettingAddedOrChanged = true;
+         }
+         return { ...r, ...updates };
+      }
+      return r;
+    });
+
+    if (wasRecurringSettingAddedOrChanged && newRecurringConfig && newRecurringConfig.daysOfWeek.length > 0) {
+      // Create or update schedule
+      const existingPending = cleaningSchedules.find(cs => cs.roomId === id && cs.status !== 'completed');
+      if (!existingPending) {
+         const nextDate = calculateNextCleaningDate(newRecurringConfig.daysOfWeek, newRecurringConfig.time);
+         if (nextDate) {
+            const nextSchedule: CleaningSchedule = {
+               id: `cs-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+               roomId: id,
+               scheduledDate: nextDate.date,
+               scheduledTime: nextDate.time,
+               status: 'pending',
+               createdAt: new Date().toISOString()
+            };
+            const newSchedules = [nextSchedule, ...cleaningSchedules];
+            setCleaningSchedules(newSchedules);
+            await syncToDb('cleaningSchedules', newSchedules);
+         }
+      }
+    }
+
     setRooms(newItems);
     await syncToDb('rooms', newItems);
   };

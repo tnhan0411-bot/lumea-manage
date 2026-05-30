@@ -443,6 +443,72 @@ export function RoomList() {
                 ></textarea>
               </div>
 
+              {/* Lịch dọn định kỳ */}
+              <div className="bg-[#1e293b] p-4 rounded-xl border border-[#334155] space-y-4">
+                <h3 className="text-sm font-bold text-[#10b981] uppercase tracking-wider flex items-center gap-2">
+                   <Clock size={16} /> Lịch Dọn Định Kỳ
+                </h3>
+                <div className="flex gap-4 items-center">
+                   <label className="flex items-center gap-2 text-sm text-[#f8fafc]">
+                      <input 
+                         type="checkbox" 
+                         checked={!!tempRoom.recurringCleaning}
+                         onChange={(e) => {
+                            if (e.target.checked) {
+                               setTempRoom({ ...tempRoom, recurringCleaning: { daysOfWeek: [1, 4], time: '09:00' } });
+                            } else {
+                               const newRoom = { ...tempRoom };
+                               delete newRoom.recurringCleaning;
+                               setTempRoom(newRoom);
+                            }
+                         }}
+                         className="rounded bg-transparent border-[#334155] text-[#10b981] focus:ring-[#10b981]"
+                      /> 
+                      Bật lịch dọn định kỳ
+                   </label>
+                </div>
+                {tempRoom.recurringCleaning && (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div>
+                         <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Các ngày trong tuần</label>
+                         <div className="flex flex-wrap gap-2">
+                            {[
+                               { label: 'T2', val: 1 }, { label: 'T3', val: 2 }, { label: 'T4', val: 3 }, 
+                               { label: 'T5', val: 4 }, { label: 'T6', val: 5 }, { label: 'T7', val: 6 }, { label: 'CN', val: 0 }
+                            ].map(day => (
+                               <button 
+                                 key={day.val}
+                                 type="button"
+                                 onClick={() => {
+                                    const currentDays = tempRoom.recurringCleaning?.daysOfWeek || [];
+                                    let newDays = [];
+                                    if (currentDays.includes(day.val)) {
+                                       newDays = currentDays.filter(d => d !== day.val);
+                                    } else {
+                                       newDays = [...currentDays, day.val].sort((a, b) => a - b);
+                                    }
+                                    setTempRoom({ ...tempRoom, recurringCleaning: { ...tempRoom.recurringCleaning!, daysOfWeek: newDays } });
+                                 }}
+                                 className={cn("w-8 h-8 rounded-full text-xs font-bold transition-colors", tempRoom.recurringCleaning?.daysOfWeek.includes(day.val) ? "bg-[#10b981] text-[#0f172a]" : "bg-[#0f172a] text-[#94a3b8] border border-[#334155] hover:bg-[#334155]")}
+                               >
+                                  {day.label}
+                               </button>
+                            ))}
+                         </div>
+                      </div>
+                      <div>
+                         <label className="block text-[10px] uppercase tracking-widest font-bold text-[#94a3b8] mb-1">Giờ dọn</label>
+                         <input 
+                            type="time" 
+                            value={tempRoom.recurringCleaning.time}
+                            onChange={(e) => setTempRoom({ ...tempRoom, recurringCleaning: { ...tempRoom.recurringCleaning!, time: e.target.value } })}
+                            className="w-full bg-[#0f172a] border-[#334155] rounded-lg p-2 text-[#f8fafc] focus:ring-2 focus:ring-[#10b981] outline-none"
+                         />
+                      </div>
+                   </div>
+                )}
+              </div>
+
             </div>
             
             <div className="mt-8 pt-6 border-t border-[#334155] flex justify-between items-center">
