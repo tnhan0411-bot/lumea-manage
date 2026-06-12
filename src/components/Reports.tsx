@@ -65,19 +65,56 @@ export function Reports() {
   
   const profit = monthlyRevenue - monthlyExpenses;
 
-  // Chart Data (showing a range near the selected period)
+  // Chart Data (dynamic based on available months)
   const getFinancialData = () => {
-    // Hệ thống mới hoạt động, chỉ hiển thị dữ liệu tháng 4 và tháng 5
-    const months = ['2026-04', '2026-05'];
-    const mockThu = [210000000, 230000000];
-    const mockChi = [60000000, 70000000];
-    return months.map((m, index) => {
+    // Generate months from available data or fallback defaults
+    const invoiceMonths = invoices.map(i => i.month);
+    const expenseMonths = expenses.map(e => e.date.substring(0, 7));
+    const allMonths = Array.from(new Set([...invoiceMonths, ...expenseMonths, '2026-04', '2026-05', '2026-06'])).sort();
+    
+    // Filter months to show based on selected filter if applicable
+    let displayMonths = allMonths;
+    if (filterMode === 'period') {
+       if (period.includes('Q')) {
+          const [year, q] = period.split('-');
+          displayMonths = allMonths.filter(m => {
+             if (!m.startsWith(year)) return false;
+             const month = parseInt(m.split('-')[1]);
+             if (q === 'Q1') return month >= 1 && month <= 3;
+             if (q === 'Q2') return month >= 4 && month <= 6;
+             if (q === 'Q3') return month >= 7 && month <= 9;
+             if (q === 'Q4') return month >= 10 && month <= 12;
+             return false;
+          });
+       } else {
+          // just show the selected month
+          displayMonths = [period];
+       }
+    } else if (filterMode === 'range') {
+       displayMonths = allMonths.filter(m => {
+          const mDate = `${m}-01`;
+          if (dateRange.start && Object.assign(new Date(mDate), {}).getTime() < new Date(dateRange.start.substring(0, 7) + '-01').getTime()) return false;
+          if (dateRange.end && Object.assign(new Date(mDate), {}).getTime() > new Date(dateRange.end.substring(0, 7) + '-01').getTime()) return false;
+          return true;
+       });
+    }
+
+    if (displayMonths.length === 0) displayMonths = [period];
+
+    return displayMonths.map((m) => {
       const realThu = invoices.filter(i => i.month === m && i.status === 'paid').reduce((a, b) => a + b.total, 0);
       const realChi = expenses.filter(e => e.date.startsWith(m)).reduce((a, b) => a + b.amount, 0);
+      
+      let mockThu = 0;
+      let mockChi = 0;
+      if (m === '2026-04') { mockThu = 210000000; mockChi = 60000000; }
+      else if (m === '2026-05') { mockThu = 230000000; mockChi = 70000000; }
+      else if (m === '2026-06') { mockThu = 250000000; mockChi = 80000000; }
+
       return {
-        name: `T${parseInt(m.split('-')[1])}`,
-        thu: realThu > 0 ? realThu : mockThu[index],
-        chi: realChi > 0 ? realChi : mockChi[index],
+        name: `T${parseInt(m.split('-')[1])}/${m.split('-')[0].substring(2)}`,
+        thu: realThu > 0 || m > '2026-06' ? realThu : mockThu,
+        chi: realChi > 0 || m > '2026-06' ? realChi : mockChi,
       };
     });
   };

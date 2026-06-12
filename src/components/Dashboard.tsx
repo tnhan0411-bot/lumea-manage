@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn, formatVND } from '../lib/utils';
 
 export function Dashboard() {
-  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom } = useAppContext();
+  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom, tasks } = useAppContext();
   const [period, setPeriod] = React.useState('2026-Q2');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
@@ -421,6 +421,7 @@ export function Dashboard() {
   const { updateTenant } = useAppContext();
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
+  const activeTasksCount = (tasks || []).filter(t => t.status !== 'completed').length;
   
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
   const [showAllVisas, setShowAllVisas] = React.useState(false);
@@ -803,8 +804,8 @@ export function Dashboard() {
               <Wrench size={24} />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Đang bảo trì</p>
-              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{maintenanceRooms}</p>
+              <p className="text-[11px] uppercase tracking-wider font-bold text-[#94a3b8]">Tác vụ chưa xử lý</p>
+              <p className="text-2xl font-bold text-[#f8fafc] mt-1">{activeTasksCount}</p>
             </div>
           </CardContent>
         </Card>
