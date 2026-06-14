@@ -2,22 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
 import { useAppContext } from '../lib/context';
 import { Task, TaskItem } from '../lib/utils';
-import { CheckSquare, Square, Plus, Trash2, CalendarClock, User, Clock, CheckCircle } from 'lucide-react';
+import { CheckSquare, Square, Plus, Trash2, CalendarClock, User, Clock, CheckCircle, Home } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
 
 export function Tasks() {
-  const { user, role, tasks, addTask, updateTask, deleteTask, usersList } = useAppContext();
+  const { user, role, tasks, addTask, updateTask, deleteTask, usersList, rooms } = useAppContext();
   
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   const [title, setTitle] = useState('');
+  const [roomId, setRoomId] = useState('');
   const [type, setType] = useState<'daily'|'ad_hoc'>('ad_hoc');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [deadline, setDeadline] = useState('');
   const [items, setItems] = useState<TaskItem[]>([]);
   const [newItemTitle, setNewItemTitle] = useState('');
+  const [showReport, setShowReport] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'daily' | 'ad_hoc'>('all');
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -37,13 +39,14 @@ export function Tasks() {
 
     if (editingId) {
        updateTask(editingId, {
-          title, type, description, assignedTo, deadline: deadline || undefined, items
+          title, type, description, assignedTo, deadline: deadline || undefined, items, roomId: roomId || undefined
        });
     } else {
        const newTask: Task = {
          id: `task-${Date.now()}`,
          title,
          type,
+         roomId: roomId || undefined,
          description,
          assignedTo,
          deadline: deadline || undefined,
@@ -60,6 +63,7 @@ export function Tasks() {
   const handleEditTask = (task: Task) => {
      setEditingId(task.id);
      setTitle(task.title);
+     setRoomId(task.roomId || '');
      setType(task.type || 'ad_hoc');
      setDescription(task.description || '');
      setAssignedTo(task.assignedTo);
@@ -71,6 +75,7 @@ export function Tasks() {
   const resetForm = () => {
     setEditingId(null);
     setTitle('');
+    setRoomId('');
     setType('ad_hoc');
     setDescription('');
     setAssignedTo('');
@@ -128,20 +133,85 @@ export function Tasks() {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-4">
-           <div className="flex bg-[#1e293b] rounded-lg p-1 border border-[#334155]">
-              <button onClick={() => setFilterType('all')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'all' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Tất cả</button>
-              <button onClick={() => setFilterType('daily')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'daily' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Hàng ngày</button>
-              <button onClick={() => setFilterType('ad_hoc')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'ad_hoc' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Đột xuất</button>
-           </div>
-           {role === 'landlord' && (
-              <Button onClick={() => { setShowForm(!showForm); if(!showForm) resetForm(); }}>
-                {showForm ? 'Hủy' : 'Giao Việc Mới'}
-              </Button>
+           {showReport ? (
+              <Button variant="outline" onClick={() => setShowReport(false)}>Quay lại Danh sách</Button>
+           ) : (
+              <>
+                 <Button variant="outline" onClick={() => setShowReport(true)} className="flex items-center gap-2 text-[#38bdf8]">
+                    Báo cáo theo phòng
+                 </Button>
+                 <div className="flex bg-[#1e293b] rounded-lg p-1 border border-[#334155]">
+                    <button onClick={() => setFilterType('all')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'all' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Tất cả</button>
+                    <button onClick={() => setFilterType('daily')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'daily' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Hàng ngày</button>
+                    <button onClick={() => setFilterType('ad_hoc')} className={cn("px-3 py-1.5 rounded-md text-sm transition-colors", filterType === 'ad_hoc' ? "bg-[#38bdf8] text-[#0f172a] font-medium" : "text-[#94a3b8] hover:text-[#f8fafc]")}>Đột xuất</button>
+                 </div>
+                 {role === 'landlord' && (
+                    <Button onClick={() => { setShowForm(!showForm); if(!showForm) resetForm(); }}>
+                      {showForm ? 'Hủy' : 'Giao Việc Mới'}
+                    </Button>
+                 )}
+              </>
            )}
         </div>
       </div>
 
-      {showForm && role === 'landlord' && (
+      {showReport ? (
+         <Card className="bg-[#1e293b] border-[#334155]">
+            <CardHeader title="Báo cáo Bảo trì theo phòng" subtitle="Thống kê các hạng mục đã / đang thực hiện tại mỗi phòng" />
+            <CardContent className="p-0 overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                  <thead>
+                     <tr className="bg-[#0f172a] text-[#94a3b8] text-xs uppercase tracking-wider font-bold">
+                        <th className="px-6 py-4 border-b border-[#334155]">Phòng</th>
+                        <th className="px-6 py-4 border-b border-[#334155]">Công việc</th>
+                        <th className="px-6 py-4 border-b border-[#334155]">Trạng thái</th>
+                        <th className="px-6 py-4 border-b border-[#334155]">Chi tiết Checklist</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {rooms.map(room => {
+                        const roomTasks = safeTasks.filter(t => t.roomId === room.id);
+                        if (roomTasks.length === 0) return null;
+                        return (
+                           <React.Fragment key={room.id}>
+                              {roomTasks.map((t, idx) => (
+                                 <tr key={t.id} className="border-b border-[#334155]/50 hover:bg-[#334155]/20">
+                                    {idx === 0 && (
+                                       <td className="px-6 py-4 text-[#f8fafc] font-bold border-r border-[#334155]/50" rowSpan={roomTasks.length}>
+                                          P.{room.number}
+                                       </td>
+                                    )}
+                                    <td className="px-6 py-4 text-[#e2e8f0]">
+                                       <div className="font-medium">{t.title}</div>
+                                       <div className="text-xs text-[#94a3b8] mt-1">{t.type === 'daily' ? 'Hàng ngày' : 'Đột xuất'}</div>
+                                    </td>
+                                    <td className="px-6 py-4">{getStatusBadge(t.status)}</td>
+                                    <td className="px-6 py-4">
+                                       {t.items.length > 0 ? (
+                                          <ul className="text-xs text-[#cbd5e1] space-y-1">
+                                             {t.items.map(item => (
+                                                <li key={item.id} className="flex items-start gap-1.5">
+                                                   {item.isCompleted ? <CheckSquare size={12} className="text-[#10b981] mt-0.5" /> : <Square size={12} className="text-[#64748b] mt-0.5" />}
+                                                   <span className={cn(item.isCompleted && "text-[#94a3b8] line-through")}>{item.title}</span>
+                                                </li>
+                                             ))}
+                                          </ul>
+                                       ) : (
+                                          <span className="text-xs text-[#64748b] italic">Không có checklist chi tiết</span>
+                                       )}
+                                    </td>
+                                 </tr>
+                              ))}
+                           </React.Fragment>
+                        );
+                     })}
+                  </tbody>
+               </table>
+            </CardContent>
+         </Card>
+      ) : (
+         <>
+            {showForm && role === 'landlord' && (
         <Card className="bg-[#1e293b] border-2 border-[#38bdf8]">
           <CardHeader title={editingId ? "Thêm/Sửa Checklist" : "Giao Việc Mới"} subtitle="Điền thông tin và tạo các đầu mục Checklist chi tiết" />
           <CardContent className="space-y-6 p-6">
@@ -163,6 +233,16 @@ export function Tasks() {
                   >
                      <option value="ad_hoc">Đột xuất (Một lần)</option>
                      <option value="daily">Hàng ngày (Lặp lại)</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-1">Gắn với phòng (Tùy chọn)</label>
+                  <select 
+                     className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-2.5 text-[#f8fafc] focus:outline-none focus:border-[#38bdf8]"
+                     value={roomId} onChange={(e) => setRoomId(e.target.value)}
+                  >
+                     <option value="">Không gắn với phòng nào</option>
+                     {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.number}</option>)}
                   </select>
                </div>
                <div>
@@ -260,6 +340,14 @@ export function Tasks() {
                      {task.description && <p className="text-sm text-[#94a3b8] mb-4">{task.description}</p>}
                      
                      <div className="flex flex-wrap gap-4 text-xs font-medium text-[#94a3b8] mt-2">
+                        {task.roomId && (() => {
+                           const room = rooms.find(r => r.id === task.roomId);
+                           return room ? (
+                              <div className="flex items-center gap-1.5 text-[#38bdf8] bg-[#38bdf8]/10 px-2 py-0.5 rounded">
+                                 <Home size={14} /> P.{room.number}
+                              </div>
+                           ) : null;
+                        })()}
                         <div className="flex items-center gap-1.5"><CalendarClock size={14} className="text-[#f59e0b]"/> Hạn: {task.deadline && task.deadline.includes('T') ? `${formatDate(task.deadline.split('T')[0])} ${task.deadline.split('T')[1] || ''}` : 'Linh hoạt'}</div>
                         <div className="flex items-center gap-1.5"><User size={14} className="text-[#38bdf8]"/> {assignee?.name || 'Vô danh'}</div>
                      </div>
@@ -317,6 +405,8 @@ export function Tasks() {
             </div>
          )}
       </div>
+      </>
+      )}
     </div>
   );
 }

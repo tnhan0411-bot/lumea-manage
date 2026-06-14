@@ -252,6 +252,7 @@ export interface TaskItem {
 
 export interface Task {
   id: string;
+  roomId?: string;
   title: string;
   type: 'daily' | 'ad_hoc';
   description?: string;
