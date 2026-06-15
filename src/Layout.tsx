@@ -13,6 +13,7 @@ import { Expenses } from './components/Expenses';
 import { Electricity } from './components/Electricity';
 import { Login } from './components/Login';
 import { Tasks } from './components/Tasks';
+import { DailyNewsfeed } from './components/DailyNewsfeed';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
 
@@ -44,6 +45,7 @@ export function Layout() {
       case 'landlord':
         return [
           { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+          { id: 'newsfeed', label: 'Bảng tin du lịch', icon: FileText },
           { id: 'rooms', label: 'Quản lý phòng', icon: Building2 },
           { id: 'contracts', label: 'Hợp đồng & Hồ sơ', icon: Users },
           { id: 'tasks', label: 'Giao Việc & Checklist', icon: CheckCircle2 },
@@ -91,6 +93,7 @@ export function Layout() {
     try {
       switch (activeScreen) {
         case 'dashboard': return <Dashboard />;
+        case 'newsfeed': return <DailyNewsfeed />;
         case 'tasks': return <Tasks />;
         case 'rooms': return <RoomList />;
         case 'maintenance': return <Maintenance />;
