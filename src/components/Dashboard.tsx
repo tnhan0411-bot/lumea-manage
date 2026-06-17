@@ -1,4 +1,5 @@
 import React from 'react';
+import ExcelJS from 'exceljs';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
 import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X, CheckCircle2, FileDown } from 'lucide-react';
@@ -583,28 +584,133 @@ export function Dashboard() {
   const handleExportLandlordExcel = async () => {
     try {
       setIsExportingExcel(true);
-      const payloadInvoices = invoices.map(inv => {
-        const room = rooms.find(r => r.id === inv.roomId);
-        return {
-          ...inv,
-          roomNumber: room?.number || '',
+      
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Báo Cáo Doanh Thu');
+
+      // Style setup
+      const headerRow = worksheet.addRow([
+        'STT', 
+        'Số phòng', 
+        'Tháng',
+        'Tiền phòng',
+        'Tiền điện',
+        'Tiền nước',
+        'Dịch vụ khác',
+        'Tổng số tiền phải thu', 
+        'Số tiền thực tế đã thu', 
+        'Ngày nhận tiền', 
+        'Hình thức TT', 
+        'Trạng thái'
+      ]);
+
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF00566B' } 
         };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
       });
 
-      const response = await fetch('/api/export-revenue', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ invoices: payloadInvoices }),
+      let totalRent = 0;
+      let totalElec = 0;
+      let totalWater = 0;
+      let totalOthers = 0;
+      let totalExpected = 0;
+      let totalActual = 0;
+
+      // Add Data Rows
+      invoices.forEach((inv, index) => {
+        const room = rooms.find(r => r.id === inv.roomId);
+        const roomNumber = room?.number || '';
+
+        let statusStr = inv.status;
+        if (inv.status === 'paid') statusStr = 'Đã thu đủ';
+        if (inv.status === 'pending') statusStr = 'Còn nợ';
+        if (inv.status === 'overdue') statusStr = 'Quá hạn';
+
+        let methodStr = '';
+        if (inv.paymentMethod === 'cash') methodStr = 'Tiền mặt';
+        if (inv.paymentMethod === 'transfer') methodStr = 'Chuyển khoản';
+
+        const actualPaid = inv.status === 'paid' ? inv.total : 0;
+        
+        const rent = inv.rentAmount || 0;
+        const elec = inv.electricityCost || 0;
+        const water = inv.waterCost || 0;
+        const otherServices = (inv.internetCost || 0) + (inv.cleaningCost || 0);
+
+        totalRent += rent;
+        totalElec += elec;
+        totalWater += water;
+        totalOthers += otherServices;
+        totalExpected += inv.total;
+        totalActual += actualPaid;
+
+        const row = worksheet.addRow([
+          index + 1,
+          roomNumber,
+          inv.month || '',
+          rent,
+          elec,
+          water,
+          otherServices,
+          inv.total || 0,
+          actualPaid,
+          inv.paymentDate || '',
+          methodStr,
+          statusStr
+        ]);
+
+        row.getCell(4).numFmt = '#,##0';
+        row.getCell(5).numFmt = '#,##0';
+        row.getCell(6).numFmt = '#,##0';
+        row.getCell(7).numFmt = '#,##0';
+        row.getCell(8).numFmt = '#,##0';
+        row.getCell(9).numFmt = '#,##0';
       });
 
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
+      // Total Row
+      const totalRow = worksheet.addRow([
+        'TỔNG CỘNG', 
+        '', 
+        '', 
+        totalRent,
+        totalElec,
+        totalWater,
+        totalOthers,
+        totalExpected, 
+        totalActual, 
+        '',
+        '',
+        ''
+      ]);
 
-      // Handle the blob response for downloading
-      const blob = await response.blob();
+      totalRow.eachCell((cell, colNumber) => {
+        cell.font = { bold: true };
+        cell.border = { bottom: { style: 'double' } };
+        if (colNumber >= 4 && colNumber <= 9) {
+          cell.numFmt = '#,##0';
+        }
+      });
+      // Merge first 3 cells for the total label
+      worksheet.mergeCells(`A${totalRow.number}:C${totalRow.number}`);
+      totalRow.getCell(1).alignment = { horizontal: 'right' };
+
+      // Auto-fit columns
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 10;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 10 ? 10 : maxLength + 2;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
