@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn, formatVND } from '../lib/utils';
 
 export function Dashboard() {
-  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom, tasks } = useAppContext();
+  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom, tasks, appName } = useAppContext();
   const [period, setPeriod] = React.useState('2026-Q2');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
@@ -624,7 +624,7 @@ export function Dashboard() {
         </head>
         <body>
           <div class="header">
-            <h2>Báo Cáo Doanh Thu - Căn Hộ Nam Cầu Trần Thị Lý</h2>
+            <h2>Báo Cáo Doanh Thu - ${appName}</h2>
             <p>Kỳ báo cáo: ${filterMode === 'period' ? period : `Từ ${dateRange.start} đến ${dateRange.end}`}</p>
           </div>
           <table>
@@ -680,7 +680,7 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#f8fafc]">Căn Hộ Nam Cầu Trần Thị Lý</h1>
+          <h1 className="text-2xl font-bold text-[#f8fafc]">{appName}</h1>
           <p className="text-sm text-[#94a3b8]">Báo cáo hiệu suất kinh doanh • Chào {user?.name}</p>
         </div>
         <div className="flex flex-col lg:flex-row items-end lg:items-center gap-3">

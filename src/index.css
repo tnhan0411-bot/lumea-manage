@@ -8,8 +8,8 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  /* Hình nền lấy từ Unsplash thể hiện sự sang trọng, thanh thoát */
-  background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop');
+  /* Hình nền lấy từ Unsplash thể hiện phong cách phòng ngủ sang trọng, ấm cúng giống ảnh mẫu */
+  background-image: url('https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=2074&auto=format&fit=crop');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

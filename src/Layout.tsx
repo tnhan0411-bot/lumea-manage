@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2, Edit2, Check } from 'lucide-react';
 import { useAppContext } from './lib/context';
 import { Dashboard } from './components/Dashboard';
 import { RoomList } from './components/Rooms';
@@ -18,11 +18,25 @@ import { cn } from './lib/utils';
 import { Badge } from './components/ui';
 
 export function Layout() {
-  const { user, role, logout, issues, invoices, isLoaded } = useAppContext();
+  const { user, role, logout, issues, invoices, isLoaded, appName, setAppName } = useAppContext();
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
+  
+  const [isEditingGlobalName, setIsEditingGlobalName] = useState(false);
+  const [tempName, setTempName] = useState(appName);
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditingGlobalName && editInputRef.current) {
+        editInputRef.current.focus();
+    }
+  }, [isEditingGlobalName]);
+
+  useEffect(() => {
+     setTempName(appName);
+  }, [appName]);
 
   if (!isLoaded) {
     return (
@@ -130,17 +144,56 @@ export function Layout() {
           showMobileMenu ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3 font-bold text-xl mb-1 text-[#38bdf8]">
-            <Building2 size={24} />
-            <span className="truncate">Căn Hộ Nam Cầu Trần Thị Lý</span>
+        <div className="p-6 flex flex-col gap-2 relative">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 font-bold text-lg text-[#38bdf8] flex-1 min-w-0 pr-2">
+              <Building2 size={24} className="shrink-0" />
+              {isEditingGlobalName ? (
+                <div className="flex flex-1 items-center gap-1 min-w-0">
+                  <input
+                    ref={editInputRef}
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="flex-1 bg-[#1e293b] border border-[#38bdf8] rounded px-2 py-1 text-sm text-[#f8fafc] w-full min-w-0"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                         setAppName(tempName);
+                         setIsEditingGlobalName(false);
+                      } else if (e.key === 'Escape') {
+                         setTempName(appName);
+                         setIsEditingGlobalName(false);
+                      }
+                    }}
+                  />
+                  <button onClick={() => { setAppName(tempName); setIsEditingGlobalName(false); }} className="text-[#10b981] p-1 bg-[#10b981]/10 rounded hover:bg-[#10b981]/20">
+                    <Check size={16} />
+                  </button>
+                  <button onClick={() => { setTempName(appName); setIsEditingGlobalName(false); }} className="p-1 text-[#ef4444] bg-[#ef4444]/10 rounded hover:bg-[#ef4444]/20">
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <span className="truncate flex-1">{appName}</span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2 shrink-0">
+              {role === 'landlord' && !isEditingGlobalName && (
+                <button 
+                  onClick={() => setIsEditingGlobalName(true)}
+                  className="text-[#94a3b8] hover:text-[#f8fafc] transition-colors p-1"
+                >
+                  <Edit2 size={16} />
+                </button>
+              )}
+              <button 
+                className="md:hidden text-[#94a3b8] hover:text-[#f8fafc] p-1"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
-          <button 
-            className="md:hidden text-[#94a3b8] hover:text-[#f8fafc]"
-            onClick={() => setShowMobileMenu(false)}
-          >
-            <X size={20} />
-          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">

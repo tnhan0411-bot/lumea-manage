@@ -30,6 +30,8 @@ interface AppState {
   cleaningSchedules: CleaningSchedule[];
   tasks: Task[];
   isLoaded: boolean;
+  appName: string;
+  setAppName: (name: string) => void;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
   addUser: (user: User) => void;
@@ -84,6 +86,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [electricityRecords, setElectricityRecords] = useState<ElectricityRecord[]>(INITIAL_ELECTRICITY);
   const [cleaningSchedules, setCleaningSchedules] = useState<CleaningSchedule[]>(INITIAL_CLEANING_SCHEDULES);
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [appName, setAppNameState] = useState<string>('Căn Hộ Nam Cầu Trần Thị Lý');
  
   // Persistence: Load from Firestore on mount
   useEffect(() => {
@@ -110,6 +113,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (data.tenants) setTenants(data.tenants);
           if (data.cleaningSchedules) setCleaningSchedules(data.cleaningSchedules);
           if (data.tasks) setTasks(data.tasks);
+          if (data.appName) setAppNameState(data.appName);
           if (data.issues) {
             setIssues(data.issues.map((i: any) => ({
               ...i,
@@ -234,6 +238,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newItems = usersList.filter(u => u.id !== id);
     setUsersList(newItems);
     syncToDb('usersList', newItems);
+  };
+
+  const setAppName = (name: string) => {
+    setAppNameState(name);
+    syncToDb('appName', name);
   };
 
   const syncToDb = async (key: string, data: any) => {
@@ -631,6 +640,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       electricityRecords,
       cleaningSchedules,
       isLoaded,
+      appName,
+      setAppName,
       login,
       logout,
       addUser,
