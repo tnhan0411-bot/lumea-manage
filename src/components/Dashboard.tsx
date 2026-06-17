@@ -578,30 +578,47 @@ export function Dashboard() {
 
   const chartData = getChartData();
 
-  const handleExportLandlordCSV = () => {
-    const headings = ['Phòng', 'Khách hàng', 'Tháng', 'Tổng tiền (VND)', 'Trạng thái', 'Ngày thu'];
-    const rows = currentPeriodInvoices.map(inv => {
-      const room = rooms.find(r => r.id === inv.roomId);
-      const tenant = tenants.find(t => t.roomId === inv.roomId);
-      return [
-        room?.number || '',
-        tenant?.name || '',
-        inv.month,
-        inv.total,
-        inv.status === 'paid' ? 'Đã thu' : inv.status === 'pending' ? 'Chờ thu' : 'Quá hạn',
-        inv.paymentDate || ''
-      ];
-    });
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-      + headings.join(",") + "\n" 
-      + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `DoanhThu_${filterMode === 'period' ? period : dateRange.start + '_To_' + dateRange.end}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const [isExportingExcel, setIsExportingExcel] = React.useState(false);
+
+  const handleExportLandlordExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      const payloadInvoices = currentPeriodInvoices.map(inv => {
+        const room = rooms.find(r => r.id === inv.roomId);
+        return {
+          ...inv,
+          roomNumber: room?.number || '',
+        };
+      });
+
+      const response = await fetch('/api/export-revenue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ invoices: payloadInvoices }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Handle the blob response for downloading
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Bao_Cao_Doanh_Thu_${filterMode === 'period' ? period : dateRange.start + '_To_' + dateRange.end}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Đã có lỗi xảy ra khi xuất file Excel.');
+    } finally {
+      setIsExportingExcel(false);
+    }
   };
 
   const handleExportLandlordPDF = () => {
@@ -751,8 +768,8 @@ export function Dashboard() {
           )}
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportLandlordCSV} className="gap-2 h-9 text-sm">
-              <BarChartIcon size={16} /> Excel (CSV)
+            <Button variant="outline" onClick={handleExportLandlordExcel} disabled={isExportingExcel} className="gap-2 h-9 text-sm">
+              <BarChartIcon size={16} /> {isExportingExcel ? 'Đang xuất...' : 'Xuất Excel'}
             </Button>
             <Button variant="outline" onClick={handleExportLandlordPDF} className="gap-2 h-9 text-sm">
               <FileDown size={16} /> PDF
