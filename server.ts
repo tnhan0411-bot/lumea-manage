@@ -43,8 +43,9 @@ async function fetchAndProcessNews() {
     const feed = await parser.parseURL(RSS_URL);
     let addedCount = 0;
     
-    // Process top 10 items
-    for (const item of feed.items.slice(0, 10)) {
+    // Process top 5 items instead of 10 to reduce quota usage, wait 2 seconds between them
+    const itemsToProcess = feed.items.slice(0, 5);
+    for (const item of itemsToProcess) {
        // Check duplication
        const q = query(collection(db, 'news'), where('link', '==', item.link));
        const docs = await getDocs(q);
@@ -60,31 +61,31 @@ Mô tả: ${item.contentSnippet || item.content}
 Ngày đăng: ${item.pubDate}
 `;
        
-       const response = await ai.models.generateContent({
-           model: 'gemini-3.5-flash',
-           contents: prompt,
-           config: {
-               responseMimeType: 'application/json',
-               responseSchema: {
-                   type: Type.OBJECT,
-                   properties: {
-                       isRelevant: { type: Type.BOOLEAN, description: "True nếu bài báo liên quan đến khách du lịch nước ngoài tới Đà Nẵng." },
-                       summary: { type: Type.STRING, description: "Tóm tắt từ 2-3 câu." },
-                       tags: { 
-                           type: Type.ARRAY,
-                           items: { type: Type.STRING },
-                           description: "Danh sách các hashtags."
-                       }
-                   },
-                   required: ['isRelevant', 'summary', 'tags']
-               }
-           }
-       });
-       
-       const resultText = response.text;
-       if (!resultText) continue;
-       
        try {
+           const response = await ai.models.generateContent({
+               model: 'gemini-3.5-flash',
+               contents: prompt,
+               config: {
+                   responseMimeType: 'application/json',
+                   responseSchema: {
+                       type: Type.OBJECT,
+                       properties: {
+                           isRelevant: { type: Type.BOOLEAN, description: "True nếu bài báo liên quan đến khách du lịch nước ngoài tới Đà Nẵng." },
+                           summary: { type: Type.STRING, description: "Tóm tắt từ 2-3 câu." },
+                           tags: { 
+                               type: Type.ARRAY,
+                               items: { type: Type.STRING },
+                               description: "Danh sách các hashtags."
+                           }
+                       },
+                       required: ['isRelevant', 'summary', 'tags']
+                   }
+               }
+           });
+           
+           const resultText = response.text;
+           if (!resultText) continue;
+           
            const json = JSON.parse(resultText.trim());
            if (json.isRelevant) {
                const newsDoc = {
@@ -99,9 +100,12 @@ Ngày đăng: ${item.pubDate}
                await addDoc(collection(db, 'news'), newsDoc);
                addedCount++;
            }
-       } catch (parseError) {
-           console.error('Failed to parse GenAI JSON result:', parseError, 'Raw response:', resultText);
+       } catch (err: any) {
+           console.error('Failed to process article:', err.message);
        }
+       
+       // Sleep 3 seconds to avoid rate limits
+       await new Promise(resolve => setTimeout(resolve, 3000));
     }
     
     console.log(`Finished processing news. Added ${addedCount} new articles.`);
@@ -125,13 +129,10 @@ async function startServer() {
   app.use(express.json());
 
   // API triggers
-  app.post("/api/news/sync", async (req, res) => {
-    const result = await fetchAndProcessNews();
-    if (result.success) {
-       res.json(result);
-    } else {
-       res.status(500).json(result);
-    }
+  app.post("/api/news/sync", (req, res) => {
+    // Run in background to avoid browser timeouts
+    fetchAndProcessNews().catch(console.error);
+    res.json({ success: true, message: "Sync started in background" });
   });
 
   app.get("/api/health", (req, res) => {

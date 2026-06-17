@@ -47,13 +47,25 @@ export function DailyNewsfeed() {
         setError(null);
         try {
             const res = await fetch('/api/news/sync', { method: 'POST' });
-            const data = await res.json();
+            
+            let data;
+            try {
+                data = await res.json();
+            } catch (e) {
+                throw new Error('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+            }
+
             if (!res.ok) {
                 throw new Error(data.error || 'Sync failed');
             }
+            
+            // Background sync started. Stop loading animation after a short delay
+            setTimeout(() => {
+                setSyncing(false);
+            }, 5000);
+            
         } catch (err: any) {
             setError(err.message);
-        } finally {
             setSyncing(false);
         }
     };
