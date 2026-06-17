@@ -3,7 +3,7 @@ import { cn } from '../lib/utils';
 
 export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("bg-[#1e293b] rounded-xl border border-[#334155] shadow-sm overflow-hidden", className)} {...props}>
+    <div className={cn("bg-[#1e293b]/80 backdrop-blur-md rounded-xl border border-white/5 shadow-md shadow-black/20 overflow-hidden", className)} {...props}>
       {children}
     </div>
   );
@@ -11,7 +11,7 @@ export function Card({ className, children, ...props }: React.HTMLAttributes<HTM
 
 export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
   return (
-    <div className="px-6 py-4 border-b border-[#334155] flex justify-between items-center bg-[#0f172a]">
+    <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-[#0f172a]/50">
       <div>
         <h3 className="text-lg font-semibold text-[#f8fafc]">{title}</h3>
         {subtitle && <p className="text-sm text-[#94a3b8] mt-1">{subtitle}</p>}
@@ -27,12 +27,12 @@ export function CardContent({ className, children }: { className?: string; child
 
 export function Badge({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'ghost', className?: string }) {
   const variants = {
-    default: "bg-[#334155] text-[#f8fafc]",
-    success: "bg-emerald-500/10 text-[#10b981]",
-    warning: "bg-amber-500/10 text-[#f59e0b]",
-    danger: "bg-rose-500/10 text-[#ef4444]",
-    info: "bg-sky-400/10 text-[#38bdf8]",
-    ghost: "bg-slate-500/5 text-[#94a3b8]",
+    default: "bg-[#334155]/70 backdrop-blur-sm border border-white/5 text-[#f8fafc]",
+    success: "bg-emerald-500/20 backdrop-blur-sm text-emerald-400 border border-emerald-500/20",
+    warning: "bg-amber-500/20 backdrop-blur-sm text-amber-400 border border-amber-500/20",
+    danger: "bg-rose-500/20 backdrop-blur-sm text-rose-400 border border-rose-500/20",
+    info: "bg-sky-400/20 backdrop-blur-sm text-sky-400 border border-sky-400/20",
+    ghost: "bg-slate-500/10 backdrop-blur-sm text-[#94a3b8]",
   };
   return (
     <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium", variants[variant], className)}>

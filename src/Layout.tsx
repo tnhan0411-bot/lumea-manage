@@ -113,7 +113,7 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0f172a] font-sans text-[#f8fafc]">
+    <div className="flex h-screen bg-transparent font-sans text-[#f8fafc]">
       {/* Mobile Sidebar Overlay */}
       {showMobileMenu && (
         <div 
@@ -125,7 +125,7 @@ export function Layout() {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "bg-[#020617] text-[#f8fafc] flex flex-col shrink-0 overflow-y-auto border-r border-[#334155] transition-all z-50",
+          "bg-[#020617]/80 backdrop-blur-xl text-[#f8fafc] flex flex-col shrink-0 overflow-y-auto border-r border-white/10 transition-all z-50",
           "fixed inset-y-0 left-0 w-64 transform md:relative md:translate-x-0",
           showMobileMenu ? "translate-x-0" : "-translate-x-full"
         )}
@@ -187,8 +187,8 @@ export function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#0f172a]">
-        <header className="h-[72px] bg-[#0f172a] border-b border-[#334155] flex items-center justify-between px-4 md:px-8 shrink-0 relative z-30">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-transparent">
+        <header className="h-[72px] bg-[#0f172a]/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 md:px-8 shrink-0 relative z-30">
           <div className="flex items-center gap-2 md:gap-4">
             <button 
               className="md:hidden p-2 text-[#94a3b8] hover:bg-[#1e293b] rounded-lg transition-colors"
@@ -216,8 +216,8 @@ export function Layout() {
               
               {/* Notifications Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-[#1e293b] border border-[#334155] shadow-xl rounded-xl overflow-hidden z-50">
-                  <div className="p-4 border-b border-[#334155] flex justify-between items-center bg-[#0f172a]">
+                <div className="absolute right-0 mt-2 w-80 bg-[#1e293b]/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-xl overflow-hidden z-50">
+                  <div className="p-4 border-b border-white/10 flex justify-between items-center bg-[#0f172a]/50">
                     <h3 className="font-semibold text-[#f8fafc]">Thông báo</h3>
                     {hasUnreadNotifications && (
                       <button 
@@ -248,7 +248,7 @@ export function Layout() {
                       </div>
                     ))}
                   </div>
-                  <div className="p-3 bg-[#0f172a] text-center inset-x-0 bottom-0 border-t border-[#334155]">
+                  <div className="p-3 bg-[#0f172a]/50 backdrop-blur-md text-center inset-x-0 bottom-0 border-t border-white/10">
                     <a href="#" className="text-xs text-[#94a3b8] hover:text-[#f8fafc] transition-colors">Xem tất cả thông báo</a>
                   </div>
                 </div>

@@ -114,7 +114,7 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[#1e293b]/50 border-[#334155]/50 flex flex-col justify-between">
+          <Card className="border-white/5 flex flex-col justify-between">
             <CardContent className="p-4 flex flex-col h-full justify-between">
               <div>
                 <p className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest">Tỉ lệ hoàn thành</p>
@@ -310,7 +310,7 @@ export function Dashboard() {
         <h1 className="text-2xl font-bold text-[#f8fafc]">Chào mừng quay trở lại, {user?.name}!</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="bg-[#38bdf8]/5 border-[#38bdf8]/20">
+          <Card className="border-[#38bdf8]/20 bg-[#38bdf8]/5">
             <CardContent className="p-6 flex items-center space-x-4">
               <div className="p-3 bg-[#38bdf8]/10 text-[#38bdf8] rounded-lg">
                 <DollarSign size={24} />

@@ -262,7 +262,7 @@ export function RoomList() {
       </div>
 
       {editingRoomId && tempRoom ? (
-        <Card className="border-2 border-[#38bdf8] bg-[#1e293b] mb-8">
+        <Card className="border-2 border-[#38bdf8] mb-8">
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-[#f8fafc]">Cấu hình Phòng {tempRoom.number}</h2>
@@ -591,7 +591,7 @@ export function RoomList() {
           const roomIssues = issues.filter(i => i.roomId === room.id && i.status !== 'resolved');
 
           return (
-            <Card key={room.id} className={cn("transition-all hover:bg-[#334155]/20 bg-[#1e293b] flex flex-col justify-between cursor-pointer", getStatusColor(room.status), editingRoomId === room.id && "ring-2 ring-[#38bdf8]")} onClick={() => handleEditClick(room)}>
+            <Card key={room.id} className={cn("transition-all hover:bg-black/20 flex flex-col justify-between cursor-pointer", getStatusColor(room.status), editingRoomId === room.id && "ring-2 ring-[#38bdf8]")} onClick={() => handleEditClick(room)}>
               <CardContent className="p-4 flex flex-col h-full">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-2 flex-wrap">

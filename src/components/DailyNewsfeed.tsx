@@ -116,7 +116,7 @@ export function DailyNewsfeed() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {news.map(item => (
-                        <Card key={item.id} className="bg-[#1e293b] hover:bg-[#1e293b]/80 transition-colors border-[#334155] flex flex-col">
+                        <Card key={item.id} className="hover:bg-white/5 transition-colors flex flex-col border-white/5">
                             <CardContent className="p-5 flex flex-col flex-grow">
                                 <div className="flex justify-between items-start mb-3">
                                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#38bdf8] bg-[#38bdf8]/10 px-2 py-1 rounded">
