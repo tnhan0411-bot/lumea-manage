@@ -583,7 +583,7 @@ export function Dashboard() {
   const handleExportLandlordExcel = async () => {
     try {
       setIsExportingExcel(true);
-      const payloadInvoices = currentPeriodInvoices.map(inv => {
+      const payloadInvoices = invoices.map(inv => {
         const room = rooms.find(r => r.id === inv.roomId);
         return {
           ...inv,
@@ -608,7 +608,7 @@ export function Dashboard() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Bao_Cao_Doanh_Thu_${filterMode === 'period' ? period : dateRange.start + '_To_' + dateRange.end}.xlsx`);
+      link.setAttribute("download", `Bao_Cao_Doanh_Thu_Tat_Ca.xlsx`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -144,10 +144,15 @@ async function startServer() {
       const headerRow = worksheet.addRow([
         'STT', 
         'Số phòng', 
-        'Ngày nhận tiền', 
-        'Hình thức TT', 
+        'Tháng',
+        'Tiền phòng',
+        'Tiền điện',
+        'Tiền nước',
+        'Dịch vụ khác',
         'Tổng số tiền phải thu', 
         'Số tiền thực tế đã thu', 
+        'Ngày nhận tiền', 
+        'Hình thức TT', 
         'Trạng thái'
       ]);
 
@@ -161,6 +166,10 @@ async function startServer() {
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
       });
 
+      let totalRent = 0;
+      let totalElec = 0;
+      let totalWater = 0;
+      let totalOthers = 0;
       let totalExpected = 0;
       let totalActual = 0;
 
@@ -177,22 +186,41 @@ async function startServer() {
 
         // Assuming full amount paid if 'paid', else 0 (or real logic if partial is supported)
         const actualPaid = inv.status === 'paid' ? inv.total : 0;
+        
+        const rent = inv.rentAmount || 0;
+        const elec = inv.electricityCost || 0;
+        const water = inv.waterCost || 0;
+        const otherServices = (inv.internetCost || 0) + (inv.cleaningCost || 0);
+
+        totalRent += rent;
+        totalElec += elec;
+        totalWater += water;
+        totalOthers += otherServices;
         totalExpected += inv.total;
         totalActual += actualPaid;
 
         const row = worksheet.addRow([
           index + 1,
           inv.roomNumber || '',
-          inv.paymentDate || '',
-          methodStr,
+          inv.month || '',
+          rent,
+          elec,
+          water,
+          otherServices,
           inv.total || 0,
           actualPaid,
+          inv.paymentDate || '',
+          methodStr,
           statusStr
         ]);
 
         // Format currency cells
+        row.getCell(4).numFmt = '#,##0';
         row.getCell(5).numFmt = '#,##0';
         row.getCell(6).numFmt = '#,##0';
+        row.getCell(7).numFmt = '#,##0';
+        row.getCell(8).numFmt = '#,##0';
+        row.getCell(9).numFmt = '#,##0';
       });
 
       // Total Row
@@ -200,21 +228,26 @@ async function startServer() {
         'TỔNG CỘNG', 
         '', 
         '', 
-        '', 
+        totalRent,
+        totalElec,
+        totalWater,
+        totalOthers,
         totalExpected, 
         totalActual, 
+        '',
+        '',
         ''
       ]);
 
       totalRow.eachCell((cell, colNumber) => {
         cell.font = { bold: true };
         cell.border = { bottom: { style: 'double' } };
-        if (colNumber === 5 || colNumber === 6) {
+        if (colNumber >= 4 && colNumber <= 9) {
           cell.numFmt = '#,##0';
         }
       });
-      // Merge first 4 cells for the total label
-      worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
+      // Merge first 3 cells for the total label
+      worksheet.mergeCells(`A${totalRow.number}:C${totalRow.number}`);
       totalRow.getCell(1).alignment = { horizontal: 'right' };
 
       // Auto-fit columns
