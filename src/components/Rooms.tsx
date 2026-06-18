@@ -19,38 +19,58 @@ export function RoomList() {
   const [isSaving, setIsSaving] = useState(false);
   const [showExtensionReminder, setShowExtensionReminder] = useState<boolean>(false);
 
-  const handleExportReport = () => {
-    const headings = ['Số phòng', 'Trạng thái', 'Giá thuê', 'Người thuê 1', 'Hạn Visa 1', 'Người thuê 2', 'Hạn Visa 2', 'Bắt đầu thuê', 'Kết thúc thuê', 'Doanh thu (Đã thu)'];
-    const rows = rooms.map(r => {
-      const tenant = tenants.find(t => t.roomId === r.id);
-      const roomRevenue = invoices
-        .filter(inv => inv.roomId === r.id && inv.status === 'paid')
-        .reduce((sum, inv) => sum + inv.total, 0);
-        
-      return [
-        r.number,
-        r.status === 'occupied' ? 'Đang thuê' : r.status === 'available' ? 'Trống' : 'Bảo trì',
-        r.price,
-        tenant?.name || '',
-        tenant?.visaExpiry || '',
-        tenant?.secondaryName || '',
-        tenant?.secondaryVisaExpiry || '',
-        r.leaseStart || '',
-        r.leaseEnd || '',
-        roomRevenue
-      ];
-    });
+  const [isExporting, setIsExporting] = useState(false);
 
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-      + headings.join(",") + "\n" 
-      + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Bao_Cao_Phong_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExportReport = async () => {
+    try {
+      setIsExporting(true);
+      const roomsData = rooms.map(r => {
+        const tenant = tenants.find(t => t.roomId === r.id);
+        const roomRevenue = invoices
+          .filter(inv => inv.roomId === r.id && inv.status === 'paid')
+          .reduce((sum, inv) => sum + inv.total, 0);
+          
+        return {
+          number: r.number,
+          status: r.status === 'occupied' ? 'Đang thuê' : r.status === 'available' ? 'Trống' : 'Bảo trì',
+          price: r.price,
+          tenant1Name: tenant?.name || '',
+          tenant1Visa: tenant?.visaExpiry || '',
+          tenant2Name: tenant?.secondaryName || '',
+          tenant2Visa: tenant?.secondaryVisaExpiry || '',
+          startDate: r.leaseStart || '',
+          endDate: r.leaseEnd || '',
+          revenue: roomRevenue
+        };
+      });
+
+      const response = await fetch('/api/export-rooms', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ roomsData })
+      });
+
+      if (!response.ok) {
+        throw new Error('Lỗi xuất báo cáo phòng');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Bao_Cao_Phong_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+       console.error(error);
+       alert("Lỗi xuất file Excel");
+    } finally {
+       setIsExporting(false);
+    }
   };
 
   const extendLease = (months: number) => {
@@ -253,8 +273,8 @@ export function RoomList() {
         <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Phòng</h1>
         <div className="flex gap-3">
            {role === 'landlord' && (
-             <Button variant="outline" onClick={handleExportReport} className="gap-2">
-               <FileText size={18} /> Xuất báo cáo
+             <Button variant="outline" onClick={handleExportReport} disabled={isExporting} className="gap-2">
+               <FileText size={18} /> {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
              </Button>
            )}
            {role === 'landlord' && <Button onClick={handleAddNewRoom}>Thêm phòng</Button>}

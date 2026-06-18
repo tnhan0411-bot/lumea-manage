@@ -131,6 +131,197 @@ async function startServer() {
 
   // API triggers
 
+  app.post("/api/export-rooms", async (req, res) => {
+    try {
+      const { roomsData } = req.body;
+      if (!roomsData || !Array.isArray(roomsData)) {
+        return res.status(400).json({ error: "Invalid data format" });
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Quản lý phòng');
+
+      const headerRow = worksheet.addRow([
+        'Số phòng', 
+        'Trạng thái', 
+        'Giá thuê (VND)', 
+        'Người thuê 1', 
+        'Hạn Visa 1', 
+        'Người thuê 2', 
+        'Hạn Visa 2', 
+        'Ngày bắt đầu thuê', 
+        'Ngày kết thúc thuê', 
+        'Doanh thu đã thu (VND)'
+      ]);
+
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF00566B' } 
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+
+      roomsData.forEach(row => {
+        const itemRow = worksheet.addRow([
+          row.number,
+          row.status,
+          row.price,
+          row.tenant1Name,
+          row.tenant1Visa,
+          row.tenant2Name,
+          row.tenant2Visa,
+          row.startDate,
+          row.endDate,
+          row.revenue
+        ]);
+        
+        itemRow.getCell(3).numFmt = '#,##0';
+        itemRow.getCell(10).numFmt = '#,##0';
+      });
+
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 10;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 10 ? 10 : maxLength + 2;
+      });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Quan_Ly_Phong.xlsx"');
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Export rooms error:', error);
+      res.status(500).json({ error: 'Failed to generate excel' });
+    }
+  });
+
+  app.post("/api/export-revenue", async (req, res) => {
+    try {
+      const { invoices } = req.body;
+      if (!invoices || !Array.isArray(invoices)) {
+        return res.status(400).json({ error: "Invalid data format" });
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Báo Cáo Thuế & Doanh Thu');
+
+      const headerRow = worksheet.addRow([
+        'STT', 
+        'Số phòng', 
+        'Tháng',
+        'Ngày nhận tiền', 
+        'Tổng thu (Doanh thu)', 
+        'Thuế GTGT (5%)',
+        'Thuế TNCN (5%)',
+        'Tổng tiền thuế',
+        'Phân loại doanh thu'
+      ]);
+
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF15803D' } // Green for tax
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+
+      let totalRevenue = 0;
+      let totalGTGT = 0;
+      let totalTNCN = 0;
+      let totalTaxAmount = 0;
+
+      invoices.forEach((inv, index) => {
+        // Assume rentAmount + waterCost + electricityCost + cleaningCost + internetCost = total
+        const actualPaid = inv.status === 'paid' ? inv.total : 0;
+        const taxRate = 0.05; // 5%
+        
+        let gtgt = 0;
+        let tncn = 0;
+        let totalTax = 0;
+        
+        // Calculate tax based on paid amount
+        if (actualPaid > 0) {
+            gtgt = Math.round(actualPaid * taxRate);
+            tncn = Math.round(actualPaid * taxRate);
+            totalTax = gtgt + tncn;
+        }
+
+        totalRevenue += actualPaid;
+        totalGTGT += gtgt;
+        totalTNCN += tncn;
+        totalTaxAmount += totalTax;
+
+        const row = worksheet.addRow([
+          index + 1,
+          inv.roomNumber || '',
+          inv.month || '',
+          inv.paymentDate || '',
+          actualPaid,
+          gtgt,
+          tncn,
+          totalTax,
+          inv.status === 'paid' ? 'Đã thu' : (inv.status === 'pending' ? 'Chưa thu' : 'Khác')
+        ]);
+
+        row.getCell(5).numFmt = '#,##0';
+        row.getCell(6).numFmt = '#,##0';
+        row.getCell(7).numFmt = '#,##0';
+        row.getCell(8).numFmt = '#,##0';
+      });
+
+      // Total Row
+      const totalRow = worksheet.addRow([
+        'TỔNG TỚI THỜI ĐIỂM BÁO CÁO', 
+        '', 
+        '', 
+        '',
+        totalRevenue,
+        totalGTGT,
+        totalTNCN,
+        totalTaxAmount,
+        ''
+      ]);
+
+      totalRow.eachCell((cell, colNumber) => {
+        cell.font = { bold: true };
+        cell.border = { top: { style: 'double' } };
+        if (colNumber >= 5 && colNumber <= 8) {
+          cell.numFmt = '#,##0';
+        }
+      });
+      
+      worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
+      totalRow.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
+
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 10;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 10 ? 10 : maxLength + 2;
+      });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_Tinh_Thue.xlsx"');
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Export revenue error:', error);
+      res.status(500).json({ error: 'Failed to generate excel' });
+    }
+  });
+
   app.post("/api/news/sync", (req, res) => {
     // Run in background to avoid browser timeouts
     fetchAndProcessNews().catch(console.error);
