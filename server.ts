@@ -44,9 +44,10 @@ async function fetchAndProcessNews() {
     const feed = await parser.parseURL(RSS_URL);
     let addedCount = 0;
     
-    // Process top 5 items instead of 10 to reduce quota usage, wait 2 seconds between them
-    const itemsToProcess = feed.items.slice(0, 5);
-    for (const item of itemsToProcess) {
+    // Process sequentially until up to 5 NEW articles are added
+    for (const item of feed.items) {
+       if (addedCount >= 5) break; 
+
        // Check duplication
        const q = query(collection(db, 'news'), where('link', '==', item.link));
        const docs = await getDocs(q);

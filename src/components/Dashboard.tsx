@@ -3,13 +3,18 @@ import ExcelJS from 'exceljs';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
 import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X, CheckCircle2, FileDown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { cn, formatVND } from '../lib/utils';
 
 export function Dashboard() {
   const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom, tasks, appName } = useAppContext();
-  const [period, setPeriod] = React.useState('2026-Q2');
+  const [period, setPeriod] = React.useState('2026-06');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
+  
+  const [revenueTitle, setRevenueTitle] = React.useState('Biểu đồ doanh thu');
+  const [isEditingRevTitle, setIsEditingRevTitle] = React.useState(false);
+  const [costTitle, setCostTitle] = React.useState('Cơ cấu chi phí');
+  const [isEditingCostTitle, setIsEditingCostTitle] = React.useState(false);
   
   // Technician role filter states
   const [techFilterMode, setTechFilterMode] = React.useState<'period' | 'range'>('period');
@@ -537,7 +542,8 @@ export function Dashboard() {
         const mStr = m < 10 ? `0${m}` : `${m}`;
         const p = `${y}-${mStr}`;
         const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
-        data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev });
+        const exp = expenses.filter(e => e.date.startsWith(p)).reduce((sum, e) => sum + e.amount, 0);
+        data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev, expenses: exp });
         currentMonth.setMonth(currentMonth.getMonth() + 1);
       }
       return data;
@@ -552,7 +558,8 @@ export function Dashboard() {
         return months.map(m => {
           const p = `${year}-${m}`;
           const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
-          return { name: `T${parseInt(m)}`, revenue: rev };
+          const exp = expenses.filter(e => e.date.startsWith(p)).reduce((sum, e) => sum + e.amount, 0);
+          return { name: `T${parseInt(m)}`, revenue: rev, expenses: exp };
         });
       } else if (period.includes('-')) {
         // Show last 4 months up to current selection
@@ -568,7 +575,8 @@ export function Dashboard() {
           const mStr = m < 10 ? `0${m}` : `${m}`;
           const p = `${y}-${mStr}`;
           const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
-          data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev });
+          const exp = expenses.filter(e => e.date.startsWith(p)).reduce((sum, e) => sum + e.amount, 0);
+          data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev, expenses: exp });
         }
         return data;
       }
@@ -578,6 +586,51 @@ export function Dashboard() {
   };
 
   const chartData = getChartData();
+
+  const getPieChartData = () => {
+    let filteredEx = expenses || [];
+    if (filterMode === 'range' && dateRange.start && dateRange.end) {
+      filteredEx = filteredEx.filter(e => e.date >= dateRange.start && e.date <= dateRange.end);
+    } else if (filterMode === 'period' && period) {
+      filteredEx = filteredEx.filter(e => {
+        if (period.includes('Q')) {
+          const year = period.split('-')[0];
+          const quarter = period.split('-')[1];
+          const months = quarter === 'Q1' ? ['01', '02', '03'] : quarter === 'Q2' ? ['04', '05', '06'] : quarter === 'Q3' ? ['07', '08', '09'] : ['10', '11', '12'];
+          const exMonth = e.date.split('-')[1];
+          const exYear = e.date.split('-')[0];
+          return exYear === year && months.includes(exMonth);
+        } else if (period.includes('-')) {
+          return e.date.startsWith(period);
+        }
+        return true;
+      });
+    }
+
+    const categories = {
+      electricity: 'Điện',
+      water: 'Nước',
+      maintenance: 'Bảo trì',
+      staff: 'Nhân sự',
+      cleaning: 'Vệ sinh',
+      tools: 'CCDC/Vật tư',
+      operation: 'Vận hành',
+      interest: 'Lãi vay',
+      other: 'Khác'
+    };
+    
+    const aggregated = filteredEx.reduce((acc, ex) => {
+      const cat = categories[ex.category as keyof typeof categories] || 'Khác';
+      if (!acc[cat]) acc[cat] = 0;
+      acc[cat] += ex.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.keys(aggregated).map(k => ({ name: k, value: aggregated[k] }));
+  };
+
+  const pieChartData = getPieChartData();
+  const PIE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
 
   const [isExportingExcel, setIsExportingExcel] = React.useState(false);
 
@@ -868,8 +921,20 @@ export function Dashboard() {
             >
               <option value="2026-Q1">Quý I / 2026</option>
               <option value="2026-Q2">Quý II / 2026</option>
+              <option value="2026-Q3">Quý III / 2026</option>
+              <option value="2026-Q4">Quý IV / 2026</option>
+              <option value="2026-01">Tháng 1 / 2026</option>
+              <option value="2026-02">Tháng 2 / 2026</option>
+              <option value="2026-03">Tháng 3 / 2026</option>
               <option value="2026-04">Tháng 4 / 2026</option>
               <option value="2026-05">Tháng 5 / 2026</option>
+              <option value="2026-06">Tháng 6 / 2026</option>
+              <option value="2026-07">Tháng 7 / 2026</option>
+              <option value="2026-08">Tháng 8 / 2026</option>
+              <option value="2026-09">Tháng 9 / 2026</option>
+              <option value="2026-10">Tháng 10 / 2026</option>
+              <option value="2026-11">Tháng 11 / 2026</option>
+              <option value="2026-12">Tháng 12 / 2026</option>
             </select>
           )}
 
@@ -936,7 +1001,28 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader title={`Biểu đồ doanh thu - ${filterMode === 'range' && dateRange.start && dateRange.end ? `${dateRange.start} đến ${dateRange.end}` : period}`} />
+          <CardHeader title={
+            <div className="flex items-center gap-2">
+              {isEditingRevTitle && role === 'landlord' ? (
+                <input 
+                  value={revenueTitle} 
+                  onChange={e => setRevenueTitle(e.target.value)} 
+                  onBlur={() => setIsEditingRevTitle(false)}
+                  onKeyDown={(e) => e.key === 'Enter' && setIsEditingRevTitle(false)}
+                  className="bg-[#0f172a] border border-[#38bdf8] text-[#f8fafc] px-2 py-1 rounded text-lg font-semibold w-64 outline-none"
+                  autoFocus
+                />
+              ) : (
+                <div 
+                  className="text-lg font-semibold text-[#f8fafc] flex items-center gap-2 cursor-pointer hover:text-[#38bdf8] transition-colors" 
+                  onClick={() => role === 'landlord' && setIsEditingRevTitle(true)}
+                  title={role === 'landlord' ? "Nhấn để sửa tiêu đề" : ""}
+                >
+                  {revenueTitle} - {filterMode === 'range' && dateRange.start && dateRange.end ? `${dateRange.start} đến ${dateRange.end}` : period}
+                </div>
+              )}
+            </div>
+          } />
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -949,11 +1035,13 @@ export function Dashboard() {
                   tick={{fill: '#f8fafc', fontSize: 12}}
                 />
                 <Tooltip 
-                  formatter={(value: number) => [`${value.toLocaleString()} ₫`, 'Doanh thu']}
+                  formatter={(value: number, name: string) => [`${value.toLocaleString()} ₫`, name === 'revenue' ? 'Doanh thu' : 'Chi phí']}
                   cursor={{fill: 'rgba(255,255,255,0.05)'}}
                   contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '12px', border: '1px solid #334155' }}
                 />
-                <Bar dataKey="revenue" fill="#38bdf8" radius={[6, 6, 0, 0]} maxBarSize={45} />
+                <Legend iconType="circle" />
+                <Bar dataKey="revenue" name="Doanh thu" fill="#38bdf8" radius={[6, 6, 0, 0]} maxBarSize={45} />
+                <Bar dataKey="expenses" name="Chi phí" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={45} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1006,6 +1094,59 @@ export function Dashboard() {
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader title={
+            <div className="flex items-center gap-2">
+              {isEditingCostTitle && role === 'landlord' ? (
+                <input 
+                  value={costTitle} 
+                  onChange={e => setCostTitle(e.target.value)} 
+                  onBlur={() => setIsEditingCostTitle(false)}
+                  onKeyDown={(e) => e.key === 'Enter' && setIsEditingCostTitle(false)}
+                  className="bg-[#0f172a] border border-[#38bdf8] text-[#f8fafc] px-2 py-1 rounded text-lg font-semibold w-64 outline-none"
+                  autoFocus
+                />
+              ) : (
+                <div 
+                  className="text-lg font-semibold text-[#f8fafc] flex items-center gap-2 cursor-pointer hover:text-[#38bdf8] transition-colors" 
+                  onClick={() => role === 'landlord' && setIsEditingCostTitle(true)}
+                  title={role === 'landlord' ? "Nhấn để sửa tiêu đề" : ""}
+                >
+                  {costTitle} - {period}
+                </div>
+              )}
+            </div>
+          } />
+          <CardContent className="h-80 flex justify-center items-center">
+            {pieChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => [`${value.toLocaleString()} ₫`, 'Chi phí']}
+                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '12px' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-[#94a3b8] italic">Chưa có dữ liệu chi phí.</p>
+            )}
           </CardContent>
         </Card>
 

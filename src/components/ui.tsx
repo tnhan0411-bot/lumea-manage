@@ -9,11 +9,11 @@ export function Card({ className, children, ...props }: React.HTMLAttributes<HTM
   );
 }
 
-export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
+export function CardHeader({ title, subtitle, action }: { title: React.ReactNode; subtitle?: string; action?: React.ReactNode }) {
   return (
     <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-[#0f172a]/50">
       <div>
-        <h3 className="text-lg font-semibold text-[#f8fafc]">{title}</h3>
+        <div className="text-lg font-semibold text-[#f8fafc]">{title}</div>
         {subtitle && <p className="text-sm text-[#94a3b8] mt-1">{subtitle}</p>}
       </div>
       {action && <div>{action}</div>}
