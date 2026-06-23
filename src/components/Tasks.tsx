@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
 import { useAppContext } from '../lib/context';
 import { Task, TaskItem } from '../lib/utils';
-import { CheckSquare, Square, Plus, Trash2, CalendarClock, User, Clock, CheckCircle, Home } from 'lucide-react';
+import { CheckSquare, Square, Plus, Trash2, CalendarClock, User, Clock, CheckCircle, Home, Printer, FileSpreadsheet } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
+import ExcelJS from 'exceljs';
 
 export function Tasks() {
   const { user, role, tasks, addTask, updateTask, deleteTask, usersList, rooms } = useAppContext();
@@ -21,6 +22,7 @@ export function Tasks() {
   const [newItemTitle, setNewItemTitle] = useState('');
   const [showReport, setShowReport] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'daily' | 'ad_hoc'>('all');
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +126,182 @@ export function Tasks() {
     updateTask(taskId, { items: newItems });
   };
 
+  // Excel Export Handler for Maintenance Report
+  const handleExportMaintenanceExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Bao Cao Bao Tri');
+
+      // Add main Title row
+      const titleRow = worksheet.addRow(['BÁO CÁO BẢO TRÌ CHI TIẾT THEO PHÒNG']);
+      titleRow.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleRow.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.mergeCells('A1:C1');
+      titleRow.getCell(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0284C7' }
+      };
+      worksheet.getRow(1).height = 40;
+
+      const headerRow = worksheet.addRow([
+        'Số phòng', 
+        'Nội dung bảo trì', 
+        'Mô tả thực trạng'
+      ]);
+      worksheet.getRow(2).height = 25;
+
+      headerRow.eachCell((cell) => {
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF0F172A' } 
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+
+      rooms.forEach(room => {
+        const roomTasks = safeTasks.filter(t => t.roomId === room.id);
+        roomTasks.forEach(t => {
+          const checklistDetails = t.items.length > 0 
+            ? `\nChecklist:\n` + t.items.map(i => `${i.isCompleted ? '[x]' : '[ ]'} ${i.title}`).join('\n')
+            : '';
+          const statusText = t.status === 'completed' ? 'Đã hoàn thành' : t.status === 'in-progress' ? 'Đang thực hiện' : 'Chờ xử lý';
+          const progressText = `Tiến độ: ${t.items.filter(i => i.isCompleted).length}/${t.items.length} hoàn thành.`;
+          const descText = t.description ? ` Ghi chú: ${t.description}` : '';
+          
+          const dataRow = worksheet.addRow([
+            `Phòng ${room.number}`,
+            `${t.title} (${t.type === 'daily' ? 'Hàng ngày' : 'Đột xuất'})${checklistDetails}`,
+            `[${statusText}] ${progressText}${descText}`
+          ]);
+          dataRow.alignment = { wrapText: true, vertical: 'top' };
+        });
+      });
+
+      // format columns widths
+      worksheet.columns[0].width = 18;
+      worksheet.columns[1].width = 45;
+      worksheet.columns[2].width = 45;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Bao_Cao_Bao_Tri_Room_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert('Đã xảy ra lỗi khi xuất file excel.');
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
+  // PDF Export Handler for Maintenance Report
+  const handleExportMaintenancePDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let html = `
+      <html>
+        <head>
+          <title>Báo Cáo Bảo Trì</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #1e293b; padding: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+            th, td { border: 1px solid #cbd5e1; padding: 12px; text-align: left; }
+            th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+            .header { text-align: center; margin-bottom: 25px; }
+            .title { font-size: 24px; font-weight: bold; color: #0284c7; margin-bottom: 5px; text-transform: uppercase; }
+            .subtitle { font-size: 14px; color: #64748b; }
+            .checklist-list { margin-top: 8px; padding-left: 15px; font-size: 12px; color: #475569; }
+            .badge { display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; }
+            .badge-success { background-color: #d1fae5; color: #065f46; }
+            .badge-info { background-color: #e0f2fe; color: #0369a1; }
+            .badge-warning { background-color: #fef3c7; color: #92400e; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">Báo Cáo Bảo Trì Theo Phòng</div>
+            <div class="subtitle">Thống kê chi tiết các sự cố, bảo dưỡng nâng cấp phòng • Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 15%;">Số phòng</th>
+                <th style="width: 45%;">Nội dung bảo trì</th>
+                <th style="width: 40%;">Mô tả thực trạng</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    rooms.forEach(room => {
+      const roomTasks = safeTasks.filter(t => t.roomId === room.id);
+      if (roomTasks.length === 0) return;
+      
+      roomTasks.forEach((t, idx) => {
+        const checklistItems = t.items.map(i => `
+          <li>
+            ${i.isCompleted ? '✓' : '✗'} ${i.title}
+          </li>
+        `).join('');
+
+        const checklistHtml = t.items.length > 0 
+          ? `<ul class="checklist-list">${checklistItems}</ul>` 
+          : '<div style="font-size: 11px; color: #94a3b8; font-style: italic; margin-top: 4px;">Không có checklist chi tiết</div>';
+
+        const statusClass = t.status === 'completed' ? 'badge-success' : t.status === 'in-progress' ? 'badge-info' : 'badge-warning';
+        const statusText = t.status === 'completed' ? 'Hoàn thành' : t.status === 'in-progress' ? 'Đang thực hiện' : 'Chờ xử lý';
+        const progressPercent = t.items.length > 0 
+          ? Math.round((t.items.filter(i => i.isCompleted).length / t.items.length) * 100) 
+          : 0;
+
+        html += `
+          <tr>
+            ${idx === 0 ? `<td rowspan="${roomTasks.length}" style="font-weight: bold; vertical-align: top; background-color: #fafafa; border-right: 2px solid #cbd5e1;">Phòng ${room.number}</td>` : ''}
+            <td>
+              <div style="font-weight: bold; font-size: 14px;">${t.title}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${t.type === 'daily' ? 'Lặp lại hàng ngày' : 'Sự cố đột xuất'}</div>
+              ${checklistHtml}
+            </td>
+            <td>
+              <div style="margin-bottom: 6px;">
+                <span class="badge ${statusClass}">${statusText}</span>
+                <span style="font-size: 11px; color: #64748b; margin-left: 6px;">Tiến độ: ${progressPercent}%</span>
+              </div>
+              <div style="font-size: 13px; color: #334155; font-style: italic;">
+                ${t.description ? `"${t.description}"` : '<span style="color: #94a3b8;">Không có mô tả chi tiết</span>'}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = function() {
+      printWindow.focus();
+      printWindow.print();
+    };
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -157,15 +335,27 @@ export function Tasks() {
 
       {showReport ? (
          <Card className="bg-[#1e293b] border-[#334155]">
-            <CardHeader title="Báo cáo Bảo trì theo phòng" subtitle="Thống kê các hạng mục đã / đang thực hiện tại mỗi phòng" />
+            <div className="p-6 border-b border-[#334155] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+               <div>
+                  <h2 className="text-xl font-bold text-[#f8fafc]">Báo cáo Bảo trì theo phòng</h2>
+                  <p className="text-sm text-[#94a3b8] mt-1 font-sans">Thống kê các hạng mục đã / đang thực hiện tại mỗi phòng</p>
+               </div>
+               <div className="flex gap-2">
+                  <Button onClick={handleExportMaintenanceExcel} disabled={isExportingExcel} className="flex items-center gap-2 bg-[#10b981]/20 text-[#10b981] hover:bg-[#10b981]/30 border-none">
+                    <FileSpreadsheet size={16} /> {isExportingExcel ? 'Đang xuất...' : 'Xuất Excel'}
+                  </Button>
+                  <Button onClick={handleExportMaintenancePDF} className="flex items-center gap-2 bg-[#0284c7]/20 text-[#0284c7] hover:bg-[#0284c7]/30 border-none">
+                    <Printer size={16} /> In PDF
+                  </Button>
+               </div>
+            </div>
             <CardContent className="p-0 overflow-x-auto">
                <table className="w-full text-left border-collapse">
                   <thead>
                      <tr className="bg-[#0f172a] text-[#94a3b8] text-xs uppercase tracking-wider font-bold">
-                        <th className="px-6 py-4 border-b border-[#334155]">Phòng</th>
-                        <th className="px-6 py-4 border-b border-[#334155]">Công việc</th>
-                        <th className="px-6 py-4 border-b border-[#334155]">Trạng thái</th>
-                        <th className="px-6 py-4 border-b border-[#334155]">Chi tiết Checklist</th>
+                        <th className="px-6 py-4 border-b border-[#334155] w-[15%]">Số phòng</th>
+                        <th className="px-6 py-4 border-b border-[#334155] w-[45%]">Nội dung bảo trì</th>
+                        <th className="px-6 py-4 border-b border-[#334155] w-[40%]">Mô tả thực trạng</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -177,18 +367,15 @@ export function Tasks() {
                               {roomTasks.map((t, idx) => (
                                  <tr key={t.id} className="border-b border-[#334155]/50 hover:bg-[#334155]/20">
                                     {idx === 0 && (
-                                       <td className="px-6 py-4 text-[#f8fafc] font-bold border-r border-[#334155]/50" rowSpan={roomTasks.length}>
-                                          P.{room.number}
+                                       <td className="px-6 py-4 text-[#f8fafc] font-bold border-r border-[#334155]/50 align-top" rowSpan={roomTasks.length}>
+                                          Phòng {room.number}
                                        </td>
                                     )}
-                                    <td className="px-6 py-4 text-[#e2e8f0]">
-                                       <div className="font-medium">{t.title}</div>
+                                    <td className="px-6 py-4 align-top">
+                                       <div className="font-semibold text-[#f8fafc] text-sm">{t.title}</div>
                                        <div className="text-xs text-[#94a3b8] mt-1">{t.type === 'daily' ? 'Hàng ngày' : 'Đột xuất'}</div>
-                                    </td>
-                                    <td className="px-6 py-4">{getStatusBadge(t.status)}</td>
-                                    <td className="px-6 py-4">
-                                       {t.items.length > 0 ? (
-                                          <ul className="text-xs text-[#cbd5e1] space-y-1">
+                                       {t.items.length > 0 && (
+                                          <ul className="text-xs text-[#cbd5e1] space-y-1 mt-2 p-2 bg-[#0f172a]/30 rounded-lg">
                                              {t.items.map(item => (
                                                 <li key={item.id} className="flex items-start gap-1.5">
                                                    {item.isCompleted ? <CheckSquare size={12} className="text-[#10b981] mt-0.5" /> : <Square size={12} className="text-[#64748b] mt-0.5" />}
@@ -196,9 +383,22 @@ export function Tasks() {
                                                 </li>
                                              ))}
                                           </ul>
-                                       ) : (
-                                          <span className="text-xs text-[#64748b] italic">Không có checklist chi tiết</span>
                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 align-top">
+                                       <div className="space-y-2">
+                                          <div className="flex items-center gap-2">
+                                             {getStatusBadge(t.status)}
+                                             <span className="text-xs text-[#38bdf8] font-medium bg-[#38bdf8]/10 px-2 py-0.5 rounded">
+                                               Tiến độ: {(t.items || []).filter(i => i.isCompleted).length}/{(t.items || []).length} hoàn thành
+                                             </span>
+                                          </div>
+                                          {t.description ? (
+                                             <p className="text-xs text-[#e2e8f0] bg-[#0f172a]/20 p-2 rounded border border-[#334155]/30 italic">"{t.description}"</p>
+                                          ) : (
+                                             <p className="text-xs text-[#64748b] italic">Không có mô tả chi tiết</p>
+                                          )}
+                                       </div>
                                     </td>
                                  </tr>
                               ))}

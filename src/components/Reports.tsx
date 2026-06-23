@@ -7,11 +7,172 @@ import { TrendingUp, TrendingDown, DollarSign, Wrench, Sparkles, Receipt, FileBa
 export function Reports() {
   const { invoices, expenses, issues, rooms } = useAppContext();
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
-  const [period, setPeriod] = React.useState('2026-04');
+  const [period, setPeriod] = React.useState('2026-06');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   const [pieFormat, setPieFormat] = React.useState<'value' | 'percent'>('value');
   const [showLabels, setShowLabels] = React.useState(true);
   const [showTrendline, setShowTrendline] = React.useState(true);
+
+  const [reportTitle, setReportTitle] = React.useState('Báo cáo Doanh thu');
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const invoicesWithRoomNumber = filteredInvoices.map(inv => ({
+        ...inv,
+        roomNumber: rooms.find(r => r.id === inv.roomId)?.number || '',
+        paymentDate: inv.paymentDate || inv.issueDate || ''
+      }));
+
+      const response = await fetch('/api/export-revenue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ invoices: invoicesWithRoomNumber })
+      });
+
+      if (!response.ok) {
+        throw new Error('Lỗi xuất báo cáo doanh thu');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Bao_Cao_Thue_Va_Doanh_Thu_${period || 'Ky_moi'}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi xuất báo cáo thuế");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let html = `
+      <html>
+        <head>
+          <title>${reportTitle}</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #1e293b; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 13px; }
+            th { background-color: #f1f5f9; font-weight: bold; }
+            .header { text-align: center; margin-bottom: 35px; border-bottom: 2px solid #38bdf8; padding-bottom: 15px; }
+            .title { color: #0f172a; font-size: 24px; font-weight: bold; margin: 0; }
+            .period { color: #64748b; font-size: 14px; margin-top: 5px; }
+            .summary { margin-top: 30px; border: 1px solid #cbd5e1; padding: 15px; border-radius: 6px; background-color: #f8fafc; }
+            .summary h4 { margin: 0 0 10px 0; color: #0284c7; }
+            .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 14px; }
+            .currency { font-weight: bold; color: #10b981; }
+            .tax-lbl { color: #ef4444; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="title">${reportTitle}</h1>
+            <div class="period">Kỳ báo cáo: ${filterMode === 'period' ? period : `Từ ${dateRange.start} đến ${dateRange.end}`}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Số phòng</th>
+                <th>Tháng</th>
+                <th>Ngày nhận tiền</th>
+                <th>Tổng thu (Doanh thu)</th>
+                <th>Thuế GTGT (5%)</th>
+                <th>Thuế TNCN (5%)</th>
+                <th>Tổng tiền thuế</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    let totalRevenue = 0;
+    let totalGTGT = 0;
+    let totalTNCN = 0;
+    let totalTaxAmount = 0;
+
+    filteredInvoices.forEach((inv, index) => {
+      const room = rooms.find(r => r.id === inv.roomId);
+      const actualPaid = inv.status === 'paid' ? inv.total : 0;
+      const taxRate = 0.05;
+
+      let gtgt = 0;
+      let tncn = 0;
+      let totalTax = 0;
+
+      if (actualPaid > 0) {
+        gtgt = Math.round(actualPaid * taxRate);
+        tncn = Math.round(actualPaid * taxRate);
+        totalTax = gtgt + tncn;
+      }
+
+      totalRevenue += actualPaid;
+      totalGTGT += gtgt;
+      totalTNCN += tncn;
+      totalTaxAmount += totalTax;
+
+      html += `
+        <tr>
+          <td>${index + 1}</td>
+          <td>P.${room?.number || ''}</td>
+          <td>${inv.month}</td>
+          <td>${inv.paymentDate || inv.issueDate || '-'}</td>
+          <td>${actualPaid.toLocaleString()} đ</td>
+          <td>${gtgt.toLocaleString()} đ</td>
+          <td>${tncn.toLocaleString()} đ</td>
+          <td>${totalTax.toLocaleString()} đ</td>
+          <td>${inv.status === 'paid' ? 'Đã thu' : 'Chưa thu'}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+
+          <div class="summary">
+            <h4>Báo Cáo Thuế &amp; Doanh Thu Tổng Hợp</h4>
+            <div class="summary-grid">
+              <div>Tổng doanh thu thực tế nhận: <span class="currency">${totalRevenue.toLocaleString()} đ</span></div>
+              <div>Tổng thuế GTGT (5%): <span class="tax-lbl">${totalGTGT.toLocaleString()} đ</span></div>
+              <div>Tổng thuế TNCN (5%): <span class="tax-lbl">${totalTNCN.toLocaleString()} đ</span></div>
+              <div style="grid-column: span 3; border-top: 1px solid #cbd5e1; padding-top: 10px; font-weight: bold;">
+                TỔNG THUẾ PHẢI NỘP NHÀ NƯỚC: <span class="tax-lbl" style="font-size: 16px;">${totalTaxAmount.toLocaleString()} đ</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 40px; display: flex; justify-content: space-between; font-size: 13px; color: #64748b;">
+            <div>Người lập báo cáo: Ban Quản Trị</div>
+            <div>Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}</div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
 
   // Filter data based on selected period or range
   const filteredInvoices = invoices.filter(inv => {
@@ -211,20 +372,67 @@ export function Reports() {
               onChange={(e) => setPeriod(e.target.value)}
               className="bg-[#1e293b] border border-[#334155] rounded-lg px-3 py-1.5 text-xs text-[#f8fafc] outline-none"
             >
-               <option value="2026-Q1">Quý 1 / 2026 (T1-T3)</option>
-               <option value="2026-Q2">Quý 2 / 2026 (T4-T6)</option>
-               <option value="2026-Q3">Quý 3 / 2026 (T7-T9)</option>
-               <option value="2026-01">Tháng 1 / 2026</option>
-               <option value="2026-02">Tháng 2 / 2026</option>
-               <option value="2026-03">Tháng 3 / 2026</option>
-               <option value="2026-04">Tháng 4 / 2026</option>
-               <option value="2026-05">Tháng 5 / 2026</option>
+              {/* Year 2025 */}
+              <option value="2025-Q1">Quý I / 2025</option>
+              <option value="2025-Q2">Quý II / 2025</option>
+              <option value="2025-Q3">Quý III / 2025</option>
+              <option value="2025-Q4">Quý IV / 2025</option>
+              <option value="2025-01">Tháng 1 / 2025</option>
+              <option value="2025-02">Tháng 2 / 2025</option>
+              <option value="2025-03">Tháng 3 / 2025</option>
+              <option value="2025-04">Tháng 4 / 2025</option>
+              <option value="2025-05">Tháng 5 / 2025</option>
+              <option value="2025-06">Tháng 6 / 2025</option>
+              <option value="2025-07">Tháng 7 / 2025</option>
+              <option value="2025-08">Tháng 8 / 2025</option>
+              <option value="2025-09">Tháng 9 / 2025</option>
+              <option value="2025-10">Tháng 10 / 2025</option>
+              <option value="2025-11">Tháng 11 / 2025</option>
+              <option value="2025-12">Tháng 12 / 2025</option>
+
+              {/* Year 2026 */}
+              <option value="2026-Q1">Quý I / 2026</option>
+              <option value="2026-Q2">Quý II / 2026</option>
+              <option value="2026-Q3">Quý III / 2026</option>
+              <option value="2026-Q4">Quý IV / 2026</option>
+              <option value="2026-01">Tháng 1 / 2026</option>
+              <option value="2026-02">Tháng 2 / 2026</option>
+              <option value="2026-03">Tháng 3 / 2026</option>
+              <option value="2026-04">Tháng 4 / 2026</option>
+              <option value="2026-05">Tháng 5 / 2026</option>
+              <option value="2026-06">Tháng 6 / 2026</option>
+              <option value="2026-07">Tháng 7 / 2026</option>
+              <option value="2026-08">Tháng 8 / 2026</option>
+              <option value="2026-09">Tháng 9 / 2026</option>
+              <option value="2026-10">Tháng 10 / 2026</option>
+              <option value="2026-11">Tháng 11 / 2026</option>
+              <option value="2026-12">Tháng 12 / 2026</option>
+
+              {/* Year 2027 */}
+              <option value="2027-Q1">Quý I / 2027</option>
+              <option value="2027-Q2">Quý II / 2027</option>
+              <option value="2027-Q3">Quý III / 2027</option>
+              <option value="2027-Q4">Quý IV / 2027</option>
+              <option value="2027-01">Tháng 1 / 2027</option>
+              <option value="2027-02">Tháng 2 / 2027</option>
+              <option value="2027-03">Tháng 3 / 2027</option>
+              <option value="2027-04">Tháng 4 / 2027</option>
+              <option value="2027-05">Tháng 5 / 2027</option>
+              <option value="2027-06">Tháng 6 / 2027</option>
+              <option value="2027-07">Tháng 7 / 2027</option>
+              <option value="2027-08">Tháng 8 / 2027</option>
+              <option value="2027-09">Tháng 9 / 2027</option>
+              <option value="2027-10">Tháng 10 / 2027</option>
+              <option value="2027-11">Tháng 11 / 2027</option>
+              <option value="2027-12">Tháng 12 / 2027</option>
             </select>
           )}
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">Xuất PDF</Button>
-            <Button variant="outline" size="sm">Xuất Excel</Button>
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>Xuất PDF</Button>
+            <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={isExporting}>
+              {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
+            </Button>
           </div>
         </div>
       </div>
@@ -379,7 +587,24 @@ export function Reports() {
         {/* Revenue Report */}
         <Card className="lg:col-span-2">
           <div className="px-6 py-4 border-b border-[#334155] bg-[#0f172a]/50 flex justify-between items-center">
-            <h3 className="font-bold text-[#f8fafc] flex items-center gap-2"><DollarSign size={16} /> Báo cáo Doanh thu</h3>
+            {isEditingTitle ? (
+              <input 
+                value={reportTitle} 
+                onChange={e => setReportTitle(e.target.value)} 
+                onBlur={() => setIsEditingTitle(false)}
+                onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
+                className="bg-[#0f172a] border border-[#38bdf8] text-[#f8fafc] px-2 py-1 rounded text-sm font-semibold w-64 outline-none"
+                autoFocus
+              />
+            ) : (
+              <h3 
+                className="font-bold text-[#f8fafc] flex items-center gap-2 cursor-pointer hover:text-[#38bdf8] transition-colors"
+                onClick={() => setIsEditingTitle(true)}
+                title="Nhấn để sửa tiêu đề"
+              >
+                <DollarSign size={16} /> {reportTitle}
+              </h3>
+            )}
             <span className="text-xs text-[#94a3b8]">{filteredInvoices.filter(i => i.status === 'paid').length} khoản thu</span>
           </div>
           <CardContent className="p-0">

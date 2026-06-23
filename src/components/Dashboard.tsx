@@ -427,7 +427,7 @@ export function Dashboard() {
   const { updateTenant } = useAppContext();
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
-  const activeTasksCount = (tasks || []).filter(t => t.status !== 'completed').length;
+  const activeTasksCount = (issues || []).filter(i => i.type === 'repair' && i.status !== 'resolved').length;
   
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
   const [showAllVisas, setShowAllVisas] = React.useState(false);
@@ -675,7 +675,7 @@ export function Dashboard() {
       let totalActual = 0;
 
       // Add Data Rows
-      invoices.forEach((inv, index) => {
+      currentPeriodInvoices.forEach((inv, index) => {
         const room = rooms.find(r => r.id === inv.roomId);
         const roomNumber = room?.number || '';
 
@@ -767,7 +767,7 @@ export function Dashboard() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Bao_Cao_Doanh_Thu_Tat_Ca.xlsx`);
+      link.setAttribute("download", `Bao_Cao_Doanh_Thu_${period || 'Ky_moi'}.xlsx`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -919,6 +919,25 @@ export function Dashboard() {
               onChange={(e) => setPeriod(e.target.value)}
               className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-1.5 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9"
             >
+              {/* Year 2025 */}
+              <option value="2025-Q1">Quý I / 2025</option>
+              <option value="2025-Q2">Quý II / 2025</option>
+              <option value="2025-Q3">Quý III / 2025</option>
+              <option value="2025-Q4">Quý IV / 2025</option>
+              <option value="2025-01">Tháng 1 / 2025</option>
+              <option value="2025-02">Tháng 2 / 2025</option>
+              <option value="2025-03">Tháng 3 / 2025</option>
+              <option value="2025-04">Tháng 4 / 2025</option>
+              <option value="2025-05">Tháng 5 / 2025</option>
+              <option value="2025-06">Tháng 6 / 2025</option>
+              <option value="2025-07">Tháng 7 / 2025</option>
+              <option value="2025-08">Tháng 8 / 2025</option>
+              <option value="2025-09">Tháng 9 / 2025</option>
+              <option value="2025-10">Tháng 10 / 2025</option>
+              <option value="2025-11">Tháng 11 / 2025</option>
+              <option value="2025-12">Tháng 12 / 2025</option>
+
+              {/* Year 2026 */}
               <option value="2026-Q1">Quý I / 2026</option>
               <option value="2026-Q2">Quý II / 2026</option>
               <option value="2026-Q3">Quý III / 2026</option>
@@ -935,6 +954,24 @@ export function Dashboard() {
               <option value="2026-10">Tháng 10 / 2026</option>
               <option value="2026-11">Tháng 11 / 2026</option>
               <option value="2026-12">Tháng 12 / 2026</option>
+
+              {/* Year 2027 */}
+              <option value="2027-Q1">Quý I / 2027</option>
+              <option value="2027-Q2">Quý II / 2027</option>
+              <option value="2027-Q3">Quý III / 2027</option>
+              <option value="2027-Q4">Quý IV / 2027</option>
+              <option value="2027-01">Tháng 1 / 2027</option>
+              <option value="2027-02">Tháng 2 / 2027</option>
+              <option value="2027-03">Tháng 3 / 2027</option>
+              <option value="2027-04">Tháng 4 / 2027</option>
+              <option value="2027-05">Tháng 5 / 2027</option>
+              <option value="2027-06">Tháng 6 / 2027</option>
+              <option value="2027-07">Tháng 7 / 2027</option>
+              <option value="2027-08">Tháng 8 / 2027</option>
+              <option value="2027-09">Tháng 9 / 2027</option>
+              <option value="2027-10">Tháng 10 / 2027</option>
+              <option value="2027-11">Tháng 11 / 2027</option>
+              <option value="2027-12">Tháng 12 / 2027</option>
             </select>
           )}
 
