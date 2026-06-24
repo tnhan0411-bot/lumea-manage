@@ -5,7 +5,7 @@ import cron from "node-cron";
 import Parser from "rss-parser";
 import { GoogleGenAI, Type } from "@google/genai";
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc } from 'firebase/firestore';
 import fs from 'fs';
 import ExcelJS from 'exceljs';
 
@@ -96,7 +96,11 @@ async function fetchAndProcessNews() {
              const resultText = response.text;
              if (!resultText) continue;
              
-             const json = JSON.parse(resultText.trim());
+             let cleanedText = resultText.trim();
+             if (cleanedText.startsWith('```')) {
+               cleanedText = cleanedText.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '').trim();
+             }
+             const json = JSON.parse(cleanedText);
              if (json.isRelevant) {
                  const newsDoc = {
                      title: item.title,
@@ -157,7 +161,11 @@ Các tin thức phải tập trung vào xu hướng khách quốc tế, tuyến 
 
       const resultText = response.text;
       if (resultText) {
-        const list = JSON.parse(resultText.trim());
+        let cleanedText = resultText.trim();
+        if (cleanedText.startsWith('```')) {
+          cleanedText = cleanedText.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '').trim();
+        }
+        const list = JSON.parse(cleanedText);
         if (Array.isArray(list)) {
           for (const item of list) {
             const newsDoc = {
@@ -248,6 +256,8 @@ async function startServer() {
         itemRow.getCell(3).numFmt = '#,##0';
         itemRow.getCell(10).numFmt = '#,##0';
       });
+
+      worksheet.columns = Array.from({ length: 10 }).map(() => ({}));
 
       worksheet.columns.forEach(column => {
         let maxLength = 0;
@@ -369,6 +379,8 @@ async function startServer() {
       worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
       totalRow.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
 
+      worksheet.columns = Array.from({ length: 9 }).map(() => ({}));
+
       worksheet.columns.forEach(column => {
         let maxLength = 0;
         column.eachCell?.({ includeEmpty: true }, (cell) => {
@@ -389,10 +401,288 @@ async function startServer() {
     }
   });
 
-  app.post("/api/news/sync", (req, res) => {
-    // Run in background to avoid browser timeouts
-    fetchAndProcessNews().catch(console.error);
-    res.json({ success: true, message: "Sync started in background" });
+  // API 1: Lấy danh sách báo cáo bảo trì (YÊU CẦU 1)
+  app.get("/api/maintenance-reports", async (req, res) => {
+    if (!db) {
+      return res.status(500).json({ error: "Database not initialized" });
+    }
+    try {
+      const q = collection(db, 'maintenanceReports');
+      const docs = await getDocs(q);
+      const reports: any[] = [];
+      docs.forEach(docSnap => {
+        reports.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      // Sắp xếp giảm dần theo thời gian tạo
+      reports.sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime());
+      res.json(reports);
+    } catch (err: any) {
+      console.error("Error reading maintenance reports:", err);
+      res.status(500).json({ error: "Failed to fetch reports" });
+    }
+  });
+
+  // API 2: Tạo báo cáo bảo trì mới (YÊU CẦU 1)
+  app.post("/api/maintenance-reports", async (req, res) => {
+    if (!db) {
+      return res.status(500).json({ error: "Database not initialized" });
+    }
+    try {
+      const { roomNumber, title, description, createdAt } = req.body;
+      if (!roomNumber || !title || !description) {
+        return res.status(400).json({ error: "Thiếu thông tin bắt buộc: roomNumber, title, description." });
+      }
+      const newReport = {
+        roomNumber,
+        title,
+        description,
+        createdAt: createdAt || new Date().toISOString()
+      };
+      const docRef = await addDoc(collection(db, 'maintenanceReports'), newReport);
+      res.status(201).json({ id: docRef.id, ...newReport });
+    } catch (err: any) {
+      console.error("Error creating maintenance report:", err);
+      res.status(500).json({ error: "Failed to create report" });
+    }
+  });
+
+  // API 3: Nhập dữ liệu báo cáo doanh thu từ Excel/PDF (YÊU CẦU 3)
+  app.post("/api/import-revenue", express.json({ limit: '10mb' }), async (req, res) => {
+    if (!db) {
+      return res.status(500).json({ error: "Database not initialized" });
+    }
+    try {
+      const { fileBase64, fileName, mimeType } = req.body;
+      if (!fileBase64) {
+        return res.status(400).json({ error: "Thiếu dữ liệu file mã hóa Base64." });
+      }
+
+      const buffer = Buffer.from(fileBase64, 'base64');
+      const isXlsx = mimeType?.includes('sheet') || mimeType?.includes('excel') || fileName?.endsWith('.xlsx') || fileName?.endsWith('.xls');
+      
+      let invoices: any[] = [];
+      let extractionMethod = "AI-Powered Gemini Extractions";
+
+      // Sử dụng Gemini if API key sẵn sàng để trích xuất cấu trúc hóa đơn linh hoạt từ file
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          console.log("Parsing document with Gemini...");
+          const prompt = `Phân tích báo cáo doanh thu dưới dạng tài liệu này. Trích xuất danh sách tất cả hóa đơn phòng trọ/căn hộ.
+Nhận dạng các trường có cấu trúc chính xác và trả về danh sách đối tượng JSON.
+Yêu cầu trường dữ liệu:
+- roomNumber: Số phòng của hóa đơn (Ví dụ: 101, 201, 202, 301, 302, 303, 401, 402, 403, 501, ...)
+- month: Tháng thu tiền định dạng YYYY-MM (Ví dụ: "2026-06")
+- rent: Tiền thuê phòng (number, VND)
+- water: Tiền nước (number, VND)
+- other: Chi phí khác (number, VND)
+- total: Tổng cộng số tiền (number, VND)
+- status: Trạng thái hóa đơn, bắt buộc chọn một trong hai giá trị: 'paid' (nếu đã đóng, đã trả, hoàn thành) hoặc 'pending' (nếu chưa đóng, còn nợ)
+- paymentMethod: 'transfer' hoặc 'cash' (mặc định 'transfer')
+- paymentDate: Ngày thanh toán thực tế nếu có (định dạng YYYY-MM-DD)
+- dueDate: Hạn chót đóng tiền (định dạng YYYY-MM-DD)`;
+
+          const response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            contents: [
+              {
+                inlineData: {
+                  data: fileBase64,
+                  mimeType: mimeType || (isXlsx ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf')
+                }
+              },
+              prompt
+            ],
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  invoices: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        roomNumber: { type: Type.STRING },
+                        month: { type: Type.STRING },
+                        rent: { type: Type.NUMBER },
+                        water: { type: Type.NUMBER },
+                        other: { type: Type.NUMBER },
+                        total: { type: Type.NUMBER },
+                        status: { type: Type.STRING },
+                        paymentMethod: { type: Type.STRING },
+                        paymentDate: { type: Type.STRING },
+                        dueDate: { type: Type.STRING }
+                      },
+                      required: ['roomNumber', 'month', 'total', 'status']
+                    }
+                  }
+                }
+              }
+            }
+          });
+
+          const resultText = response.text || "{}";
+          const parsedResult = JSON.parse(resultText);
+          if (parsedResult.invoices && Array.isArray(parsedResult.invoices)) {
+            invoices = parsedResult.invoices;
+          }
+        } catch (geminiError: any) {
+          console.warn("Gemini parsing failed, trying local Excel extractor:", geminiError);
+          extractionMethod = "Excel Fallback (ExcelJS)";
+        }
+      } else {
+        extractionMethod = "Excel Fallback (ExcelJS)";
+      }
+
+      // Xử lý fallback cho Excel sử dụng ExcelJS trực tiếp
+      if (invoices.length === 0 && isXlsx) {
+        try {
+          console.log("Processing fallback excel parsing via ExcelJS...");
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(buffer);
+          const worksheet = workbook.worksheets[0];
+
+          worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) return; // Header
+            const values = Array.isArray(row.values) ? row.values : [];
+            const rRaw = String(values[1] || values[2] || '').trim();
+            const rMatch = rRaw.match(/\d+/);
+            const roomNumber = rMatch ? rMatch[0] : rRaw;
+
+            if (!roomNumber) return;
+
+            let month = String(values[2] || values[3] || '2026-06').trim();
+            if (month.length === 5) month = `2026-0${month.replace('-', '')}`;
+            if (!month.includes('-')) month = '2026-06';
+
+            const rent = Number(String(values[3] || values[4] || '').replace(/[^\d]/g, '')) || 0;
+            const water = Number(String(values[4] || values[5] || '').replace(/[^\d]/g, '')) || 0;
+            const other = Number(String(values[5] || values[6] || '').replace(/[^\d]/g, '')) || 0;
+            const total = Number(String(values[6] || values[7] || '').replace(/[^\d]/g, '')) || (rent + water + other);
+
+            const statusStr = String(values[7] || '').toLowerCase();
+            const status = statusStr.includes('đã') || statusStr.includes('thu') || statusStr.includes('paid') ? 'paid' : 'pending';
+
+            const pDateRaw = values[8] ? String(values[8]) : '';
+            const paymentDate = pDateRaw ? new Date(pDateRaw).toISOString().split('T')[0] : undefined;
+
+            const pMethodStr = String(values[9] || '').toLowerCase();
+            const paymentMethod = pMethodStr.includes('mặt') || pMethodStr.includes('cash') ? 'cash' : 'transfer';
+
+            const dueDateRaw = values[10] ? String(values[10]) : '';
+            const dueDate = dueDateRaw ? new Date(dueDateRaw).toISOString().split('T')[0] : `${month}-10`;
+
+            invoices.push({
+              roomNumber,
+              month,
+              rent,
+              water,
+              other,
+              total,
+              status,
+              paymentMethod,
+              paymentDate,
+              dueDate
+            });
+          });
+        } catch (excelError: any) {
+          console.error("ExcelJS fallback processing failed:", excelError);
+          return res.status(500).json({ error: "Lỗi giải mã Excel fallback: " + excelError.message });
+        }
+      }
+
+      if (invoices.length === 0) {
+        return res.status(400).json({ error: "Không tìm thấy dữ liệu hóa đơn hợp lệ trong tài liệu tải lên." });
+      }
+
+      // Map room numbers to IDs
+      const roomMapping: Record<string, string> = {
+        "101": "r1",
+        "201": "r2",
+        "202": "r3",
+        "301": "r4",
+        "302": "r5",
+        "303": "r6",
+        "401": "r7",
+        "402": "r8",
+        "403": "r9",
+        "501": "r10"
+      };
+
+      const stateDocRef = doc(db, 'state', 'global');
+      const stateSnap = await getDoc(stateDocRef);
+      if (!stateSnap.exists()) {
+        return res.status(500).json({ error: "Định dạng DB ban đầu thiếu." });
+      }
+
+      const globalData = stateSnap.data();
+      const existingInvoices = globalData.invoices || [];
+      const existingTenants = globalData.tenants || [];
+
+      const processedInvoices = invoices.map((inv: any, idx) => {
+        const mappedRoomId = roomMapping[inv.roomNumber] || `r_${inv.roomNumber}`;
+        const associatedTenant = existingTenants.find((t: any) => t.roomId === mappedRoomId) || { id: "unknown" };
+
+        return {
+          id: `inv-${Date.now()}-${idx}-${Math.floor(Math.random() * 1000)}`,
+          roomId: mappedRoomId,
+          tenantId: associatedTenant.id || "unknown",
+          month: inv.month || new Date().toISOString().slice(0, 7),
+          rent: Number(inv.rent) || 0,
+          water: Number(inv.water) || 0,
+          other: Number(inv.other) || 0,
+          total: Number(inv.total) || 0,
+          status: inv.status === 'paid' ? 'paid' : 'pending',
+          paymentMethod: inv.paymentMethod || 'transfer',
+          paymentDate: inv.paymentDate || undefined,
+          dueDate: inv.dueDate || `${inv.month || new Date().toISOString().slice(0, 7)}-10`,
+          issueDate: new Date().toISOString().split('T')[0]
+        };
+      });
+
+      const mergedInvoices = [...existingInvoices];
+      let overrideCount = 0;
+      let insertCount = 0;
+
+      processedInvoices.forEach((newInv) => {
+        // Find existing invoices in the same room and month to override
+        const dupIndex = mergedInvoices.findIndex((i: any) => i.roomId === newInv.roomId && i.month === newInv.month);
+        if (dupIndex > -1) {
+          mergedInvoices[dupIndex] = { ...mergedInvoices[dupIndex], ...newInv, id: mergedInvoices[dupIndex].id };
+          overrideCount++;
+        } else {
+          mergedInvoices.push(newInv);
+          insertCount++;
+        }
+      });
+
+      const sanitizedInvoices = JSON.parse(JSON.stringify(mergedInvoices, (_, val) => val === undefined ? null : val));
+      await setDoc(stateDocRef, { invoices: sanitizedInvoices }, { merge: true });
+
+      res.json({
+        success: true,
+        extractionMethod,
+        message: `Đã xử lý nhập: thêm mới ${insertCount} hóa đơn và cập nhật ${overrideCount} hóa đơn trùng lặp thành công.`,
+        invoices: processedInvoices
+      });
+
+    } catch (err: any) {
+      console.error("Error importing revenue report:", err);
+      res.status(500).json({ error: "Lỗi hệ thống khi trích xuất dữ liệu: " + err.message });
+    }
+  });
+
+  app.post("/api/news/sync", async (req, res) => {
+    try {
+      const result = await fetchAndProcessNews();
+      if (result.success) {
+        res.json({ success: true, message: `Làm mới thành công. Đã thêm ${result.addedCount} bản tin mới.` });
+      } else {
+        res.status(500).json({ error: result.error || "Gặp lỗi khi làm mới tin tức." });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.get("/api/health", (req, res) => {
@@ -418,6 +708,24 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  // Pre-fetch news on server start if database news collection is empty
+  setTimeout(async () => {
+    try {
+      if (db) {
+        const q = collection(db, 'news');
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+          console.log("News collection is empty on startup, pre-fetching news...");
+          await fetchAndProcessNews();
+        } else {
+          console.log(`News collection has ${snapshot.size} articles on startup.`);
+        }
+      }
+    } catch (startupErr) {
+      console.error("Failed to seed news on startup:", startupErr);
+    }
+  }, 3000);
 }
 
 startServer();

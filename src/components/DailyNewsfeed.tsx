@@ -56,13 +56,10 @@ export function DailyNewsfeed() {
             }
 
             if (!res.ok) {
-                throw new Error(data.error || 'Sync failed');
+                throw new Error(data.error || 'Cập nhật tin tức thất bại');
             }
             
-            // Background sync started. Stop loading animation after a short delay
-            setTimeout(() => {
-                setSyncing(false);
-            }, 5000);
+            setSyncing(false);
             
         } catch (err: any) {
             setError(err.message);

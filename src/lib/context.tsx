@@ -32,6 +32,8 @@ interface AppState {
   isLoaded: boolean;
   appName: string;
   setAppName: (name: string) => void;
+  customMonths: Record<string, string>;
+  updateCustomMonth: (month: string, name: string) => Promise<void>;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
   addUser: (user: User) => void;
@@ -87,6 +89,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cleaningSchedules, setCleaningSchedules] = useState<CleaningSchedule[]>(INITIAL_CLEANING_SCHEDULES);
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [appName, setAppNameState] = useState<string>('Căn Hộ Nam Cầu Trần Thị Lý');
+  const [customMonths, setCustomMonths] = useState<Record<string, string>>({});
  
   // Persistence: Load from Firestore on mount
   useEffect(() => {
@@ -114,6 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (data.cleaningSchedules) setCleaningSchedules(data.cleaningSchedules);
           if (data.tasks) setTasks(data.tasks);
           if (data.appName) setAppNameState(data.appName);
+          if (data.customMonths) setCustomMonths(data.customMonths);
           if (data.issues) {
             setIssues(data.issues.map((i: any) => ({
               ...i,
@@ -243,6 +247,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setAppName = (name: string) => {
     setAppNameState(name);
     syncToDb('appName', name);
+  };
+
+  const updateCustomMonth = async (month: string, name: string) => {
+    const updated = { ...customMonths, [month]: name };
+    setCustomMonths(updated);
+    await syncToDb('customMonths', updated);
   };
 
   const syncToDb = async (key: string, data: any) => {
@@ -642,6 +652,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isLoaded,
       appName,
       setAppName,
+      customMonths,
+      updateCustomMonth,
       login,
       logout,
       addUser,

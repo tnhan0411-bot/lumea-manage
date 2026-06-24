@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn, formatVND } from '../lib/utils';
 
 export function Dashboard() {
-  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom, tasks, appName } = useAppContext();
+  const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom, tasks, appName, customMonths, updateCustomMonth, updateTenant } = useAppContext();
   const [period, setPeriod] = React.useState('2026-06');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
   
@@ -15,6 +15,59 @@ export function Dashboard() {
   const [isEditingRevTitle, setIsEditingRevTitle] = React.useState(false);
   const [costTitle, setCostTitle] = React.useState('Cơ cấu chi phí');
   const [isEditingCostTitle, setIsEditingCostTitle] = React.useState(false);
+
+  // Custom Month Editing states (YÊU CẦU 3)
+  const [editingMonthKey, setEditingMonthKey] = React.useState<string | null>(null);
+  const [editingMonthValue, setEditingMonthValue] = React.useState('');
+
+  const handleStartEditMonth = (monthKey: string, currentLabel: string) => {
+    setEditingMonthKey(monthKey);
+    setEditingMonthValue(customMonths[monthKey] || currentLabel);
+  };
+
+  const handleSaveMonthName = async (monthKey: string) => {
+    await updateCustomMonth(monthKey, editingMonthValue);
+    setEditingMonthKey(null);
+  };
+
+  // Import states and upload handler (YÊU CẦU 3)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [importMessage, setImportMessage] = React.useState<{type: 'success' | 'error', text: string} | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImporting(true);
+    setImportMessage(null);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const response = await fetch('/api/import-revenue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileBase64: base64,
+            fileName: file.name,
+            mimeType: file.type
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setImportMessage({ type: 'success', text: data.message });
+        } else {
+          setImportMessage({ type: 'error', text: data.error || 'Lỗi bất ngờ.' });
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setImportMessage({ type: 'error', text: 'Không thể đọc file: ' + err.message });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
   
   // Technician role filter states
   const [techFilterMode, setTechFilterMode] = React.useState<'period' | 'range'>('period');
@@ -424,10 +477,10 @@ export function Dashboard() {
   }
 
   // Landlord Dashboard
-  const { updateTenant } = useAppContext();
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
-  const activeTasksCount = (issues || []).filter(i => i.type === 'repair' && i.status !== 'resolved').length;
+  const activeIssuesCount = (issues || []).filter(i => i.type === 'repair' && i.status !== 'resolved').length;
+  const activeTasksCount = activeIssuesCount + (tasks || []).filter(t => t.status !== 'completed').length;
   
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
   const [showAllVisas, setShowAllVisas] = React.useState(false);
@@ -543,7 +596,8 @@ export function Dashboard() {
         const p = `${y}-${mStr}`;
         const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
         const exp = expenses.filter(e => e.date.startsWith(p)).reduce((sum, e) => sum + e.amount, 0);
-        data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev, expenses: exp });
+        const defaultLabel = `Tháng ${m}/${y}`;
+        data.push({ name: customMonths[p] || defaultLabel, revenue: rev, expenses: exp, monthKey: p });
         currentMonth.setMonth(currentMonth.getMonth() + 1);
       }
       return data;
@@ -559,7 +613,8 @@ export function Dashboard() {
           const p = `${year}-${m}`;
           const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
           const exp = expenses.filter(e => e.date.startsWith(p)).reduce((sum, e) => sum + e.amount, 0);
-          return { name: `T${parseInt(m)}`, revenue: rev, expenses: exp };
+          const defaultLabel = `Tháng ${parseInt(m)}`;
+          return { name: customMonths[p] || defaultLabel, revenue: rev, expenses: exp, monthKey: p };
         });
       } else if (period.includes('-')) {
         // Show last 4 months up to current selection
@@ -576,7 +631,8 @@ export function Dashboard() {
           const p = `${y}-${mStr}`;
           const rev = invoices.filter(i => i.status === 'paid' && i.month === p).reduce((sum, inv) => sum + inv.total, 0);
           const exp = expenses.filter(e => e.date.startsWith(p)).reduce((sum, e) => sum + e.amount, 0);
-          data.push({ name: `T${m}/${y.toString().slice(-2)}`, revenue: rev, expenses: exp });
+          const defaultLabel = `Tháng ${m}/${y}`;
+          data.push({ name: customMonths[p] || defaultLabel, revenue: rev, expenses: exp, monthKey: p });
         }
         return data;
       }
@@ -914,73 +970,78 @@ export function Dashboard() {
                />
             </div>
           ) : (
-            <select 
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-1.5 text-sm text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9"
-            >
-              {/* Year 2025 */}
-              <option value="2025-Q1">Quý I / 2025</option>
-              <option value="2025-Q2">Quý II / 2025</option>
-              <option value="2025-Q3">Quý III / 2025</option>
-              <option value="2025-Q4">Quý IV / 2025</option>
-              <option value="2025-01">Tháng 1 / 2025</option>
-              <option value="2025-02">Tháng 2 / 2025</option>
-              <option value="2025-03">Tháng 3 / 2025</option>
-              <option value="2025-04">Tháng 4 / 2025</option>
-              <option value="2025-05">Tháng 5 / 2025</option>
-              <option value="2025-06">Tháng 6 / 2025</option>
-              <option value="2025-07">Tháng 7 / 2025</option>
-              <option value="2025-08">Tháng 8 / 2025</option>
-              <option value="2025-09">Tháng 9 / 2025</option>
-              <option value="2025-10">Tháng 10 / 2025</option>
-              <option value="2025-11">Tháng 11 / 2025</option>
-              <option value="2025-12">Tháng 12 / 2025</option>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Year Select */}
+              <select 
+                value={period.split('-')[0]}
+                onChange={(e) => {
+                  const newYear = e.target.value;
+                  const currentSub = period.split('-')[1] || '06';
+                  setPeriod(`${newYear}-${currentSub}`);
+                }}
+                className="bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1.5 text-xs text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9 font-semibold"
+              >
+                <option value="2025">Năm 2025</option>
+                <option value="2026">Năm 2026</option>
+                <option value="2027">Năm 2027</option>
+              </select>
 
-              {/* Year 2026 */}
-              <option value="2026-Q1">Quý I / 2026</option>
-              <option value="2026-Q2">Quý II / 2026</option>
-              <option value="2026-Q3">Quý III / 2026</option>
-              <option value="2026-Q4">Quý IV / 2026</option>
-              <option value="2026-01">Tháng 1 / 2026</option>
-              <option value="2026-02">Tháng 2 / 2026</option>
-              <option value="2026-03">Tháng 3 / 2026</option>
-              <option value="2026-04">Tháng 4 / 2026</option>
-              <option value="2026-05">Tháng 5 / 2026</option>
-              <option value="2026-06">Tháng 6 / 2026</option>
-              <option value="2026-07">Tháng 7 / 2026</option>
-              <option value="2026-08">Tháng 8 / 2026</option>
-              <option value="2026-09">Tháng 9 / 2026</option>
-              <option value="2026-10">Tháng 10 / 2026</option>
-              <option value="2026-11">Tháng 11 / 2026</option>
-              <option value="2026-12">Tháng 12 / 2026</option>
-
-              {/* Year 2027 */}
-              <option value="2027-Q1">Quý I / 2027</option>
-              <option value="2027-Q2">Quý II / 2027</option>
-              <option value="2027-Q3">Quý III / 2027</option>
-              <option value="2027-Q4">Quý IV / 2027</option>
-              <option value="2027-01">Tháng 1 / 2027</option>
-              <option value="2027-02">Tháng 2 / 2027</option>
-              <option value="2027-03">Tháng 3 / 2027</option>
-              <option value="2027-04">Tháng 4 / 2027</option>
-              <option value="2027-05">Tháng 5 / 2027</option>
-              <option value="2027-06">Tháng 6 / 2027</option>
-              <option value="2027-07">Tháng 7 / 2027</option>
-              <option value="2027-08">Tháng 8 / 2027</option>
-              <option value="2027-09">Tháng 9 / 2027</option>
-              <option value="2027-10">Tháng 10 / 2027</option>
-              <option value="2027-11">Tháng 11 / 2027</option>
-              <option value="2027-12">Tháng 12 / 2027</option>
-            </select>
+              {/* Month or Quarter Select (YÊU CẦU 3) */}
+              <select 
+                value={period.split('-')[1]}
+                onChange={(e) => {
+                  const year = period.split('-')[0];
+                  setPeriod(`${year}-${e.target.value}`);
+                }}
+                className="bg-[#1e293b] border border-[#334155] rounded-xl px-3 py-1.5 text-xs text-[#f8fafc] outline-none hover:bg-[#334155]/50 transition-colors h-9 font-semibold"
+              >
+                <optgroup label="Lọc theo Quý">
+                  <option value="Q1">Quý I</option>
+                  <option value="Q2">Quý II</option>
+                  <option value="Q3">Quý III</option>
+                  <option value="Q4">Quý IV</option>
+                </optgroup>
+                <optgroup label="Lọc theo Tháng">
+                  <option value="01">Tháng 1</option>
+                  <option value="02">Tháng 2</option>
+                  <option value="03">Tháng 3</option>
+                  <option value="04">Tháng 4</option>
+                  <option value="05">Tháng 5</option>
+                  <option value="06">Tháng 6</option>
+                  <option value="07">Tháng 7</option>
+                  <option value="08">Tháng 8</option>
+                  <option value="09">Tháng 9</option>
+                  <option value="10">Tháng 10</option>
+                  <option value="11">Tháng 11</option>
+                  <option value="12">Tháng 12</option>
+                </optgroup>
+              </select>
+            </div>
           )}
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportLandlordExcel} disabled={isExportingExcel} className="gap-2 h-9 text-sm">
-              <BarChartIcon size={16} /> {isExportingExcel ? 'Đang xuất...' : 'Xuất Excel'}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Import Button (YÊU CẦU 3) */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload}
+              accept=".xlsx,.xls,.pdf"
+              className="hidden"
+            />
+            <Button 
+              variant="outline" 
+              onClick={() => fileInputRef.current?.click()} 
+              disabled={isImporting}
+              className="gap-2 h-9 text-xs border-dashed border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:text-white"
+            >
+              <Sparkles size={14} /> {isImporting ? 'Đang đọc...' : 'Nhập Doanh Thu (Excel/PDF)'}
             </Button>
-            <Button variant="outline" onClick={handleExportLandlordPDF} className="gap-2 h-9 text-sm">
-              <FileDown size={16} /> PDF
+
+            <Button variant="outline" onClick={handleExportLandlordExcel} disabled={isExportingExcel} className="gap-2 h-9 text-xs">
+              <BarChartIcon size={14} /> {isExportingExcel ? 'Đang xuất...' : 'Xuất Excel'}
+            </Button>
+            <Button variant="outline" onClick={handleExportLandlordPDF} className="gap-2 h-9 text-xs">
+              <FileDown size={14} /> PDF
             </Button>
           </div>
         </div>
@@ -1036,6 +1097,15 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {importMessage && (
+        <div className={cn("p-4 mb-6 rounded-xl border text-sm max-w-xl transition-all duration-300 flex items-center justify-between", 
+          importMessage.type === 'success' ? "bg-[#10b981]/15 border-[#10b981]/40 text-[#10b981]" : "bg-[#ef4444]/15 border-[#ef4444]/40 text-[#ef4444]"
+        )}>
+          <span>{importMessage.text}</span>
+          <button onClick={() => setImportMessage(null)} className="text-xs hover:underline ml-4 uppercase font-bold tracking-widest">Đóng</button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader title={
@@ -1072,7 +1142,7 @@ export function Dashboard() {
                   tick={{fill: '#f8fafc', fontSize: 12}}
                 />
                 <Tooltip 
-                  formatter={(value: number, name: string) => [`${value.toLocaleString()} ₫`, name === 'revenue' ? 'Doanh thu' : 'Chi phí']}
+                  formatter={(value: number, name: string) => [`${value.toLocaleString()} ₫`, name]}
                   cursor={{fill: 'rgba(255,255,255,0.05)'}}
                   contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '12px', border: '1px solid #334155' }}
                 />
@@ -1083,6 +1153,58 @@ export function Dashboard() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* Quản lý hiển thị tên Tháng & Chi tiết doanh thu (YÊU CẦU 3) */}
+        {role === 'landlord' && (
+          <Card className="lg:col-span-3">
+            <CardHeader title="Cấu hình hiển thị Tháng & Chi tiết doanh thu trên biểu đồ" />
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {chartData.map((dataItem: any) => {
+                  const mKey = dataItem.monthKey;
+                  if (!mKey) return null;
+                  return (
+                    <div key={mKey} className="p-3 bg-[#0f172a] border border-[#334155]/60 rounded-xl flex flex-col justify-between space-y-3 hover:border-[#38bdf8]/40 transition-colors">
+                      <div>
+                        {editingMonthKey === mKey ? (
+                          <input 
+                            type="text"
+                            value={editingMonthValue}
+                            onChange={e => setEditingMonthValue(e.target.value)}
+                            onBlur={() => handleSaveMonthName(mKey)}
+                            onKeyDown={e => e.key === 'Enter' && handleSaveMonthName(mKey)}
+                            className="bg-[#1e293b] border border-[#38bdf8] text-[#f8fafc] text-xs px-2 py-1 rounded w-full outline-none"
+                            autoFocus
+                          />
+                        ) : (
+                          <div 
+                            onClick={() => handleStartEditMonth(mKey, dataItem.name)}
+                            className="text-xs font-bold text-[#38bdf8] hover:text-[#f8fafc] cursor-pointer flex items-center justify-between group"
+                            title="Nhấn để đổi tên hiển thị trên biểu đồ"
+                          >
+                            <span>{dataItem.name}</span>
+                            <span className="text-[9px] text-[#64748b] font-normal group-hover:text-[#38bdf8]">(Đổi tên)</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-[#64748b] mt-1 font-mono">Mã: {mKey}</p>
+                      </div>
+                      <div className="space-y-1 pt-2 border-t border-[#334155]/30">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-[#94a3b8]">Doanh thu:</span>
+                          <span className="text-[#10b981] font-semibold">{dataItem.revenue.toLocaleString()}đ</span>
+                        </div>
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-[#94a3b8]">Chi phí:</span>
+                          <span className="text-[#ef4444] font-semibold">{dataItem.expenses.toLocaleString()}đ</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader title="Theo dõi Visa (Stamp)" />
