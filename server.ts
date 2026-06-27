@@ -445,6 +445,8 @@ async function startServer() {
       });
 
       // 5. Auto-fit columns
+      worksheet.columns = Array.from({ length: 9 }).map(() => ({}));
+
       worksheet.columns.forEach(column => {
         let maxLength = 0;
         column.eachCell?.({ includeEmpty: true }, (cell) => {
