@@ -474,6 +474,169 @@ async function startServer() {
     }
   });
 
+  // API Room Reports: Lấy danh sách báo cáo hỗ trợ phân trang và tìm kiếm/bộ lọc nâng cao
+  app.get("/api/room-reports", async (req, res) => {
+    if (!db) {
+      return res.status(500).json({ error: "Database not initialized" });
+    }
+    try {
+      const { room_number, search, check_in_start, check_in_end, page, limit } = req.query;
+      
+      const q = collection(db, 'roomReports');
+      const docs = await getDocs(q);
+      let reports: any[] = [];
+      docs.forEach(docSnap => {
+        reports.push({ id: docSnap.id, ...docSnap.data() });
+      });
+
+      // Filter local lists to support advanced queries
+      if (room_number) {
+        reports = reports.filter(r => r.room_number?.toString() === room_number.toString());
+      }
+      if (search) {
+        const term = search.toString().toLowerCase();
+        reports = reports.filter(r => 
+          r.guest_name?.toLowerCase().includes(term) || 
+          r.passport_number?.toLowerCase().includes(term)
+        );
+      }
+      if (check_in_start) {
+        const start = new Date(check_in_start.toString());
+        reports = reports.filter(r => new Date(r.check_in) >= start);
+      }
+      if (check_in_end) {
+        const end = new Date(check_in_end.toString());
+        end.setHours(23, 59, 59, 999);
+        reports = reports.filter(r => new Date(r.check_in) <= end);
+      }
+
+      // Sort by check-in descending
+      reports.sort((a, b) => new Date(b.check_in || '').getTime() - new Date(a.check_in || '').getTime());
+
+      // Pagination
+      const pageNum = parseInt(page?.toString() || '1');
+      const limitNum = parseInt(limit?.toString() || '10');
+      const totalCount = reports.length;
+      const totalPages = Math.ceil(totalCount / limitNum);
+      const paginatedReports = reports.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+      res.json({
+        reports: paginatedReports,
+        pagination: {
+          totalCount,
+          totalPages,
+          currentPage: pageNum,
+          limit: limitNum
+        }
+      });
+    } catch (err: any) {
+      console.error("Error reading room reports:", err);
+      res.status(500).json({ error: "Failed to fetch room reports" });
+    }
+  });
+
+  // API Room Reports: Tạo lượt thuê mới để lưu vào báo cáo
+  app.post("/api/room-reports", async (req, res) => {
+    if (!db) {
+      return res.status(500).json({ error: "Database not initialized" });
+    }
+    try {
+      const { room_number, guest_name, rental_price, initial_electricity, passport_number, visa_expiry, check_in, check_out } = req.body;
+      
+      if (!room_number || !guest_name || rental_price === undefined) {
+        return res.status(400).json({ error: "Thiếu thông tin bắt buộc: Số phòng, Tên khách và Giá thuê" });
+      }
+
+      const newReport = {
+        room_number: room_number.toString(),
+        guest_name,
+        rental_price: Number(rental_price),
+        initial_electricity: initial_electricity ? Number(initial_electricity) : 0,
+        passport_number: passport_number || '',
+        visa_expiry: visa_expiry || '',
+        check_in: check_in || new Date().toISOString(),
+        check_out: check_out || '',
+        createdAt: new Date().toISOString()
+      };
+
+      const docRef = await addDoc(collection(db, 'roomReports'), newReport);
+      res.status(201).json({ id: docRef.id, ...newReport });
+    } catch (err: any) {
+      console.error("Error creating room report:", err);
+      res.status(500).json({ error: "Failed to create room report" });
+    }
+  });
+
+  // API Room Reports: Xuất Excel chuyên nghiệp
+  app.post("/api/export-room-reports", async (req, res) => {
+    try {
+      const { reports } = req.body;
+      if (!reports || !Array.isArray(reports)) {
+        return res.status(400).json({ error: "Invalid data format" });
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Báo cáo quản lý phòng');
+
+      const headerRow = worksheet.addRow([
+        'Số phòng', 
+        'Tên khách hàng', 
+        'Giá thuê (VND)', 
+        'Số điện đầu', 
+        'Số Passport', 
+        'Hạn Visa', 
+        'Ngày nhận phòng (Check-in)', 
+        'Ngày trả phòng (Check-out)'
+      ]);
+
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E293B' } // Slate-800
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+
+      reports.forEach(row => {
+        const itemRow = worksheet.addRow([
+          row.room_number,
+          row.guest_name,
+          row.rental_price,
+          row.initial_electricity,
+          row.passport_number || '-',
+          row.visa_expiry || '-',
+          row.check_in ? new Date(row.check_in).toLocaleDateString('vi-VN') : '-',
+          row.check_out ? new Date(row.check_out).toLocaleDateString('vi-VN') : '-'
+        ]);
+        
+        itemRow.getCell(3).numFmt = '#,##0';
+        itemRow.getCell(4).numFmt = '#,##0';
+      });
+
+      worksheet.columns = Array.from({ length: 8 }).map(() => ({}));
+
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 12;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 12 ? 12 : maxLength + 2;
+      });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_Quan_Ly_Phong.xlsx"');
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Export room reports error:', error);
+      res.status(500).json({ error: 'Failed to generate excel' });
+    }
+  });
+
   // API 3: Nhập dữ liệu báo cáo doanh thu từ Excel/PDF (YÊU CẦU 3)
   app.post("/api/import-revenue", express.json({ limit: '10mb' }), async (req, res) => {
     if (!db) {
@@ -737,7 +900,7 @@ Yêu cầu trường dữ liệu:
     console.log(`Server running on http://localhost:${PORT}`);
   });
 
-  // Pre-fetch news on server start if database news collection is empty
+  // Pre-fetch news and room reports on server start if database collection is empty
   setTimeout(async () => {
     try {
       if (db) {
@@ -749,9 +912,100 @@ Yêu cầu trường dữ liệu:
         } else {
           console.log(`News collection has ${snapshot.size} articles on startup.`);
         }
+
+        const qReports = collection(db, 'roomReports');
+        const snapReports = await getDocs(qReports);
+        if (snapReports.empty) {
+          console.log("Room reports collection is empty on startup, seeding initial records...");
+          const initialReports = [
+            {
+              room_number: '101',
+              guest_name: 'Johnathan Miller',
+              rental_price: 12000000,
+              initial_electricity: 1420,
+              passport_number: 'US982741',
+              visa_expiry: '2026-06-28', // Expires in 2 days from 2026-06-26 -> Warning!
+              check_in: '2026-06-01T14:00:00Z',
+              check_out: '2026-07-01T12:00:00Z',
+              createdAt: '2026-06-01T14:00:00Z'
+            },
+            {
+              room_number: '201',
+              guest_name: 'Nguyễn Văn Hùng',
+              rental_price: 8500000,
+              initial_electricity: 3105,
+              passport_number: '',
+              visa_expiry: '',
+              check_in: '2026-05-15T09:30:00Z',
+              check_out: '2026-11-15T12:00:00Z',
+              createdAt: '2026-05-15T09:30:00Z'
+            },
+            {
+              room_number: '202',
+              guest_name: 'Elena Rostova',
+              rental_price: 15000000,
+              initial_electricity: 980,
+              passport_number: 'RU883719',
+              visa_expiry: '2026-06-27', // Expires in 1 day from 2026-06-26 -> Warning!
+              check_in: '2026-05-27T15:00:00Z',
+              check_out: '2026-06-27T12:00:00Z',
+              createdAt: '2026-05-27T15:00:00Z'
+            },
+            {
+              room_number: '301',
+              guest_name: 'Kim Min-jun',
+              rental_price: 13500000,
+              initial_electricity: 2450,
+              passport_number: 'KR449201',
+              visa_expiry: '2026-07-25', // More than 3 days -> Normal
+              check_in: '2026-06-10T11:00:00Z',
+              check_out: '2026-07-10T12:00:00Z',
+              createdAt: '2026-06-10T11:00:00Z'
+            },
+            {
+              room_number: '302',
+              guest_name: 'Trần Thị Mai',
+              rental_price: 7000000,
+              initial_electricity: 1845,
+              passport_number: '',
+              visa_expiry: '',
+              check_in: '2026-06-20T14:00:00Z',
+              check_out: '2026-07-20T12:00:00Z',
+              createdAt: '2026-06-20T14:00:00Z'
+            },
+            {
+              room_number: '401',
+              guest_name: 'Michael Chang',
+              rental_price: 16000000,
+              initial_electricity: 520,
+              passport_number: 'CA772154',
+              visa_expiry: '2026-06-25', // Already expired as of 2026-06-26 -> Warning!
+              check_in: '2026-05-25T16:00:00Z',
+              check_out: '2026-06-25T12:00:00Z',
+              createdAt: '2026-05-25T16:00:00Z'
+            },
+            {
+              room_number: '402',
+              guest_name: 'Nguyễn Minh Anh',
+              rental_price: 8000000,
+              initial_electricity: 1290,
+              passport_number: '',
+              visa_expiry: '',
+              check_in: '2026-06-05T08:00:00Z',
+              check_out: '2026-07-05T12:00:00Z',
+              createdAt: '2026-06-05T08:00:00Z'
+            }
+          ];
+          for (const rep of initialReports) {
+            await addDoc(collection(db, 'roomReports'), rep);
+          }
+          console.log("Seeded initial room reports successfully.");
+        } else {
+          console.log(`Room reports collection already contains ${snapReports.size} items.`);
+        }
       }
     } catch (startupErr) {
-      console.error("Failed to seed news on startup:", startupErr);
+      console.error("Failed to seed database collections on startup:", startupErr);
     }
   }, 3000);
 }

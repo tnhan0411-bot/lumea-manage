@@ -3,9 +3,11 @@ import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
 import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut, Receipt } from 'lucide-react';
 import { Room, cn, Attachment, formatDate, calculateRentForMonth } from '../lib/utils';
+import { RoomReports } from './RoomReports';
 
 export function RoomList() {
   const { rooms, tenants, issues, invoices, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role } = useAppContext();
+  const [activeTab, setActiveTab] = useState<'grid' | 'reports'>('grid');
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [tempRoom, setTempRoom] = useState<Room | null>(null);
   const [tempTenantName, setTempTenantName] = useState('');
@@ -272,16 +274,55 @@ export function RoomList() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Phòng</h1>
         <div className="flex gap-3">
-           {role === 'landlord' && (
+           {activeTab === 'grid' && role === 'landlord' && (
              <Button variant="outline" onClick={handleExportReport} disabled={isExporting} className="gap-2">
                <FileText size={18} /> {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
              </Button>
            )}
-           {role === 'landlord' && <Button onClick={handleAddNewRoom}>Thêm phòng</Button>}
+           {activeTab === 'grid' && role === 'landlord' && <Button onClick={handleAddNewRoom}>Thêm phòng</Button>}
         </div>
       </div>
 
-      {editingRoomId && tempRoom ? (
+      {/* Tab Switcher */}
+      <div className="flex border-b border-white/5 gap-4 mb-4">
+        <button
+          onClick={() => {
+            setActiveTab('grid');
+            setEditingRoomId(null);
+          }}
+          className={cn(
+            "pb-3 text-sm font-semibold border-b-2 transition-all px-1",
+            activeTab === 'grid'
+              ? "border-[#38bdf8] text-[#38bdf8]"
+              : "border-transparent text-[#94a3b8] hover:text-[#f8fafc]"
+          )}
+        >
+          Sơ đồ &amp; Trạng thái phòng
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('reports');
+            setEditingRoomId(null);
+          }}
+          className={cn(
+            "pb-3 text-sm font-semibold border-b-2 transition-all px-1 flex items-center gap-1.5",
+            activeTab === 'reports'
+              ? "border-[#38bdf8] text-[#38bdf8]"
+              : "border-transparent text-[#94a3b8] hover:text-[#f8fafc]"
+          )}
+        >
+          <span>Báo cáo Quản lý phòng &amp; Lưu trú</span>
+          <span className="bg-rose-500/10 text-rose-400 text-[10px] px-1.5 py-0.5 rounded-full border border-rose-500/20 font-mono font-bold animate-pulse">
+            ⚠️ Visa
+          </span>
+        </button>
+      </div>
+
+      {activeTab === 'reports' ? (
+        <RoomReports />
+      ) : (
+        <>
+          {editingRoomId && tempRoom ? (
         <Card className="border-2 border-[#38bdf8] mb-8">
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -661,6 +702,8 @@ export function RoomList() {
           );
         })}
       </div>
+    </>
+  )}
 
       {showExtensionReminder && (
         <div className="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
