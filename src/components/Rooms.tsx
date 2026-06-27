@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
-import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut, Receipt } from 'lucide-react';
+import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut, Receipt, Download } from 'lucide-react';
 import { Room, cn, Attachment, formatDate, calculateRentForMonth } from '../lib/utils';
 import { RoomReports } from './RoomReports';
 
 export function RoomList() {
-  const { rooms, tenants, issues, invoices, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role } = useAppContext();
+  const { rooms, tenants, issues, invoices, updateRoom, updateTenant, addTenant, addRoom, deleteRoom, checkoutRoom, addInvoice, role, cleaningSchedules } = useAppContext();
   const [activeTab, setActiveTab] = useState<'grid' | 'reports'>('grid');
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [tempRoom, setTempRoom] = useState<Room | null>(null);
@@ -22,6 +22,101 @@ export function RoomList() {
   const [showExtensionReminder, setShowExtensionReminder] = useState<boolean>(false);
 
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingLayout, setIsExportingLayout] = useState(false);
+
+  const handleExportRoomLayoutExcel = async () => {
+    try {
+      setIsExportingLayout(true);
+      
+      const roomsData = rooms.map(room => {
+        const tenant = tenants.find(t => t.roomId === room.id);
+        
+        let statusStr = "Phòng trống sạch";
+        let statusCode = "available";
+        
+        if (room.status === 'maintenance') {
+          statusStr = "Đang bảo trì";
+          statusCode = "maintenance";
+        } else if (room.status === 'occupied') {
+          if (room.isExtended) {
+            statusStr = "Khách gia hạn";
+            statusCode = "extended";
+          } else {
+            statusStr = "Đang có khách";
+            statusCode = "occupied";
+          }
+        } else {
+          if (room.cleanStatus === 'dirty') {
+            statusStr = "Phòng bẩn chưa dọn";
+            statusCode = "dirty";
+          } else if (room.cleanStatus === 'cleaning') {
+            statusStr = "Đang dọn dẹp";
+            statusCode = "cleaning";
+          } else {
+            statusStr = "Phòng trống sạch";
+            statusCode = "available";
+          }
+        }
+
+        let nextCleaningStr = "-";
+        const pendingSchedule = cleaningSchedules?.find(s => s.roomId === room.id && s.status !== 'completed');
+        if (pendingSchedule) {
+          const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+          try {
+            const d = new Date(pendingSchedule.scheduledDate);
+            const dayName = isNaN(d.getTime()) ? "" : days[d.getDay()];
+            const formattedDate = pendingSchedule.scheduledDate.split('-').reverse().join('/');
+            nextCleaningStr = `${dayName ? dayName + ', ' : ''}${formattedDate} ${pendingSchedule.scheduledTime || ''}`.trim();
+          } catch {
+            nextCleaningStr = `${pendingSchedule.scheduledDate} ${pendingSchedule.scheduledTime || ''}`.trim();
+          }
+        } else if (room.recurringCleaning && room.recurringCleaning.daysOfWeek?.length > 0) {
+          const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+          const dayNames = room.recurringCleaning.daysOfWeek.map(d => days[d]).join(', ');
+          nextCleaningStr = `Định kỳ (${dayNames}) lúc ${room.recurringCleaning.time}`;
+        }
+
+        return {
+          roomNumber: room.number,
+          status: statusStr,
+          statusCode: statusCode,
+          guestName: tenant?.name || '',
+          passport: tenant?.passportNumber || '',
+          visaExpiry: tenant?.visaExpiry ? formatDate(tenant.visaExpiry) : '',
+          checkIn: room.leaseStart ? formatDate(room.leaseStart) : '',
+          checkOut: room.leaseEnd ? formatDate(room.leaseEnd) : '',
+          nextCleaning: nextCleaningStr
+        };
+      });
+
+      const response = await fetch('/api/rooms/export-excel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ roomsData })
+      });
+
+      if (!response.ok) {
+        throw new Error('Lỗi tạo file Excel');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Bao_Cao_So_Do_Phong_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi xuất file Excel sơ đồ phòng!");
+    } finally {
+      setIsExportingLayout(false);
+    }
+  };
 
   const handleExportReport = async () => {
     try {
@@ -274,6 +369,16 @@ export function RoomList() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[#f8fafc]">Quản lý Phòng</h1>
         <div className="flex gap-3">
+           {activeTab === 'grid' && role === 'landlord' && (
+             <Button 
+               variant="outline" 
+               onClick={handleExportRoomLayoutExcel} 
+               disabled={isExportingLayout} 
+               className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 transition-colors"
+             >
+               <Download size={18} /> {isExportingLayout ? 'Đang xuất...' : 'Xuất Excel Sơ đồ'}
+             </Button>
+           )}
            {activeTab === 'grid' && role === 'landlord' && (
              <Button variant="outline" onClick={handleExportReport} disabled={isExporting} className="gap-2">
                <FileText size={18} /> {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}

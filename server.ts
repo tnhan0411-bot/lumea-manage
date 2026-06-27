@@ -307,6 +307,170 @@ async function startServer() {
     }
   });
 
+  app.post("/api/rooms/export-excel", async (req, res) => {
+    try {
+      const { roomsData } = req.body;
+      if (!roomsData || !Array.isArray(roomsData)) {
+        return res.status(400).json({ error: "Dữ liệu phòng không hợp lệ" });
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Sơ đồ phòng');
+
+      // 1. Add Title Block
+      const now = new Date();
+      const formattedDateTime = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      
+      const titleRow = worksheet.addRow([`BÁO CÁO TRẠNG THÁI SƠ ĐỒ PHÒNG - ${formattedDateTime}`]);
+      worksheet.mergeCells('A1:I1');
+      titleRow.getCell(1).font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FF1E3A8A' } };
+      titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      worksheet.getRow(1).height = 40;
+
+      // Empty separator row
+      worksheet.addRow([]);
+
+      // 2. Add Headers
+      const headers = [
+        'STT',
+        'Số phòng',
+        'Trạng thái phòng hiện tại',
+        'Tên khách lưu trú',
+        'Số Passport / CCCD',
+        'Hạn Visa',
+        'Ngày nhận phòng (Check-in)',
+        'Ngày trả phòng dự kiến',
+        'Lịch vệ sinh tiếp theo'
+      ];
+      
+      const headerRow = worksheet.addRow(headers);
+      worksheet.getRow(3).height = 28;
+
+      headerRow.eachCell((cell) => {
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E3A8A' } // Navy Blue
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+        };
+      });
+
+      // 3. Add Rows
+      roomsData.forEach((row, idx) => {
+        const itemRow = worksheet.addRow([
+          idx + 1,
+          row.roomNumber,
+          row.status,
+          row.guestName || '',
+          row.passport || '',
+          row.visaExpiry || '',
+          row.checkIn || '',
+          row.checkOut || '',
+          row.nextCleaning || ''
+        ]);
+
+        worksheet.getRow(itemRow.number).height = 22;
+
+        // Alignment and font styling for items
+        itemRow.eachCell((cell, colNumber) => {
+          cell.font = { name: 'Arial', size: 10 };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+          };
+
+          // Alignment
+          if (colNumber === 1 || colNumber === 2 || colNumber === 6 || colNumber === 7 || colNumber === 8) {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          }
+        });
+
+        // 4. Conditional styling for Status column (column 3)
+        const statusCell = itemRow.getCell(3);
+        statusCell.font = { name: 'Arial', size: 10, bold: true };
+        
+        const code = row.statusCode?.toLowerCase();
+        if (code === 'extended') {
+          // Khách gia hạn -> Light Orange
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFEDD5' } // orange-100
+          };
+          statusCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFC2410C' } }; // orange-700
+        } else if (code === 'dirty') {
+          // Phòng bẩn chưa dọn -> Light Red
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFE4E6' } // rose-100
+          };
+          statusCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFE11D48' } }; // rose-600
+        } else if (code === 'available') {
+          // Phòng trống sạch -> Light Green
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFDCFCE7' } // green-100
+          };
+          statusCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF15803D' } }; // green-700
+        } else if (code === 'occupied') {
+          // Đang có khách -> Light Blue
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0F2FE' } // sky-100
+          };
+          statusCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF0369A1' } }; // sky-700
+        } else if (code === 'maintenance') {
+          // Đang bảo trì -> Gray/Red
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF1F5F9' } // slate-100
+          };
+          statusCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } }; // slate-600
+        }
+      });
+
+      // 5. Auto-fit columns
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          if (cell.row && (cell.row as any).number === 1) return;
+          const columnLength = cell.value ? cell.value.toString().length : 10;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 12 ? 12 : maxLength + 4;
+      });
+
+      // Special width overrides for clean aesthetics
+      worksheet.getColumn(1).width = 6;  // STT
+      worksheet.getColumn(2).width = 12; // Số phòng
+      worksheet.getColumn(3).width = 25; // Trạng thái
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_So_Do_Phong.xlsx"');
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Export room layout excel error:', error);
+      res.status(500).json({ error: 'Failed to generate excel for room layout' });
+    }
+  });
+
   app.post("/api/export-revenue", async (req, res) => {
     try {
       const { invoices } = req.body;
