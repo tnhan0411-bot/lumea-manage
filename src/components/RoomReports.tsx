@@ -37,7 +37,6 @@ export function RoomReports() {
 
   // Filters
   const [roomNumberFilter, setRoomNumberFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [checkInStart, setCheckInStart] = useState('');
   const [checkInEnd, setCheckInEnd] = useState('');
   const [page, setPage] = useState(1);
@@ -66,7 +65,6 @@ export function RoomReports() {
     try {
       const queryParams = new URLSearchParams({
         room_number: roomNumberFilter,
-        search: searchQuery,
         check_in_start: checkInStart,
         check_in_end: checkInEnd,
         page: page.toString(),
@@ -91,16 +89,8 @@ export function RoomReports() {
     fetchReports();
   }, [roomNumberFilter, checkInStart, checkInEnd, page]);
 
-  // Handle instant triggers on filter change, but debounce text queries slightly or search on submit
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    fetchReports();
-  };
-
   const handleClearFilters = () => {
     setRoomNumberFilter('');
-    setSearchQuery('');
     setCheckInStart('');
     setCheckInEnd('');
     setPage(1);
@@ -178,7 +168,6 @@ export function RoomReports() {
       // Fetch ALL filtered reports for exporting (without pagination limit)
       const queryParams = new URLSearchParams({
         room_number: roomNumberFilter,
-        search: searchQuery,
         check_in_start: checkInStart,
         check_in_end: checkInEnd,
         page: '1',
@@ -219,7 +208,6 @@ export function RoomReports() {
       // Fetch all reports within filters
       const queryParams = new URLSearchParams({
         room_number: roomNumberFilter,
-        search: searchQuery,
         check_in_start: checkInStart,
         check_in_end: checkInEnd,
         page: '1',
@@ -377,7 +365,7 @@ export function RoomReports() {
           </div>
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+        <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           {/* Room Filter */}
           <div>
             <label className="block text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5">Số phòng</label>
@@ -394,21 +382,6 @@ export function RoomReports() {
                 <option key={rm} value={rm}>Phòng {rm}</option>
               ))}
             </select>
-          </div>
-
-          {/* Search Term */}
-          <div>
-            <label className="block text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5">Khách hàng / Passport</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Tên khách hoặc số hộ chiếu..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-lg p-2.5 pl-9 text-sm text-[#f8fafc] placeholder:text-[#475569] focus:outline-none focus:ring-1 focus:ring-[#38bdf8]"
-              />
-              <Search className="absolute left-3 top-3 text-[#475569]" size={15} />
-            </div>
           </div>
 
           {/* Check-In Start */}
@@ -440,21 +413,14 @@ export function RoomReports() {
               />
             </div>
             <div className="flex gap-1 shrink-0">
-              <button
-                type="submit"
-                className="bg-[#38bdf8]/10 text-[#38bdf8] border border-[#38bdf8]/20 hover:bg-[#38bdf8]/20 p-2.5 rounded-lg font-bold text-sm transition-colors"
-                title="Áp dụng tìm kiếm"
-              >
-                <Search size={16} />
-              </button>
-              {(roomNumberFilter || searchQuery || checkInStart || checkInEnd) && (
+              {(roomNumberFilter || checkInStart || checkInEnd) && (
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 p-2.5 rounded-lg text-sm transition-colors"
+                  className="bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 px-3 h-[42px] rounded-lg text-xs font-semibold transition-colors"
                   title="Xóa bộ lọc"
                 >
-                  Xóa
+                  Xóa lọc
                 </button>
               )}
             </div>
