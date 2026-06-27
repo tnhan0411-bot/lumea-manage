@@ -25,8 +25,8 @@ const ai = new GoogleGenAI({
 });
 
 const parser = new Parser();
-// Use Google News RSS to find Da Nang international tourism news
-const RSS_URL = 'https://news.google.com/rss/search?q=%22%C4%90%C3%A0+N%E1%BA%B5ng%22+AND+(%22kh%C3%A1ch+qu%E1%BB%91c+t%E1%BA%BF%22+OR+%22kh%C3%A1ch+n%C6%B0%E1%BB%9Bc+ngo%C3%A0i%22)&hl=vi&gl=VN&ceid=VN:vi';
+// Use Google News RSS to find national-wide travel, lodging, foreign guests, high-tech crime and fraud news
+const RSS_URL = 'https://news.google.com/rss/search?q=(%22kh%C3%A1ch+n%C6%B0%E1%BB%9Bc+ngo%C3%A0i%22+OR+%22kh%C3%A1ch+Trung+Qu%E1%BB%91c%22+OR+%22thu%C3%AA+c%C4%83n+h%E1%BB%99%22+OR+%22l%C6%B0u+tr%C3%BA%22+OR+%22du+l%E1%BB%8Bch+Vi%E1%BB%87t+Nam%22+OR+%22t%E1%BB%99i+ph%E1%BA%A1m+c%C3%B4ng+ngh%E1%BB%87+cao%22+OR+%22l%E1%BB%ABa+%C4%91%E1%BA%A3o+m%E1%BA%A1ng%22)&hl=vi&gl=VN&ceid=VN:vi';
 
 async function fetchAndProcessNews() {
   if (!db) {
@@ -56,20 +56,29 @@ async function fetchAndProcessNews() {
       for (const item of feedItems) {
          if (addedCount >= 5) break; 
   
-         // Check duplication
-         const q = query(collection(db, 'news'), where('link', '==', item.link));
-         const docs = await getDocs(q);
-         if (!docs.empty) continue; // Already exists
+         // Check duplication based on both link and title to prevent double-logging
+         const qLink = query(collection(db, 'news'), where('link', '==', item.link));
+         const docsLink = await getDocs(qLink);
+         if (!docsLink.empty) continue; // Already exists
+
+         const qTitle = query(collection(db, 'news'), where('title', '==', item.title));
+         const docsTitle = await getDocs(qTitle);
+         if (!docsTitle.empty) continue; // Already exists
          
-         const prompt = `Bạn là một biên tập viên AI. Hãy đọc Tiêu đề và Mô tả của bài báo sau đây.
-  Nếu bài báo KHÔNG liên quan đến "khách du lịch nước ngoài", "khách du lịch quốc tế" hoặc "du lịch" tại "Đà Nẵng", hãy đánh dấu isRelevant = false.
-  Nếu liên quan, hãy tóm tắt ngắn gọn thành 2-3 câu (bao gồm: ý chính, xu hướng nếu có). Phải dùng tiếng Việt.
-  Gán cho bài báo các thẻ Hashtag phù hợp (ví dụ: #ThốngKê, #SựKiện, #ChínhSách, #XuHướng, #ThịTrường). Không dùng khoảng trắng trong thẻ, bắt đầu bằng '#'.
-  
-  Tiêu đề: ${item.title}
-  Mô tả: ${item.contentSnippet || item.content}
-  Ngày đăng: ${item.pubDate}
-  `;
+         const prompt = `Bạn là một biên tập viên AI chuyên nghiệp và Chuyên gia An ninh lưu trú. Hãy đọc Tiêu đề và Mô tả của bài báo sau đây.
+Nhiệm vụ của bạn:
+1. Đánh giá tính liên quan: Bài báo phải thuộc lĩnh vực du lịch Việt Nam, lữ hành toàn quốc, tình hình khách nước ngoài, hoạt động lưu trú, căn hộ cho thuê, hoặc liên quan đến tình hình an ninh trật tự, an toàn, cảnh báo tội phạm công nghệ cao, lừa đảo mạng ảnh hưởng đến cơ sở kinh doanh dịch vụ du lịch/lưu trú ở Việt Nam. Nếu KHÔNG liên quan, hãy đánh dấu isRelevant = false.
+2. Tóm tắt ngắn gọn: Tóm tắt bài báo thành 2-3 câu súc tích bằng tiếng Việt.
+3. Phân tích sắc thái (Sentiment): Gán nhãn sắc thái của bài báo:
+   - "positive": Đối với các bài viết tích cực (ví dụ: tăng trưởng lượng khách, chính sách visa mới cởi mở, sự kiện du lịch lớn thu hút...).
+   - "negative": Đối với các bài viết có tính tiêu cực hoặc cảnh báo nguy cơ an ninh (ví dụ: người nước ngoài vi phạm cư trú, các nhóm tội phạm thuê căn hộ/khách sạn làm căn cứ lừa đảo công nghệ cao, lừa đảo mạng xuyên quốc gia, lừa đảo chiếm đoạt tài sản du khách...).
+4. Trích xuất từ khóa cảnh báo (Warnings): Nếu bài viết được phân loại là "negative", hãy trích xuất 1-3 hashtag cảnh báo nguy cơ cụ thể bằng tiếng Việt (ví dụ: #LừaĐảoMạng, #CưTrúBấtHợpPháp, #TộiPhạmCôngNghệCao, #ViPhạmCưTrú, #CảnhBáoAnNinh, #MấtAnNinhTrậtTự). Nếu không có nguy cơ nào hoặc bài viết tích cực ("positive"), hãy trả về mảng rỗng.
+5. Gán hashtag chung (Tags): Gán 2-3 hashtag chung liên quan đến nội dung bài báo (ví dụ: #DuLịchViệtNam, #KinhDoanhCănHộ, #AnNinhDuLịch, #KháchQuốcTế, #PhátTriển...).
+
+Tiêu đề: ${item.title}
+Mô tả: ${item.contentSnippet || item.content}
+Ngày đăng: ${item.pubDate}
+`;
          
          try {
              const response = await ai.models.generateContent({
@@ -80,15 +89,21 @@ async function fetchAndProcessNews() {
                      responseSchema: {
                          type: Type.OBJECT,
                          properties: {
-                             isRelevant: { type: Type.BOOLEAN, description: "True nếu bài báo liên quan đến du lịch Đà Nẵng bản địa hoặc quốc tế." },
-                             summary: { type: Type.STRING, description: "Tóm tắt từ 2-3 câu." },
+                             isRelevant: { type: Type.BOOLEAN, description: "True nếu bài báo liên quan đến du lịch, lưu trú, hoặc cảnh báo an ninh lưu trú tại Việt Nam." },
+                             summary: { type: Type.STRING, description: "Tóm tắt súc tích từ 2-3 câu bằng tiếng Việt." },
+                             sentiment: { type: Type.STRING, description: "Giá trị là 'positive' hoặc 'negative' dựa trên phân tích sắc thái bài báo." },
+                             warnings: {
+                                 type: Type.ARRAY,
+                                 items: { type: Type.STRING },
+                                 description: "Các hashtags cảnh báo nguy cơ nếu sentiment là 'negative'. Nếu không có, trả về mảng rỗng."
+                             },
                              tags: { 
                                  type: Type.ARRAY,
                                  items: { type: Type.STRING },
-                                 description: "Danh sách các hashtags."
+                                 description: "Danh sách các hashtags chung hữu ích."
                              }
                          },
-                         required: ['isRelevant', 'summary', 'tags']
+                         required: ['isRelevant', 'summary', 'sentiment', 'warnings', 'tags']
                      }
                  }
              });
@@ -106,7 +121,9 @@ async function fetchAndProcessNews() {
                      title: item.title,
                      link: item.link,
                      summary: json.summary,
-                     tags: json.tags,
+                     sentiment: json.sentiment || 'positive',
+                     warnings: json.warnings || [],
+                     tags: json.tags || [],
                      pubDate: item.pubDate || new Date().toISOString(),
                      source: item.source || 'Google News',
                      addedAt: new Date().toISOString()
@@ -125,13 +142,16 @@ async function fetchAndProcessNews() {
 
     // FALLBACK GENERATION: If no new articles were added or RSS was blocked/failed, synthesize fresh daily news directly with custom prompt
     if (addedCount === 0) {
-      console.log("No articles added from RSS. Generating 3 fresh travel news articles for today using Gemini...");
+      console.log("No articles added from RSS. Generating 3 fresh national news articles for today using Gemini...");
       const todayStr = new Date().toLocaleDateString('vi-VN');
       const todayIsoStr = new Date().toISOString();
       
-      const fallbackPrompt = `Bạn là một biên tập viên tin tức du lịch giàu kinh nghiệm. Hãy sáng tạo 3 bản tin du lịch quốc tế, dịch vụ lưu trú và sự kiện biển hấp dẫn, thực tế và chứa các số liệu xu hướng mới nhất tại Đà Nẵng ngày hôm nay (${todayStr}). 
-Các tin thức phải tập trung vào xu hướng khách quốc tế, tuyến bay mới, lễ hội quốc tế tổ chức tại Đà Nẵng, công suất phòng tại khách sạn lớn và tiện ích dịch vụ thông tin nhà nước.
-Đưa ra kết quả là mảng gồm chính xác 3 tin tức có định dạng JSON đầy đủ.`;
+      const fallbackPrompt = `Bạn là một nhà báo và chuyên gia phân tích an ninh du lịch Việt Nam. Hãy sáng tạo ra đúng 3 bản tin mới nhất của ngày hôm nay (${todayStr}) về ngành du lịch, dịch vụ lưu trú, lữ hành và các cảnh báo an ninh toàn quốc.
+      Yêu cầu bắt buộc:
+      - Đúng 3 tin tức có tính thực tế và chứa các số liệu định lượng giả định hợp lý.
+      - Có ít nhất 1 tin mang sắc thái tích cực ("positive") ví dụ như: tăng trưởng mạnh lượng khách quốc tế đến Việt Nam, khai trương đường bay quốc tế mới, chính sách miễn thị thực cải tiến...
+      - Có ít nhất 1 tin mang sắc thái cảnh báo tiêu cực ("negative") liên quan trực tiếp đến rủi ro quản lý lưu trú, ví dụ: phát hiện triệt phá nhóm đối tượng người nước ngoài thuê căn hộ chung cư cao cấp/biệt thự để tổ chức đánh bạc, lừa đảo công nghệ cao trên mạng xã hội, cảnh báo rủi ro về việc không khai báo tạm trú đầy đủ cho khách nước ngoài tại các homestay, căn hộ du lịch tự quản...
+      - Đưa ra kết quả là mảng JSON chứa chính xác 3 đối tượng tin tức.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.5-flash',
@@ -143,17 +163,23 @@ Các tin thức phải tập trung vào xu hướng khách quốc tế, tuyến 
             items: {
               type: Type.OBJECT,
               properties: {
-                title: { type: Type.STRING, description: "Tiêu đề hấp dẫn, chuyên nghiệp." },
+                title: { type: Type.STRING, description: "Tiêu đề tin tức thời sự hấp dẫn, chân thực." },
                 link: { type: Type.STRING, description: "URL tin thức chi tiết giả định nhưng hợp lệ." },
-                summary: { type: Type.STRING, description: "Tóm tắt ngắn gọn 2-3 câu có chứa dữ liệu định lượng cụ thể." },
+                summary: { type: Type.STRING, description: "Tóm tắt súc tích 2-3 câu chứa dữ liệu cụ thể bằng tiếng Việt." },
+                sentiment: { type: Type.STRING, description: "Gán 'positive' cho tin tích cực hoặc 'negative' cho tin cảnh báo tiêu cực." },
+                warnings: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                  description: "Các hashtag cảnh báo nguy cơ bằng tiếng Việt (ví dụ: #LừaĐảoMạng, #CưTrúBấtHợpPháp, #TộiPhạmCôngNghệCao) nếu sentiment là 'negative'. Nếu không có, trả về mảng rỗng."
+                },
                 tags: { 
                   type: Type.ARRAY, 
                   items: { type: Type.STRING },
-                  description: "2-3 hashtag, bắt đầu bằng dấu '#'"
+                  description: "2-3 hashtag chung, bắt đầu bằng dấu '#'"
                 },
-                source: { type: Type.STRING, description: "Tên nguồn tin uy tín (Sở Du Lịch Đà Nẵng, Báo Đà Nẵng, VNExpress...)" }
+                source: { type: Type.STRING, description: "Tên nguồn tin uy tín toàn quốc (Báo Tuổi Trẻ, VnExpress, Báo Thanh Niên, Báo CAND, Cổng thông tin Bộ Công An...)" }
               },
-              required: ['title', 'link', 'summary', 'tags', 'source']
+              required: ['title', 'link', 'summary', 'sentiment', 'warnings', 'tags', 'source']
             }
           }
         }
@@ -170,11 +196,13 @@ Các tin thức phải tập trung vào xu hướng khách quốc tế, tuyến 
           for (const item of list) {
             const newsDoc = {
               title: item.title,
-              link: item.link || `https://dulich.danang.vn/tin-tuc/tin-moi-${Date.now()}`,
+              link: item.link || `https://vnexpress.net/du-lich/tin-moi-${Date.now()}`,
               summary: item.summary,
-              tags: item.tags || ['#DuLịch', '#ĐàNẵng'],
+              sentiment: item.sentiment || 'positive',
+              warnings: item.warnings || [],
+              tags: item.tags || ['#DuLịch', '#ViệtNam'],
               pubDate: todayIsoStr,
-              source: item.source || 'Sở Du lịch Đà Nẵng',
+              source: item.source || 'Thông tấn xã Việt Nam',
               addedAt: todayIsoStr
             };
             await addDoc(collection(db, 'news'), newsDoc);
