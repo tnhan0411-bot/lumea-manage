@@ -257,7 +257,7 @@ export function Billing() {
                     <span className="font-medium text-[#f8fafc]">{calcResult.oddDays} ngày</span>
                   </div>
                   <div>
-                    <span className="text-[#94a3b8] block text-[10px] uppercase">Đơn giá ngày (giá/30)</span>
+                    <span className="text-[#94a3b8] block text-[10px] uppercase">Đơn giá ngày (giá/ngày thực tế)</span>
                     <span className="font-medium text-[#f8fafc]">{calcResult.dailyRate.toLocaleString()}đ</span>
                   </div>
                   <div className="col-span-2 md:col-span-4 mt-4 pt-4 border-t border-[#334155] flex justify-between items-end">

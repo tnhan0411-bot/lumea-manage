@@ -249,8 +249,10 @@ async function startServer() {
         'Trạng thái', 
         'Giá thuê (VND)', 
         'Người thuê 1', 
+        'Số Passport / CCCD 1',
         'Hạn Visa 1', 
         'Người thuê 2', 
+        'Số Passport / CCCD 2',
         'Hạn Visa 2', 
         'Ngày bắt đầu thuê', 
         'Ngày kết thúc thuê', 
@@ -272,29 +274,33 @@ async function startServer() {
           row.number,
           row.status,
           row.price,
-          row.tenant1Name,
-          row.tenant1Visa,
-          row.tenant2Name,
-          row.tenant2Visa,
-          row.startDate,
-          row.endDate,
-          row.revenue
+          row.tenant1Name || '',
+          row.tenant1Passport || '',
+          row.tenant1Visa || '',
+          row.tenant2Name || '',
+          row.tenant2Passport || '',
+          row.tenant2Visa || '',
+          row.startDate || '',
+          row.endDate || '',
+          row.revenue || 0
         ]);
         
         itemRow.getCell(3).numFmt = '#,##0';
-        itemRow.getCell(10).numFmt = '#,##0';
+        itemRow.getCell(12).numFmt = '#,##0';
       });
 
-      worksheet.columns = Array.from({ length: 10 }).map(() => ({}));
-
-      worksheet.columns.forEach(column => {
+      // Safe Auto-fit columns
+      for (let i = 1; i <= 12; i++) {
+        const col = worksheet.getColumn(i);
         let maxLength = 0;
-        column.eachCell?.({ includeEmpty: true }, (cell) => {
+        col.eachCell({ includeEmpty: true }, (cell) => {
+          const rowNum = typeof cell.row === 'object' ? (cell.row as any).number : Number(cell.row);
+          if (rowNum === 1) return;
           const columnLength = cell.value ? cell.value.toString().length : 10;
           if (columnLength > maxLength) maxLength = columnLength;
         });
-        column.width = maxLength < 10 ? 10 : maxLength + 2;
-      });
+        col.width = maxLength < 12 ? 12 : maxLength + 4;
+      }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Quan_Ly_Phong.xlsx"');
@@ -444,18 +450,18 @@ async function startServer() {
         }
       });
 
-      // 5. Auto-fit columns
-      worksheet.columns = Array.from({ length: 9 }).map(() => ({}));
-
-      worksheet.columns.forEach(column => {
+      // 5. Safe Auto-fit columns
+      for (let i = 1; i <= 9; i++) {
+        const col = worksheet.getColumn(i);
         let maxLength = 0;
-        column.eachCell?.({ includeEmpty: true }, (cell) => {
-          if (cell.row && (cell.row as any).number === 1) return;
+        col.eachCell({ includeEmpty: true }, (cell) => {
+          const rowNum = typeof cell.row === 'object' ? (cell.row as any).number : Number(cell.row);
+          if (rowNum === 1) return;
           const columnLength = cell.value ? cell.value.toString().length : 10;
           if (columnLength > maxLength) maxLength = columnLength;
         });
-        column.width = maxLength < 12 ? 12 : maxLength + 4;
-      });
+        col.width = maxLength < 12 ? 12 : maxLength + 4;
+      }
 
       // Special width overrides for clean aesthetics
       worksheet.getColumn(1).width = 6;  // STT

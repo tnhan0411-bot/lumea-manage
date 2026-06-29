@@ -132,11 +132,13 @@ export function RoomList() {
           status: r.status === 'occupied' ? 'Đang thuê' : r.status === 'available' ? 'Trống' : 'Bảo trì',
           price: r.price,
           tenant1Name: tenant?.name || '',
-          tenant1Visa: tenant?.visaExpiry || '',
+          tenant1Passport: tenant?.passportNumber || '',
+          tenant1Visa: tenant?.visaExpiry ? formatDate(tenant.visaExpiry) : '',
           tenant2Name: tenant?.secondaryName || '',
-          tenant2Visa: tenant?.secondaryVisaExpiry || '',
-          startDate: r.leaseStart || '',
-          endDate: r.leaseEnd || '',
+          tenant2Passport: tenant?.secondaryPassportNumber || '',
+          tenant2Visa: tenant?.secondaryVisaExpiry ? formatDate(tenant.secondaryVisaExpiry) : '',
+          startDate: r.leaseStart ? formatDate(r.leaseStart) : '',
+          endDate: r.leaseEnd ? formatDate(r.leaseEnd) : '',
           revenue: roomRevenue
         };
       });
