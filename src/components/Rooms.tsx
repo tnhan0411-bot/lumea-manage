@@ -121,25 +121,19 @@ export function RoomList() {
   const handleExportReport = async () => {
     try {
       setIsExporting(true);
-      const roomsData = rooms.map(r => {
+      const roomsData = rooms.map((r, index) => {
         const tenant = tenants.find(t => t.roomId === r.id);
-        const roomRevenue = invoices
-          .filter(inv => inv.roomId === r.id && inv.status === 'paid')
-          .reduce((sum, inv) => sum + inv.total, 0);
           
         return {
-          number: r.number,
-          status: r.status === 'occupied' ? 'Đang thuê' : r.status === 'available' ? 'Trống' : 'Bảo trì',
-          price: r.price,
-          tenant1Name: tenant?.name || '',
-          tenant1Passport: tenant?.passportNumber || '',
-          tenant1Visa: tenant?.visaExpiry ? formatDate(tenant.visaExpiry) : '',
-          tenant2Name: tenant?.secondaryName || '',
-          tenant2Passport: tenant?.secondaryPassportNumber || '',
-          tenant2Visa: tenant?.secondaryVisaExpiry ? formatDate(tenant.secondaryVisaExpiry) : '',
-          startDate: r.leaseStart ? formatDate(r.leaseStart) : '',
-          endDate: r.leaseEnd ? formatDate(r.leaseEnd) : '',
-          revenue: roomRevenue
+          stt: index + 1,
+          number: r.number || 'N/A',
+          tenantName: tenant?.name || 'Trống',
+          price: r.price || 0,
+          initialElectricityMeter: r.initialElectricityMeter || '',
+          passport: tenant?.passportNumber || 'N/A',
+          visa: tenant?.visaExpiry ? formatDate(tenant.visaExpiry) : 'N/A',
+          checkIn: r.leaseStart ? formatDate(r.leaseStart) : '',
+          checkOut: r.leaseEnd ? formatDate(r.leaseEnd) : ''
         };
       });
 
@@ -152,7 +146,7 @@ export function RoomList() {
       });
 
       if (!response.ok) {
-        throw new Error('Lỗi xuất báo cáo phòng');
+        throw new Error('Lỗi xuất báo cáo phòng từ máy chủ');
       }
 
       const blob = await response.blob();
@@ -166,9 +160,9 @@ export function RoomList() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
        console.error(error);
-       alert("Lỗi xuất file Excel");
+       alert("Lỗi xuất file Excel báo cáo. Vui lòng thử lại!");
     } finally {
-       setIsExporting(false);
+      setIsExporting(false);
     }
   };
 

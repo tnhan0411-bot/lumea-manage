@@ -245,18 +245,15 @@ async function startServer() {
       const worksheet = workbook.addWorksheet('Quản lý phòng');
 
       const headerRow = worksheet.addRow([
+        'STT', 
         'Số phòng', 
-        'Trạng thái', 
+        'Tên người thuê', 
         'Giá thuê (VND)', 
-        'Người thuê 1', 
-        'Số Passport / CCCD 1',
-        'Hạn Visa 1', 
-        'Người thuê 2', 
-        'Số Passport / CCCD 2',
-        'Hạn Visa 2', 
-        'Ngày bắt đầu thuê', 
-        'Ngày kết thúc thuê', 
-        'Doanh thu đã thu (VND)'
+        'Số điện đầu',
+        'Số Passport',
+        'Hạn Visa', 
+        'Ngày ở', 
+        'Ngày đi'
       ]);
 
       headerRow.eachCell((cell) => {
@@ -271,26 +268,22 @@ async function startServer() {
 
       roomsData.forEach(row => {
         const itemRow = worksheet.addRow([
+          row.stt,
           row.number,
-          row.status,
+          row.tenantName,
           row.price,
-          row.tenant1Name || '',
-          row.tenant1Passport || '',
-          row.tenant1Visa || '',
-          row.tenant2Name || '',
-          row.tenant2Passport || '',
-          row.tenant2Visa || '',
-          row.startDate || '',
-          row.endDate || '',
-          row.revenue || 0
+          row.initialElectricityMeter,
+          row.passport,
+          row.visa,
+          row.checkIn,
+          row.checkOut
         ]);
         
-        itemRow.getCell(3).numFmt = '#,##0';
-        itemRow.getCell(12).numFmt = '#,##0';
+        itemRow.getCell(4).numFmt = '#,##0';
       });
 
       // Safe Auto-fit columns
-      const maxCol = 12;
+      const maxCol = 9;
       const colWidths = Array(maxCol + 1).fill(12);
       worksheet.eachRow((row, rowNum) => {
         if (rowNum === 1) return; // skip header
