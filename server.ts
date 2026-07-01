@@ -290,16 +290,24 @@ async function startServer() {
       });
 
       // Safe Auto-fit columns
-      for (let i = 1; i <= 12; i++) {
-        const col = worksheet.getColumn(i);
-        let maxLength = 0;
-        col.eachCell({ includeEmpty: true }, (cell) => {
-          const rowNum = typeof cell.row === 'object' ? (cell.row as any).number : Number(cell.row);
-          if (rowNum === 1) return;
-          const columnLength = cell.value ? cell.value.toString().length : 10;
-          if (columnLength > maxLength) maxLength = columnLength;
+      const maxCol = 12;
+      const colWidths = Array(maxCol + 1).fill(12);
+      worksheet.eachRow((row, rowNum) => {
+        if (rowNum === 1) return; // skip header
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          if (colNum <= maxCol) {
+            if (cell && cell.value !== null && cell.value !== undefined) {
+              const valStr = String(cell.value);
+              const columnLength = valStr.length;
+              if (columnLength > colWidths[colNum]) {
+                colWidths[colNum] = columnLength;
+              }
+            }
+          }
         });
-        col.width = maxLength < 12 ? 12 : maxLength + 4;
+      });
+      for (let i = 1; i <= maxCol; i++) {
+        worksheet.getColumn(i).width = colWidths[i] < 12 ? 12 : colWidths[i] + 4;
       }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -451,16 +459,24 @@ async function startServer() {
       });
 
       // 5. Safe Auto-fit columns
-      for (let i = 1; i <= 9; i++) {
-        const col = worksheet.getColumn(i);
-        let maxLength = 0;
-        col.eachCell({ includeEmpty: true }, (cell) => {
-          const rowNum = typeof cell.row === 'object' ? (cell.row as any).number : Number(cell.row);
-          if (rowNum === 1) return;
-          const columnLength = cell.value ? cell.value.toString().length : 10;
-          if (columnLength > maxLength) maxLength = columnLength;
+      const maxCol9 = 9;
+      const colWidths9 = Array(maxCol9 + 1).fill(12);
+      worksheet.eachRow((row, rowNum) => {
+        if (rowNum <= 3) return; // skip Title block (row 1, 2) and headers (row 3)
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          if (colNum <= maxCol9) {
+            if (cell && cell.value !== null && cell.value !== undefined) {
+              const valStr = String(cell.value);
+              const columnLength = valStr.length;
+              if (columnLength > colWidths9[colNum]) {
+                colWidths9[colNum] = columnLength;
+              }
+            }
+          }
         });
-        col.width = maxLength < 12 ? 12 : maxLength + 4;
+      });
+      for (let i = 1; i <= maxCol9; i++) {
+        worksheet.getColumn(i).width = colWidths9[i] < 12 ? 12 : colWidths9[i] + 4;
       }
 
       // Special width overrides for clean aesthetics
@@ -579,16 +595,25 @@ async function startServer() {
       worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
       totalRow.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
 
-      worksheet.columns = Array.from({ length: 9 }).map(() => ({}));
-
-      worksheet.columns.forEach(column => {
-        let maxLength = 0;
-        column.eachCell?.({ includeEmpty: true }, (cell) => {
-          const columnLength = cell.value ? cell.value.toString().length : 10;
-          if (columnLength > maxLength) maxLength = columnLength;
+      const maxColRev = 9;
+      const colWidthsRev = Array(maxColRev + 1).fill(12);
+      worksheet.eachRow((row, rowNum) => {
+        if (rowNum === 1) return; // skip header
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          if (colNum <= maxColRev) {
+            if (cell && cell.value !== null && cell.value !== undefined) {
+              const valStr = String(cell.value);
+              const columnLength = valStr.length;
+              if (columnLength > colWidthsRev[colNum]) {
+                colWidthsRev[colNum] = columnLength;
+              }
+            }
+          }
         });
-        column.width = maxLength < 10 ? 10 : maxLength + 2;
       });
+      for (let i = 1; i <= maxColRev; i++) {
+        worksheet.getColumn(i).width = colWidthsRev[i] < 12 ? 12 : colWidthsRev[i] + 4;
+      }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_Tinh_Thue.xlsx"');
@@ -787,16 +812,25 @@ async function startServer() {
         itemRow.getCell(4).numFmt = '#,##0';
       });
 
-      worksheet.columns = Array.from({ length: 8 }).map(() => ({}));
-
-      worksheet.columns.forEach(column => {
-        let maxLength = 0;
-        column.eachCell?.({ includeEmpty: true }, (cell) => {
-          const columnLength = cell.value ? cell.value.toString().length : 12;
-          if (columnLength > maxLength) maxLength = columnLength;
+      const maxColRep = 8;
+      const colWidthsRep = Array(maxColRep + 1).fill(12);
+      worksheet.eachRow((row, rowNum) => {
+        if (rowNum === 1) return; // skip header
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          if (colNum <= maxColRep) {
+            if (cell && cell.value !== null && cell.value !== undefined) {
+              const valStr = String(cell.value);
+              const columnLength = valStr.length;
+              if (columnLength > colWidthsRep[colNum]) {
+                colWidthsRep[colNum] = columnLength;
+              }
+            }
+          }
         });
-        column.width = maxLength < 12 ? 12 : maxLength + 2;
       });
+      for (let i = 1; i <= maxColRep; i++) {
+        worksheet.getColumn(i).width = colWidthsRep[i] < 12 ? 12 : colWidthsRep[i] + 4;
+      }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_Quan_Ly_Phong.xlsx"');
