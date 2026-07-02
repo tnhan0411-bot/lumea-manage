@@ -305,6 +305,7 @@ async function startServer() {
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Quan_Ly_Phong.xlsx"');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
       await workbook.xlsx.write(res);
       res.end();
@@ -479,6 +480,7 @@ async function startServer() {
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_So_Do_Phong.xlsx"');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
       await workbook.xlsx.write(res);
       res.end();
@@ -610,6 +612,7 @@ async function startServer() {
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_Tinh_Thue.xlsx"');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
       await workbook.xlsx.write(res);
       res.end();
@@ -827,6 +830,7 @@ async function startServer() {
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="Bao_Cao_Quan_Ly_Phong.xlsx"');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
       await workbook.xlsx.write(res);
       res.end();

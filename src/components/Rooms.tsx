@@ -98,21 +98,36 @@ export function RoomList() {
       });
 
       if (!response.ok) {
-        throw new Error('Lỗi tạo file Excel');
+        let errorData = 'Lỗi tạo file Excel sơ đồ phòng';
+        try {
+          const json = await response.json();
+          errorData = json.error || errorData;
+        } catch {
+          errorData = await response.text();
+        }
+        console.error("Lỗi từ server:", errorData);
+        throw new Error(errorData);
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Bao_Cao_So_Do_Phong_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `Bao_Cao_So_Do_Phong_${new Date().toISOString().split('T')[0]}.xlsx`;
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+      }
+
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error(error);
-      alert("Lỗi xuất file Excel sơ đồ phòng!");
+       console.error("Chi tiết lỗi xuất Excel:", error);
+       alert(error instanceof Error ? error.message : "Lỗi xuất file Excel sơ đồ phòng!");
     } finally {
       setIsExportingLayout(false);
     }
@@ -146,21 +161,36 @@ export function RoomList() {
       });
 
       if (!response.ok) {
-        throw new Error('Lỗi xuất báo cáo phòng từ máy chủ');
+        let errorData = 'Lỗi xuất báo cáo phòng từ máy chủ';
+        try {
+          const json = await response.json();
+          errorData = json.error || errorData;
+        } catch {
+          errorData = await response.text();
+        }
+        console.error("Lỗi từ server:", errorData);
+        throw new Error(errorData);
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Bao_Cao_Phong_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `Bao_Cao_Phong_${new Date().toISOString().split('T')[0]}.xlsx`;
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+      }
+
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-       console.error(error);
-       alert("Lỗi xuất file Excel báo cáo. Vui lòng thử lại!");
+       console.error("Chi tiết lỗi xuất Excel:", error);
+       alert(error instanceof Error ? error.message : "Lỗi xuất file Excel báo cáo. Vui lòng thử lại!");
     } finally {
       setIsExporting(false);
     }
