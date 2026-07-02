@@ -99,11 +99,12 @@ export function RoomList() {
 
       if (!response.ok) {
         let errorData = 'Lỗi tạo file Excel sơ đồ phòng';
+        const text = await response.text();
         try {
-          const json = await response.json();
+          const json = JSON.parse(text);
           errorData = json.error || errorData;
         } catch {
-          errorData = await response.text();
+          errorData = text || errorData;
         }
         console.error("Lỗi từ server:", errorData);
         throw new Error(errorData);
@@ -162,11 +163,12 @@ export function RoomList() {
 
       if (!response.ok) {
         let errorData = 'Lỗi xuất báo cáo phòng từ máy chủ';
+        const text = await response.text();
         try {
-          const json = await response.json();
+          const json = JSON.parse(text);
           errorData = json.error || errorData;
         } catch {
-          errorData = await response.text();
+          errorData = text || errorData;
         }
         console.error("Lỗi từ server:", errorData);
         throw new Error(errorData);
