@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ExcelJS from 'exceljs';
 import { useAppContext } from '../lib/context';
 import { Card, CardContent, Badge, Button } from './ui';
 import { User, Check, Clock, X, Save, FileText, Plus, Trash2, Calendar, Paperclip, LogOut, Receipt, Download } from 'lucide-react';
@@ -89,37 +90,55 @@ export function RoomList() {
         };
       });
 
-      const response = await fetch('/api/rooms/export-excel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ roomsData })
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Sơ đồ phòng');
+
+      worksheet.addRow([
+        'Số phòng', 
+        'Trạng thái', 
+        'Mã TT',
+        'Tên khách', 
+        'Số Passport',
+        'Hạn Visa', 
+        'Ngày check-in', 
+        'Ngày check-out',
+        'Lịch dọn phòng'
+      ]);
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { horizontal: 'center' };
+
+      roomsData.forEach(row => {
+        worksheet.addRow([
+          row.roomNumber,
+          row.status,
+          row.statusCode,
+          row.guestName,
+          row.passport,
+          row.visaExpiry,
+          row.checkIn,
+          row.checkOut,
+          row.nextCleaning
+        ]);
       });
 
-      if (!response.ok) {
-        let errorData = 'Lỗi tạo file Excel sơ đồ phòng';
-        const text = await response.text();
-        try {
-          const json = JSON.parse(text);
-          errorData = json.error || errorData;
-        } catch {
-          errorData = text || errorData;
-        }
-        console.error("Lỗi từ server:", errorData);
-        throw new Error(errorData);
-      }
+      // Auto-fit columns
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 12;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 12 ? 12 : maxLength + 2;
+      });
 
-      const blob = await response.blob();
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = `Bao_Cao_So_Do_Phong_${new Date().toISOString().split('T')[0]}.xlsx`;
-      if (contentDisposition && contentDisposition.includes('filename=')) {
-        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
-      }
+      const filename = `Bao_Cao_So_Do_Phong_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       link.setAttribute("download", filename);
       document.body.appendChild(link);
@@ -153,37 +172,57 @@ export function RoomList() {
         };
       });
 
-      const response = await fetch('/api/export-rooms', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ roomsData })
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Quản lý phòng');
+
+      worksheet.addRow([
+        'STT', 
+        'Số phòng', 
+        'Tên người thuê', 
+        'Giá thuê (VND)', 
+        'Số điện đầu',
+        'Số Passport',
+        'Hạn Visa', 
+        'Ngày ở', 
+        'Ngày đi'
+      ]);
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { horizontal: 'center' };
+
+      roomsData.forEach(row => {
+        const itemRow = worksheet.addRow([
+          row.stt,
+          row.number,
+          row.tenantName,
+          row.price,
+          row.initialElectricityMeter,
+          row.passport,
+          row.visa,
+          row.checkIn,
+          row.checkOut
+        ]);
+        
+        itemRow.getCell(4).numFmt = '#,##0';
       });
 
-      if (!response.ok) {
-        let errorData = 'Lỗi xuất báo cáo phòng từ máy chủ';
-        const text = await response.text();
-        try {
-          const json = JSON.parse(text);
-          errorData = json.error || errorData;
-        } catch {
-          errorData = text || errorData;
-        }
-        console.error("Lỗi từ server:", errorData);
-        throw new Error(errorData);
-      }
+      // Auto-fit columns
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 12;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 12 ? 12 : maxLength + 2;
+      });
 
-      const blob = await response.blob();
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = `Bao_Cao_Phong_${new Date().toISOString().split('T')[0]}.xlsx`;
-      if (contentDisposition && contentDisposition.includes('filename=')) {
-        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
-      }
+      const filename = `Bao_Cao_Phong_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       link.setAttribute("download", filename);
       document.body.appendChild(link);

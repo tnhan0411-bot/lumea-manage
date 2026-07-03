@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ExcelJS from 'exceljs';
 import { Card, CardContent, Button } from './ui';
 import { 
   Calendar, Search, Plus, Download, FileText, RefreshCw, 
@@ -177,19 +178,57 @@ export function RoomReports() {
       const res = await fetch(`/api/room-reports?${queryParams.toString()}`);
       if (!res.ok) throw new Error('Không thể tải dữ liệu xuất');
       const data = await res.json();
+      
+      const reports = data.reports || [];
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Lịch sử lưu trú');
 
-      const exportRes = await fetch('/api/export-room-reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reports: data.reports })
+      worksheet.addRow([
+        'STT', 
+        'Số phòng', 
+        'Tên khách', 
+        'Giá thuê (VND)', 
+        'Số điện đầu',
+        'Số Passport',
+        'Hạn Visa', 
+        'Ngày check-in', 
+        'Ngày check-out'
+      ]);
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { horizontal: 'center' };
+
+      reports.forEach((row: any, index: number) => {
+        const itemRow = worksheet.addRow([
+          index + 1,
+          row.room_number,
+          row.guest_name,
+          row.rental_price,
+          row.initial_electricity,
+          row.passport_number || 'N/A',
+          row.visa_expiry ? new Date(row.visa_expiry).toLocaleDateString('vi-VN') : 'N/A',
+          row.check_in ? new Date(row.check_in).toLocaleDateString('vi-VN') : '',
+          row.check_out ? new Date(row.check_out).toLocaleDateString('vi-VN') : ''
+        ]);
+        
+        itemRow.getCell(4).numFmt = '#,##0';
       });
 
-      if (!exportRes.ok) throw new Error('Lỗi tạo file Excel từ server');
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 12;
+          if (columnLength > maxLength) maxLength = columnLength;
+        });
+        column.width = maxLength < 12 ? 12 : maxLength + 2;
+      });
 
-      const blob = await exportRes.blob();
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
+      
       link.setAttribute("download", `Bao_Cao_Luu_Tru_Excel_${new Date().toISOString().split('T')[0]}.xlsx`);
       document.body.appendChild(link);
       link.click();
