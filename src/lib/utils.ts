@@ -145,7 +145,7 @@ export function calculateRentDetails(
   checkInDate.setHours(0, 0, 0, 0);
   checkOutDate.setHours(0, 0, 0, 0);
 
-  const billingEndDateObj = new Date(checkOutDate.getTime() - 24 * 60 * 60 * 1000);
+  const billingEndDateObj = new Date(checkOutDate.getTime());
   const billingEndDate = billingEndDateObj.toISOString().split('T')[0];
 
   let months = 0;
@@ -169,12 +169,7 @@ export function calculateRentDetails(
     oddDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
   }
 
-  // Get the precise number of days in the current month cycle
-  const cycleYear = currentCycleStart.getFullYear();
-  const cycleMonth = currentCycleStart.getMonth();
-  const daysInCycle = new Date(cycleYear, cycleMonth + 1, 0).getDate();
-
-  const dailyRate = Math.round(pricePerMonth / daysInCycle);
+  const dailyRate = Math.round(pricePerMonth / 30);
   const totalRent = (months * pricePerMonth) + (oddDays * dailyRate);
 
   return {
@@ -220,7 +215,7 @@ export function calculateRentForMonth(price: number, leaseStart: string | undefi
     lEnd.setHours(0,0,0,0);
     
     if (!isNaN(lEnd.getTime())) {
-      const billingEndDateObj = new Date(lEnd.getTime() - 24 * 60 * 60 * 1000);
+      const billingEndDateObj = new Date(lEnd.getTime());
       
       if (billingEndDateObj < cycleStart) return 0;
       
@@ -231,9 +226,7 @@ export function calculateRentForMonth(price: number, leaseStart: string | undefi
         const diffTime = billingEndDateObj.getTime() - cycleStart.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         
-        // Calculate dynamic days in the current cycle month
-        const daysInCycle = Math.round((nextCycleStart.getTime() - cycleStart.getTime()) / (1000 * 60 * 60 * 24));
-        return Math.round((price / daysInCycle) * diffDays);
+        return Math.round((price / 30) * diffDays);
       }
     }
   }
