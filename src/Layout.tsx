@@ -14,6 +14,7 @@ import { Electricity } from './components/Electricity';
 import { Login } from './components/Login';
 import { Tasks } from './components/Tasks';
 import { DailyNewsfeed } from './components/DailyNewsfeed';
+import { AIFinancialReport } from './components/AIFinancialReport';
 import { cn } from './lib/utils';
 import { Badge } from './components/ui';
 
@@ -68,6 +69,7 @@ export function Layout() {
           { id: 'electricity', label: 'Quản lý tiền điện', icon: Zap },
           { id: 'billing', label: 'Hóa đơn tiền nhà', icon: Receipt },
           { id: 'reports', label: 'Báo cáo doanh thu', icon: BarChart },
+          { id: 'ai_financial', label: 'Báo cáo AI (Thuế)', icon: Sparkles },
           { id: 'expenses', label: 'Quản lý chi phí', icon: CreditCard },
           { id: 'profile', label: 'Hồ sơ của tôi', icon: Settings },
         ];
@@ -115,6 +117,7 @@ export function Layout() {
         case 'electricity': return <Electricity />;
         case 'billing': return <Billing />;
         case 'reports': return <Reports />;
+        case 'ai_financial': return <AIFinancialReport />;
         case 'contracts': return <Contracts />;
         case 'profile': return <Profile />;
         case 'expenses': return <Expenses />;
