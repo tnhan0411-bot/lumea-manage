@@ -26,7 +26,7 @@ export function AIFinancialReport() {
         data = JSON.parse(text);
       } catch (e) {
         console.error("Non-JSON response:", text);
-        throw new Error(!res.ok ? 'Không tìm thấy API (Lỗi 404/500). Nếu bạn đang chạy trên Vercel, hãy đảm bảo Backend (Express) đã được deploy chính xác.' : 'Lỗi phản hồi từ máy chủ không phải JSON');
+        throw new Error(!res.ok ? 'Lỗi kết nối API. Nếu bạn đang chạy trên Vercel, hãy chờ hệ thống Serverless Function khởi động xong.' : 'Lỗi phản hồi từ máy chủ không phải JSON');
       }
 
       if (!res.ok) throw new Error(data.error || 'Lỗi lấy báo cáo AI');
