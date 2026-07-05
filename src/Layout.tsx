@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2, Edit2, Check } from 'lucide-react';
+import { Building2, LayoutDashboard, Users, Wrench, Receipt, Settings, Bell, User, BarChart, LogOut, Zap, FileText, CreditCard, Menu, X, CheckCircle2, Edit2, Check, Sparkles } from 'lucide-react';
 import { useAppContext } from './lib/context';
 import { Dashboard } from './components/Dashboard';
 import { RoomList } from './components/Rooms';
