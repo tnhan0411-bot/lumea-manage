@@ -96,6 +96,21 @@ Hãy viết một đoạn văn bản tóm tắt ngắn (khoảng 3-4 câu) bằn
     });
   } catch (error: any) {
     console.error('AI Financial Report error:', error);
-    return res.status(500).json({ error: error.message || 'Lỗi khi tạo báo cáo tài chính AI' });
+    let errorMessage = 'Lỗi khi tạo báo cáo tài chính AI';
+    try {
+      if (error.message && error.message.includes('503')) {
+        errorMessage = 'Hệ thống AI đang quá tải (503). Vui lòng thử lại sau ít phút.';
+      } else if (error.message) {
+        const parsed = JSON.parse(error.message);
+        if (parsed.error && parsed.error.message) {
+           errorMessage = parsed.error.message;
+        } else {
+           errorMessage = error.message;
+        }
+      }
+    } catch (e) {
+      errorMessage = error.message || errorMessage;
+    }
+    return res.status(500).json({ error: errorMessage });
   }
 }
