@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -843,7 +844,7 @@ async function startServer() {
   // API Báo cáo Doanh thu AI Tự động
   app.post("/api/ai-financial-report", express.json(), async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: "Chưa cấu hình API Key Gemini. Vui lòng mở menu Settings (biểu tượng bánh răng) > Secrets trong AI Studio và thêm khóa GEMINI_API_KEY." });
+      return res.status(500).json({ error: "Chưa cấu hình API Key Gemini. Vui lòng mở menu Settings (biểu tượng bánh răng) > Secrets trong AI Studio và thêm khóa GEMINI_API_KEY. (Đã fix lỗi cache)" });
     }
     
     try {
