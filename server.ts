@@ -20,10 +20,17 @@ try {
   console.warn("Could not initialize Firebase in server.ts (config might be missing):", error);
 }
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-});
+let aiClient: any = null;
+function getAI() {
+  if (!aiClient) {
+    if (!process.env.GEMINI_API_KEY) throw new Error("Chưa cấu hình API Key Gemini. Vui lòng cấu hình trong Settings > Secrets.");
+    aiClient = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+  }
+  return aiClient;
+}
 
 const parser = new Parser();
 // Use Google News RSS to find national-wide travel, lodging, foreign guests, high-tech crime and fraud news
@@ -82,7 +89,7 @@ Ngày đăng: ${item.pubDate}
 `;
          
          try {
-             const response = await ai.models.generateContent({
+             const response = await getAI().models.generateContent({
                  model: 'gemini-3.5-flash',
                  contents: prompt,
                  config: {
@@ -154,7 +161,7 @@ Ngày đăng: ${item.pubDate}
       - Có ít nhất 1 tin mang sắc thái cảnh báo tiêu cực ("negative") liên quan trực tiếp đến rủi ro quản lý lưu trú, ví dụ: phát hiện triệt phá nhóm đối tượng người nước ngoài thuê căn hộ chung cư cao cấp/biệt thự để tổ chức đánh bạc, lừa đảo công nghệ cao trên mạng xã hội, cảnh báo rủi ro về việc không khai báo tạm trú đầy đủ cho khách nước ngoài tại các homestay, căn hộ du lịch tự quản...
       - Đưa ra kết quả là mảng JSON chứa chính xác 3 đối tượng tin tức.`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: 'gemini-3.5-flash',
         contents: fallbackPrompt,
         config: {
@@ -231,7 +238,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
 
   // API triggers
 
@@ -842,7 +849,7 @@ async function startServer() {
   });
 
   // API Báo cáo Doanh thu AI Tự động
-  app.post("/api/ai-financial-report", express.json(), async (req, res) => {
+  app.post("/api/ai-financial-report", express.json({ limit: '50mb' }), async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ error: "Chưa cấu hình API Key Gemini. Vui lòng mở menu Settings (biểu tượng bánh răng) > Secrets trong AI Studio và thêm khóa GEMINI_API_KEY. (Đã fix lỗi cache)" });
     }
@@ -917,7 +924,7 @@ Hãy viết một đoạn văn bản tóm tắt ngắn (khoảng 3-4 câu) bằn
 3. Gợi ý chiến lược tối ưu phòng hoặc tăng doanh thu dựa trên số liệu.
 Đoạn văn cần chuyên nghiệp, ngắn gọn, súc tích và mạch lạc. Không sử dụng markdown kiểu danh sách, chỉ viết đoạn văn.`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: 'gemini-3.5-flash',
         contents: prompt
       });
@@ -988,7 +995,7 @@ Yêu cầu trường dữ liệu:
 - paymentDate: Ngày thanh toán thực tế nếu có (định dạng YYYY-MM-DD)
 - dueDate: Hạn chót đóng tiền (định dạng YYYY-MM-DD)`;
 
-          const response = await ai.models.generateContent({
+          const response = await getAI().models.generateContent({
             model: 'gemini-3.5-flash',
             contents: [
               {

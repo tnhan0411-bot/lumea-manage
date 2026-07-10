@@ -26,7 +26,7 @@ export function AIFinancialReport() {
         data = JSON.parse(text);
       } catch (e) {
         console.error("Non-JSON response:", text);
-        throw new Error(!res.ok ? 'Lỗi kết nối API. Nếu bạn đang chạy trên Vercel, hãy chờ hệ thống Serverless Function khởi động xong.' : 'Lỗi phản hồi từ máy chủ không phải JSON');
+        throw new Error(!res.ok ? `Lỗi kết nối API (${res.status} ${res.statusText}). Có thể do payload quá lớn hoặc server bị lỗi.` : 'Lỗi phản hồi từ máy chủ không phải JSON');
       }
 
       if (!res.ok) throw new Error(data.error || 'Lỗi lấy báo cáo AI');
