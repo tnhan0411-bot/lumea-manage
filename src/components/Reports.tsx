@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, TrendingDown, DollarSign, Wrench, Sparkles, Receipt, FileBarChart } from 'lucide-react';
 
 export function Reports() {
-  const { invoices, expenses, issues, rooms } = useAppContext();
+  const { invoices, expenses, issues, rooms, tenants } = useAppContext();
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
   const [period, setPeriod] = React.useState('2026-06');
   const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
@@ -20,11 +20,16 @@ export function Reports() {
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
-      const invoicesWithRoomNumber = filteredInvoices.map(inv => ({
+      const invoicesWithRoomNumber = filteredInvoices.map(inv => {
+        const room = rooms.find(r => r.id === inv.roomId);
+        const tenant = tenants.find(t => t.roomId === inv.roomId) || tenants.find(t => t.id === inv.tenantId);
+        return {
         ...inv,
-        roomNumber: rooms.find(r => r.id === inv.roomId)?.number || '',
+        roomNumber: room?.number || '',
+        tenantName: tenant?.name || 'Trống',
         paymentDate: inv.paymentDate || inv.issueDate || ''
-      }));
+        };
+      });
 
       const response = await fetch('/api/export-revenue', {
         method: 'POST',
@@ -88,6 +93,7 @@ export function Reports() {
               <tr>
                 <th>STT</th>
                 <th>Số phòng</th>
+                <th>Người thuê</th>
                 <th>Tháng</th>
                 <th>Ngày nhận tiền</th>
                 <th>Tổng thu (Doanh thu)</th>
@@ -107,6 +113,7 @@ export function Reports() {
 
     filteredInvoices.forEach((inv, index) => {
       const room = rooms.find(r => r.id === inv.roomId);
+      const tenant = tenants.find(t => t.roomId === inv.roomId) || tenants.find(t => t.id === inv.tenantId);
       const actualPaid = inv.status === 'paid' ? inv.total : 0;
       const taxRate = 0.05;
 
@@ -129,6 +136,7 @@ export function Reports() {
         <tr>
           <td>${index + 1}</td>
           <td>P.${room?.number || ''}</td>
+          <td>${tenant?.name || 'Trống'}</td>
           <td>${inv.month}</td>
           <td>${inv.paymentDate || inv.issueDate || '-'}</td>
           <td>${actualPaid.toLocaleString()} đ</td>
@@ -614,6 +622,7 @@ export function Reports() {
                   <tr>
                     <th className="px-6 py-3 font-medium">Kỳ thu</th>
                     <th className="px-6 py-3 font-medium">Phòng</th>
+                    <th className="px-6 py-3 font-medium">Người thuê</th>
                     <th className="px-6 py-3 font-medium">Đơn giá phòng</th>
                     <th className="px-6 py-3 font-medium">Tổng thu</th>
                     <th className="px-6 py-3 font-medium">Ngày nhận tiền</th>
@@ -625,6 +634,7 @@ export function Reports() {
                     <tr key={inv.id} className="text-sm border-b border-[#334155]/50 hover:bg-[#334155]/10">
                        <td className="px-6 py-3 text-[#94a3b8]">{inv.month}</td>
                        <td className="px-6 py-3 text-[#f8fafc] font-medium">P.{rooms.find(r => r.id === inv.roomId)?.number}</td>
+                       <td className="px-6 py-3 text-[#94a3b8]">{tenants.find(t => t.roomId === inv.roomId || t.id === inv.tenantId)?.name || 'Trống'}</td>
                        <td className="px-6 py-3 text-[#f8fafc]">{inv.rent.toLocaleString()}đ</td>
                        <td className="px-6 py-3 text-[#10b981] font-bold">{inv.total.toLocaleString()}đ</td>
                        <td className="px-6 py-3 text-[#94a3b8]">{inv.paymentDate || '-'}</td>

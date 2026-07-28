@@ -512,6 +512,7 @@ async function startServer() {
       const headerRow = worksheet.addRow([
         'STT', 
         'Số phòng', 
+        'Người thuê',
         'Tháng',
         'Ngày nhận tiền', 
         'Tổng thu (Doanh thu)', 
@@ -560,6 +561,7 @@ async function startServer() {
         const row = worksheet.addRow([
           index + 1,
           inv.roomNumber || '',
+          inv.tenantName || 'Trống',
           inv.month || '',
           inv.paymentDate || '',
           actualPaid,

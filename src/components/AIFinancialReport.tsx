@@ -156,7 +156,7 @@ export function AIFinancialReport() {
                   <div className="p-3 rounded-full bg-[#38bdf8]/10 text-[#38bdf8]">
                     <DollarSign className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="border-[#38bdf8]/30 text-[#38bdf8]">Gross</Badge>
+                  <Badge variant="default" className="border-[#38bdf8]/30 text-[#38bdf8]">Gross</Badge>
                 </div>
                 <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Tổng Doanh Thu Tháng</h3>
                 <div className="text-2xl font-bold text-[#f8fafc]">{reportData.grossRevenue.toLocaleString('vi-VN')} <span className="text-sm text-[#94a3b8] font-normal">đ</span></div>
@@ -170,7 +170,7 @@ export function AIFinancialReport() {
                   <div className="p-3 rounded-full bg-[#8b5cf6]/10 text-[#8b5cf6]">
                     <ArrowUpRight className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="border-[#8b5cf6]/30 text-[#8b5cf6]">YTD</Badge>
+                  <Badge variant="default" className="border-[#8b5cf6]/30 text-[#8b5cf6]">YTD</Badge>
                 </div>
                 <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Doanh Thu Lũy Kế</h3>
                 <div className="text-2xl font-bold text-[#8b5cf6]">{reportData.ytdRevenue.toLocaleString('vi-VN')} <span className="text-sm text-[#8b5cf6]/70 font-normal">đ</span></div>
@@ -184,7 +184,7 @@ export function AIFinancialReport() {
                   <div className="p-3 rounded-full bg-[#ef4444]/10 text-[#ef4444]">
                     <Calculator className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="border-[#ef4444]/30 text-[#ef4444]">5%</Badge>
+                  <Badge variant="default" className="border-[#ef4444]/30 text-[#ef4444]">5%</Badge>
                 </div>
                 <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Thuế GTGT (VAT)</h3>
                 <div className="text-2xl font-bold text-[#ef4444]">{reportData.vatTax.toLocaleString('vi-VN')} <span className="text-sm text-[#ef4444]/70 font-normal">đ</span></div>
@@ -198,7 +198,7 @@ export function AIFinancialReport() {
                   <div className="p-3 rounded-full bg-[#f59e0b]/10 text-[#f59e0b]">
                     <Calculator className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="border-[#f59e0b]/30 text-[#f59e0b]">2%</Badge>
+                  <Badge variant="default" className="border-[#f59e0b]/30 text-[#f59e0b]">2%</Badge>
                 </div>
                 <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Thuế TNCN (PIT)</h3>
                 <div className="text-2xl font-bold text-[#f59e0b]">{reportData.pitTax.toLocaleString('vi-VN')} <span className="text-sm text-[#f59e0b]/70 font-normal">đ</span></div>
@@ -212,7 +212,7 @@ export function AIFinancialReport() {
                   <div className="p-3 rounded-full bg-[#10b981]/10 text-[#10b981]">
                     <ArrowUpRight className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="border-[#10b981]/30 text-[#10b981]">Net</Badge>
+                  <Badge variant="default" className="border-[#10b981]/30 text-[#10b981]">Net</Badge>
                 </div>
                 <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Doanh Thu Ròng</h3>
                 <div className="text-2xl font-bold text-[#10b981]">{reportData.netRevenue.toLocaleString('vi-VN')} <span className="text-sm text-[#10b981]/70 font-normal">đ</span></div>
