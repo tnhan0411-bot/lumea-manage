@@ -20,19 +20,28 @@ export function AIFinancialReport() {
         body: JSON.stringify({ invoices, period })
       });
       
+      if (res.status === 404) {
+        throw new Error('Lỗi 404: Không tìm thấy đường dẫn API');
+      }
+      
+      if (res.status === 413) {
+        throw new Error('Lỗi 413: Dữ liệu tải lên quá lớn');
+      }
+      
       const text = await res.text();
       let data;
       try {
         data = JSON.parse(text);
       } catch (e) {
         console.error("Non-JSON response:", text);
-        throw new Error(!res.ok ? `Lỗi kết nối API (${res.status} ${res.statusText}). Có thể do payload quá lớn hoặc server bị lỗi.` : 'Lỗi phản hồi từ máy chủ không phải JSON');
+        throw new Error(!res.ok ? `Lỗi kết nối API (${res.status} ${res.statusText}).` : 'Lỗi phản hồi từ máy chủ không phải JSON');
       }
 
       if (!res.ok) throw new Error(data.error || 'Lỗi lấy báo cáo AI');
       
       setReportData(data);
     } catch (err: any) {
+      console.log("Chi tiết lỗi API:", err.response || err);
       console.error(err);
       setError(err.message);
     } finally {
