@@ -571,10 +571,10 @@ async function startServer() {
           inv.status === 'paid' ? 'Đã thu' : (inv.status === 'pending' ? 'Chưa thu' : 'Khác')
         ]);
 
-        row.getCell(5).numFmt = '#,##0';
         row.getCell(6).numFmt = '#,##0';
         row.getCell(7).numFmt = '#,##0';
         row.getCell(8).numFmt = '#,##0';
+        row.getCell(9).numFmt = '#,##0';
       });
 
       // Total Row
@@ -582,6 +582,7 @@ async function startServer() {
         'TỔNG TỚI THỜI ĐIỂM BÁO CÁO', 
         '', 
         '', 
+        '',
         '',
         totalRevenue,
         totalGTGT,
@@ -593,15 +594,15 @@ async function startServer() {
       totalRow.eachCell((cell, colNumber) => {
         cell.font = { bold: true };
         cell.border = { top: { style: 'double' } };
-        if (colNumber >= 5 && colNumber <= 8) {
+        if (colNumber >= 6 && colNumber <= 9) {
           cell.numFmt = '#,##0';
         }
       });
       
-      worksheet.mergeCells(`A${totalRow.number}:D${totalRow.number}`);
+      worksheet.mergeCells(`A${totalRow.number}:E${totalRow.number}`);
       totalRow.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
 
-      const maxColRev = 9;
+      const maxColRev = 10;
       const colWidthsRev = Array(maxColRev + 1).fill(12);
       worksheet.eachRow((row, rowNum) => {
         if (rowNum === 1) return; // skip header
