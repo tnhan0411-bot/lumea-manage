@@ -187,8 +187,20 @@ export function Expenses() {
             >
               <option value="2026-Q1">Quý 1 / 2026</option>
               <option value="2026-Q2">Quý 2 / 2026</option>
+              <option value="2026-Q3">Quý 3 / 2026</option>
+              <option value="2026-Q4">Quý 4 / 2026</option>
+              <option value="2026-01">Tháng 1 / 2026</option>
+              <option value="2026-02">Tháng 2 / 2026</option>
+              <option value="2026-03">Tháng 3 / 2026</option>
               <option value="2026-04">Tháng 4 / 2026</option>
               <option value="2026-05">Tháng 5 / 2026</option>
+              <option value="2026-06">Tháng 6 / 2026</option>
+              <option value="2026-07">Tháng 7 / 2026</option>
+              <option value="2026-08">Tháng 8 / 2026</option>
+              <option value="2026-09">Tháng 9 / 2026</option>
+              <option value="2026-10">Tháng 10 / 2026</option>
+              <option value="2026-11">Tháng 11 / 2026</option>
+              <option value="2026-12">Tháng 12 / 2026</option>
             </select>
           )}
 

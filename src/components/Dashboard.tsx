@@ -479,8 +479,8 @@ export function Dashboard() {
   // Landlord Dashboard
   const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
   const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
-  const activeIssuesCount = (issues || []).filter(i => i.type === 'repair' && i.status !== 'resolved').length;
-  const activeTasksCount = activeIssuesCount + (tasks || []).filter(t => t.status !== 'completed').length;
+  const activeIssuesCount = (issues || []).filter(i => i.status !== 'resolved').length;
+  const activeTasksCount = activeIssuesCount;
   
   const [filterMode, setFilterMode] = React.useState<'period' | 'range'>('period');
   const [showAllVisas, setShowAllVisas] = React.useState(false);
@@ -1154,6 +1154,57 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
+
+        <Card>
+          <CardHeader title="Theo dõi Visa (Stamp)" />
+          <CardContent>
+            <div className="space-y-4">
+              {visaExpirations.length === 0 ? (
+                <p className="text-sm text-[#94a3b8] italic">Không có dữ liệu visa.</p>
+              ) : (
+                (showAllVisas ? visaExpirations : visaExpirations.slice(0, 5)).map(v => (
+                  <div key={v.id + (v._isSecondary ? '_2' : '_1')} className="group p-3 rounded-lg bg-[#0f172a] border border-[#334155] hover:border-[#38bdf8]/30 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                       <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-[#1e293b] flex items-center justify-center text-[10px] font-bold text-[#f8fafc]">
+                          {(v.displayTitle || 'U').charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-[#f8fafc]">{v.displayTitle}</p>
+                          <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === v.roomId)?.number} {v.displayPassportInfo ? `• HC: ${v.displayPassportInfo}` : ''}</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleDismissVisa(v)}
+                        className="p-1.5 text-[#64748b] hover:text-[#ef4444] transition-colors bg-[#1e293b] rounded opacity-0 group-hover:opacity-100"
+                        title="Đã xử lý (Ẩn thông báo)"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <div className="flex justify-between items-end mt-2 pt-2 border-t border-[#334155]/30">
+                       <p className="text-[9px] text-[#64748b]">{v.visaExpiry}</p>
+                       <p className={cn("text-[10px] font-bold", v.daysLeft <= 7 ? "text-[#ef4444]" : v.daysLeft <= 15 ? "text-[#f59e0b]" : "text-[#10b981]")}>
+                         {v.daysLeft <= 0 ? 'Đã hết hạn' : `Còn ${v.daysLeft} ngày`}
+                       </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {visaExpirations.length > 5 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full text-[10px] text-[#38bdf8]"
+                  onClick={() => setShowAllVisas(!showAllVisas)}
+                >
+                  {showAllVisas ? 'Thu gọn' : 'Xem tất cả'}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Quản lý hiển thị tên Tháng & Chi tiết doanh thu (YÊU CẦU 3) */}
         {role === 'landlord' && (
           <Card className="lg:col-span-3">
@@ -1205,56 +1256,6 @@ export function Dashboard() {
             </CardContent>
           </Card>
         )}
-
-        <Card>
-          <CardHeader title="Theo dõi Visa (Stamp)" />
-          <CardContent>
-            <div className="space-y-4">
-              {visaExpirations.length === 0 ? (
-                <p className="text-sm text-[#94a3b8] italic">Không có dữ liệu visa.</p>
-              ) : (
-                (showAllVisas ? visaExpirations : visaExpirations.slice(0, 5)).map(v => (
-                  <div key={v.id + (v._isSecondary ? '_2' : '_1')} className="group p-3 rounded-lg bg-[#0f172a] border border-[#334155] hover:border-[#38bdf8]/30 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-[#1e293b] flex items-center justify-center text-[10px] font-bold text-[#f8fafc]">
-                          {(v.displayTitle || 'U').charAt(0)}
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-[#f8fafc]">{v.displayTitle}</p>
-                          <p className="text-[10px] text-[#94a3b8]">Phòng {rooms.find(r => r.id === v.roomId)?.number} {v.displayPassportInfo ? `• HC: ${v.displayPassportInfo}` : ''}</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => handleDismissVisa(v)}
-                        className="p-1.5 text-[#64748b] hover:text-[#ef4444] transition-colors bg-[#1e293b] rounded opacity-0 group-hover:opacity-100"
-                        title="Đã xử lý (Ẩn thông báo)"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                    <div className="flex justify-between items-end mt-2 pt-2 border-t border-[#334155]/30">
-                       <p className="text-[9px] text-[#64748b]">{v.visaExpiry}</p>
-                       <p className={cn("text-[10px] font-bold", v.daysLeft <= 7 ? "text-[#ef4444]" : v.daysLeft <= 15 ? "text-[#f59e0b]" : "text-[#10b981]")}>
-                         {v.daysLeft <= 0 ? 'Đã hết hạn' : `Còn ${v.daysLeft} ngày`}
-                       </p>
-                    </div>
-                  </div>
-                ))
-              )}
-              {visaExpirations.length > 5 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full text-[10px] text-[#38bdf8]"
-                  onClick={() => setShowAllVisas(!showAllVisas)}
-                >
-                  {showAllVisas ? 'Thu gọn' : 'Xem tất cả'}
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader title={
