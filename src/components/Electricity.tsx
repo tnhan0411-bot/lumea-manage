@@ -5,7 +5,7 @@ import { Zap, Calculator, Calendar } from 'lucide-react';
 import { Room, ElectricityRecord } from '../lib/utils';
 
 export function Electricity() {
-  const { role, rooms, electricityRecords, addElectricityRecord, updateElectricityRecord, payElectricity } = useAppContext();
+  const { role, rooms, electricityRecords, addElectricityRecord, updateElectricityRecord, deleteElectricityRecord, payElectricity } = useAppContext();
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempInitMeter, setTempInitMeter] = useState<number | ''>('');
@@ -33,6 +33,12 @@ export function Electricity() {
       cost
     });
     setEditingId(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Bạn có chắc chắn muốn xóa bản ghi này?")) {
+      await deleteElectricityRecord(id);
+    }
   };
 
   const handleGenerateMonth = async () => {
@@ -148,9 +154,14 @@ export function Electricity() {
                         <span>Đầu: {record.initialMeter}</span>
                         <span className="text-white">Cuối: {record.finalMeter || '?'}</span>
                         {role === 'landlord' && record.status === 'pending' && (
-                          <button onClick={() => handleEdit(record)} className="text-[10px] text-[#38bdf8] opacity-0 group-hover:opacity-100 transition-opacity mt-1 text-left">
-                            Sửa số liệu
-                          </button>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                            <button onClick={() => handleEdit(record)} className="text-[10px] text-[#38bdf8]">
+                              Sửa số liệu
+                            </button>
+                            <button onClick={() => handleDelete(record.id)} className="text-[10px] text-[#ef4444]">
+                              Xóa
+                            </button>
+                          </div>
                         )}
                       </div>
                     )}

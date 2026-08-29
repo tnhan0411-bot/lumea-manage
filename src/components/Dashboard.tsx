@@ -4,7 +4,7 @@ import { useAppContext } from '../lib/context';
 import { Card, CardContent, CardHeader, Badge, Button } from './ui';
 import { Users, Home, AlertCircle, DollarSign, Wrench, Calendar, CheckCircle, Sparkles, BarChart as BarChartIcon, X, CheckCircle2, FileDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { cn, formatVND } from '../lib/utils';
+import { cn, formatVND, formatDate } from '../lib/utils';
 
 export function Dashboard() {
   const { user, role, rooms, tenants, issues, invoices, currentTenantId, expenses, checkMonthlyBilling, updateIssue, updateRoom, tasks, appName, customMonths, updateCustomMonth, updateTenant } = useAppContext();
@@ -489,16 +489,20 @@ export function Dashboard() {
   const visaExpirations = tenants.reduce((acc, t) => {
     if (t.visaExpiry && !t.visaHandled) {
       const expiryDate = new Date(t.visaExpiry);
+      expiryDate.setHours(0, 0, 0, 0);
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
       const diffTime = expiryDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
       acc.push({ ...t, daysLeft: diffDays, _isSecondary: false, displayTitle: t.name, displayPassportInfo: t.passportNumber });
     }
     if (t.secondaryVisaExpiry && t.secondaryName && !t.secondaryVisaHandled) {
       const expiryDate = new Date(t.secondaryVisaExpiry);
+      expiryDate.setHours(0, 0, 0, 0);
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
       const diffTime = expiryDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
       acc.push({ ...t, daysLeft: diffDays, _isSecondary: true, displayTitle: t.secondaryName, visaExpiry: t.secondaryVisaExpiry, displayPassportInfo: t.secondaryPassportNumber });
     }
     return acc;
@@ -1183,7 +1187,7 @@ export function Dashboard() {
                       </button>
                     </div>
                     <div className="flex justify-between items-end mt-2 pt-2 border-t border-[#334155]/30">
-                       <p className="text-[9px] text-[#64748b]">{v.visaExpiry}</p>
+                       <p className="text-[9px] text-[#64748b]">{formatDate(v.visaExpiry)}</p>
                        <p className={cn("text-[10px] font-bold", v.daysLeft <= 7 ? "text-[#ef4444]" : v.daysLeft <= 15 ? "text-[#f59e0b]" : "text-[#10b981]")}>
                          {v.daysLeft <= 0 ? 'Đã hết hạn' : `Còn ${v.daysLeft} ngày`}
                        </p>
