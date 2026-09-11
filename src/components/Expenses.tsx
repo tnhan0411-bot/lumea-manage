@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ExcelJS from 'exceljs';
 import { useAppContext } from '../lib/context';
 import { Card, CardHeader, CardContent, Badge, Button } from './ui';
 import { CreditCard, Plus, Trash2, Calendar, DollarSign, Tag, FileText, Edit2 } from 'lucide-react';
@@ -109,18 +110,89 @@ export function Expenses() {
 
   const totalExpense = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const handleExportCSV = () => {
-    let csvContent = "ID,Ngày,Hạng mục,Số tiền,Mô tả\n";
-    filteredExpenses.forEach(exp => {
-      const catLabel = getCategoryLabel(exp.category);
-      const desc = exp.description ? `"${exp.description.replace(/"/g, '""')}"` : "";
-      csvContent += `${exp.id},${exp.date},"${catLabel}",${exp.amount},${desc}\n`;
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Summary Sheet
+    const summarySheet = workbook.addWorksheet('Tổng hợp chi phí');
+    summarySheet.columns = [
+      { header: 'Hạng mục', key: 'category', width: 30 },
+      { header: 'Tổng tiền', key: 'total', width: 20 },
+      { header: 'Tỷ trọng', key: 'percent', width: 15 },
+    ];
+    
+    summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    summarySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+
+    EXPENSE_CATEGORIES.forEach(cat => {
+      const catTotal = filteredExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + e.amount, 0);
+      const percent = totalExpense > 0 ? (catTotal / totalExpense) * 100 : 0;
+      if (catTotal > 0) {
+        const row = summarySheet.addRow({
+          category: cat.label,
+          total: catTotal,
+          percent: `${percent.toFixed(1)}%`
+        });
+        row.getCell('total').numFmt = '#,##0';
+      }
     });
-    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    summarySheet.addRow({ category: 'TỔNG CỘNG', total: totalExpense, percent: '100%' })
+      .font = { bold: true, color: { argb: 'FFEF4444' } };
+
+    // All Details Sheet
+    const detailSheet = workbook.addWorksheet('Chi tiết tất cả');
+    detailSheet.columns = [
+      { header: 'Ngày', key: 'date', width: 15 },
+      { header: 'Hạng mục', key: 'category', width: 25 },
+      { header: 'Số tiền', key: 'amount', width: 20 },
+      { header: 'Mô tả', key: 'description', width: 40 },
+    ];
+    detailSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    detailSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+
+    filteredExpenses.sort((a, b) => a.date.localeCompare(b.date)).forEach(exp => {
+      const row = detailSheet.addRow({
+        date: exp.date,
+        category: getCategoryLabel(exp.category),
+        amount: exp.amount,
+        description: exp.description || ''
+      });
+      row.getCell('amount').numFmt = '#,##0';
+    });
+
+    // Individual Category Sheets
+    EXPENSE_CATEGORIES.forEach(cat => {
+      const catExpenses = filteredExpenses.filter(e => e.category === cat.id);
+      if (catExpenses.length > 0) {
+        // limit sheet name length to 31 chars as per Excel limit
+        const sheetName = cat.label.substring(0, 31).replace(/[\\/?*[\]]/g, '');
+        const catSheet = workbook.addWorksheet(sheetName);
+        catSheet.columns = [
+          { header: 'Ngày', key: 'date', width: 15 },
+          { header: 'Số tiền', key: 'amount', width: 20 },
+          { header: 'Mô tả', key: 'description', width: 40 },
+        ];
+        catSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        catSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+
+        catExpenses.sort((a, b) => a.date.localeCompare(b.date)).forEach(exp => {
+          const row = catSheet.addRow({
+            date: exp.date,
+            amount: exp.amount,
+            description: exp.description || ''
+          });
+          row.getCell('amount').numFmt = '#,##0';
+        });
+      }
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Bao_Cao_Chi_Phi_${new Date().toISOString().split('T')[0]}.csv`);
+    link.href = url;
+    link.download = `Bao_Cao_Chi_Phi_${new Date().toISOString().split('T')[0]}.xlsx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -215,7 +287,7 @@ export function Expenses() {
              ))}
           </select>
           
-          <Button variant="outline" onClick={handleExportCSV}>
+          <Button variant="outline" onClick={handleExportExcel}>
             <FileText size={18} className="mr-2" /> Xuất Excel
           </Button>
 
