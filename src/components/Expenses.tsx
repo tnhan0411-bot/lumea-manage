@@ -9,6 +9,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 const EXPENSE_CATEGORIES = [
   { id: 'salary', label: 'Lương nhân sự', color: 'text-blue-400 bg-blue-400/10', fill: '#60a5fa' },
   { id: 'cleaning', label: 'Dịch vụ vệ sinh', color: 'text-purple-400 bg-purple-400/10', fill: '#c084fc' },
+  { id: 'meals', label: 'Chi phí cơm ca', color: 'text-cyan-400 bg-cyan-400/10', fill: '#22d3ee' },
   { id: 'tools', label: 'Mua công cụ/dụng cụ', color: 'text-amber-400 bg-amber-400/10', fill: '#fbbf24' },
   { id: 'operation', label: 'Chi phí vận hành khác', color: 'text-emerald-400 bg-emerald-400/10', fill: '#34d399' },
   { id: 'maintenance', label: 'Chi phí bảo trì/sửa chữa', color: 'text-rose-400 bg-rose-400/10', fill: '#fb7185' },

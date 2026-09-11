@@ -58,7 +58,7 @@ export interface Expense {
   id: string;
   title: string;
   amount: number;
-  category: 'electricity' | 'water' | 'maintenance' | 'staff' | 'cleaning' | 'tools' | 'operation' | 'other' | 'interest';
+  category: 'electricity' | 'water' | 'maintenance' | 'staff' | 'cleaning' | 'tools' | 'operation' | 'other' | 'interest' | 'meals';
   date: string;
   description?: string;
 }
