@@ -487,23 +487,47 @@ export function Dashboard() {
 
   // Visa Expiration Tracking
   const visaExpirations = tenants.reduce((acc, t) => {
+    // Only check active tenants in occupied rooms
+    const room = rooms.find(r => r.id === t.roomId);
+    if (!room || room.status !== 'occupied') return acc;
+
+    const parseRobustDate = (dStr: string) => {
+       if (dStr.includes('/')) {
+          const parts = dStr.split('/');
+          if (parts.length === 3 && parts[2].length === 4) {
+             return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+          }
+       }
+       if (dStr.includes('-')) {
+          const parts = dStr.split('-');
+          if (parts.length === 3 && parts[2].length === 4) {
+             return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+          }
+       }
+       return new Date(dStr);
+    };
+
     if (t.visaExpiry && !t.visaHandled) {
-      const expiryDate = new Date(t.visaExpiry);
-      expiryDate.setHours(0, 0, 0, 0);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const diffTime = expiryDate.getTime() - today.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      acc.push({ ...t, daysLeft: diffDays, _isSecondary: false, displayTitle: t.name, displayPassportInfo: t.passportNumber });
+      const expiryDate = parseRobustDate(t.visaExpiry);
+      if (!isNaN(expiryDate.getTime())) {
+        expiryDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffTime = expiryDate.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        acc.push({ ...t, daysLeft: diffDays, _isSecondary: false, displayTitle: t.name, displayPassportInfo: t.passportNumber });
+      }
     }
     if (t.secondaryVisaExpiry && t.secondaryName && !t.secondaryVisaHandled) {
-      const expiryDate = new Date(t.secondaryVisaExpiry);
-      expiryDate.setHours(0, 0, 0, 0);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const diffTime = expiryDate.getTime() - today.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      acc.push({ ...t, daysLeft: diffDays, _isSecondary: true, displayTitle: t.secondaryName, visaExpiry: t.secondaryVisaExpiry, displayPassportInfo: t.secondaryPassportNumber });
+      const expiryDate = parseRobustDate(t.secondaryVisaExpiry);
+      if (!isNaN(expiryDate.getTime())) {
+        expiryDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffTime = expiryDate.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        acc.push({ ...t, daysLeft: diffDays, _isSecondary: true, displayTitle: t.secondaryName, visaExpiry: t.secondaryVisaExpiry, displayPassportInfo: t.secondaryPassportNumber });
+      }
     }
     return acc;
   }, [] as any[]).sort((a, b) => a.daysLeft - b.daysLeft);

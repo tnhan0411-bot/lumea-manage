@@ -382,6 +382,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTenant = async (id: string, updates: Partial<Tenant>) => {
+    const currentTenant = tenants.find(t => t.id === id);
+    if (currentTenant) {
+      if (updates.visaExpiry && updates.visaExpiry !== currentTenant.visaExpiry) {
+        updates.visaHandled = false;
+      }
+      if (updates.secondaryVisaExpiry && updates.secondaryVisaExpiry !== currentTenant.secondaryVisaExpiry) {
+        updates.secondaryVisaHandled = false;
+      }
+    }
     const newItems = tenants.map(t => t.id === id ? { ...t, ...updates } : t);
     setTenants(newItems);
     await syncToDb('tenants', newItems);
