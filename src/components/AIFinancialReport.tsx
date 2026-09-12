@@ -25,7 +25,7 @@ export function AIFinancialReport() {
       });
       
       if (res.status === 404) {
-        throw new Error('Lỗi 404: Không tìm thấy đường dẫn API');
+        throw new Error(`Lỗi 404: Không tìm thấy đường dẫn API (/api/ai-financial-report). Đảm bảo server đang chạy phiên bản mới nhất.`);
       }
       
       if (res.status === 413) {
