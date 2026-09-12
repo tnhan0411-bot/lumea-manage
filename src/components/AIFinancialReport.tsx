@@ -4,11 +4,15 @@ import { Sparkles, DollarSign, Download, ArrowUpRight, Calculator, RefreshCw } f
 import { useAppContext } from '../lib/context';
 
 export function AIFinancialReport() {
-  const { invoices } = useAppContext();
+  const { invoices, expenses } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
+  const [periodMode, setPeriodMode] = useState<'month' | 'quarter'>('month');
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7)); // Default current month YYYY-MM
+  const [quarterStr, setQuarterStr] = useState(`${new Date().getFullYear()}-Q${Math.floor(new Date().getMonth()/3) + 1}`);
   const [error, setError] = useState<string | null>(null);
+
+  const activePeriod = periodMode === 'month' ? period : quarterStr;
 
   const fetchAIReport = async () => {
     setLoading(true);
@@ -17,7 +21,7 @@ export function AIFinancialReport() {
       const res = await fetch('/api/ai-financial-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoices, period })
+        body: JSON.stringify({ invoices, expenses, period: activePeriod })
       });
       
       if (res.status === 404) {
@@ -51,7 +55,7 @@ export function AIFinancialReport() {
 
   useEffect(() => {
     fetchAIReport();
-  }, [period]);
+  }, [activePeriod]);
 
   const handleExport = () => {
     if (!reportData) return;
@@ -61,7 +65,7 @@ export function AIFinancialReport() {
     const html = `
       <html>
         <head>
-          <title>Báo cáo Tài chính - ${period}</title>
+          <title>Báo cáo Tài chính - ${activePeriod}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
             h1 { color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -72,17 +76,22 @@ export function AIFinancialReport() {
             .text-red { color: #ef4444; }
             .text-green { color: #10b981; }
             .text-blue { color: #3b82f6; }
+            .text-orange { color: #f59e0b; }
             .ai-box { margin-top: 30px; padding: 20px; border-radius: 8px; background: #eff6ff; border: 1px solid #bfdbfe; }
             .ai-box h2 { margin-top: 0; color: #1e40af; font-size: 18px; }
             .ai-box p { line-height: 1.6; color: #1e3a8a; }
           </style>
         </head>
         <body>
-          <h1>Báo Cáo Tài Chính Hộ Kinh Doanh - ${period}</h1>
+          <h1>Báo Cáo Tài Chính Hộ Kinh Doanh - Kỳ: ${activePeriod}</h1>
           <div class="grid">
             <div class="card">
-              <h3>Tổng Doanh Thu Tháng</h3>
+              <h3>Tổng Doanh Thu</h3>
               <p class="text-blue">${reportData.grossRevenue.toLocaleString('vi-VN')} đ</p>
+            </div>
+            <div class="card">
+              <h3>Tổng Chi Phí</h3>
+              <p class="text-orange">${reportData.totalExpense?.toLocaleString('vi-VN') || 0} đ</p>
             </div>
             <div class="card">
               <h3>Doanh Thu Lũy Kế YTD</h3>
@@ -97,7 +106,7 @@ export function AIFinancialReport() {
               <p class="text-red">${reportData.pitTax.toLocaleString('vi-VN')} đ</p>
             </div>
             <div class="card">
-              <h3>Doanh Thu Ròng</h3>
+              <h3>Lợi Nhuận Ròng</h3>
               <p class="text-green">${reportData.netRevenue.toLocaleString('vi-VN')} đ</p>
             </div>
           </div>
@@ -115,26 +124,57 @@ export function AIFinancialReport() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-[#f8fafc] flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#38bdf8]" />
             Báo cáo Tài chính AI
           </h2>
-          <p className="text-sm text-[#94a3b8]">Tự động tổng hợp và phân tích doanh thu hộ kinh doanh</p>
+          <p className="text-sm text-[#94a3b8]">Tự động tổng hợp và phân tích doanh thu, chi phí hộ kinh doanh</p>
         </div>
-        <div className="flex items-center gap-3">
-          <input 
-            type="month" 
-            value={period}
-            onChange={e => setPeriod(e.target.value)}
-            className="bg-[#0f172a] border border-[#334155] text-[#f8fafc] px-3 py-2 rounded-xl text-sm outline-none focus:border-[#38bdf8]"
-          />
-          <Button onClick={fetchAIReport} disabled={loading} className="bg-[#1e293b] hover:bg-[#334155] text-[#f8fafc] border border-[#334155]">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-1 flex">
+            <button 
+              onClick={() => setPeriodMode('month')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${periodMode === 'month' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]"}`}
+            >
+              Tháng
+            </button>
+            <button 
+              onClick={() => setPeriodMode('quarter')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${periodMode === 'quarter' ? "bg-[#38bdf8]/20 text-[#38bdf8]" : "text-[#94a3b8] hover:text-[#f8fafc]"}`}
+            >
+              Quý
+            </button>
+          </div>
+
+          {periodMode === 'month' ? (
+            <input 
+              type="month" 
+              value={period}
+              onChange={e => setPeriod(e.target.value)}
+              className="bg-[#0f172a] border border-[#334155] text-[#f8fafc] px-3 py-1.5 rounded-xl text-sm outline-none focus:border-[#38bdf8]"
+            />
+          ) : (
+            <select 
+              value={quarterStr}
+              onChange={e => setQuarterStr(e.target.value)}
+              className="bg-[#0f172a] border border-[#334155] text-[#f8fafc] px-3 py-1.5 rounded-xl text-sm outline-none focus:border-[#38bdf8]"
+            >
+              {[0,1,2,3,4].map(y => {
+                 const year = new Date().getFullYear() - y;
+                 return [1,2,3,4].map(q => (
+                    <option key={`${year}-Q${q}`} value={`${year}-Q${q}`}>{year} - Quý {q}</option>
+                 ));
+              })}
+            </select>
+          )}
+
+          <Button onClick={fetchAIReport} disabled={loading} className="bg-[#1e293b] hover:bg-[#334155] text-[#f8fafc] border border-[#334155] h-9">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Làm mới
           </Button>
-          <Button onClick={handleExport} disabled={!reportData || loading} className="bg-[#38bdf8] text-[#0f172a] hover:bg-[#0284c7]">
+          <Button onClick={handleExport} disabled={!reportData || loading} className="bg-[#38bdf8] text-[#0f172a] hover:bg-[#0284c7] h-9">
             <Download className="w-4 h-4 mr-2" />
             Xuất báo cáo
           </Button>
@@ -149,7 +189,7 @@ export function AIFinancialReport() {
 
       {reportData && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <Card className="bg-[#0f172a]/50 border-[#334155]">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -158,8 +198,22 @@ export function AIFinancialReport() {
                   </div>
                   <Badge variant="default" className="border-[#38bdf8]/30 text-[#38bdf8]">Gross</Badge>
                 </div>
-                <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Tổng Doanh Thu Tháng</h3>
-                <div className="text-2xl font-bold text-[#f8fafc]">{reportData.grossRevenue.toLocaleString('vi-VN')} <span className="text-sm text-[#94a3b8] font-normal">đ</span></div>
+                <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Tổng Doanh Thu</h3>
+                <div className="text-xl lg:text-2xl font-bold text-[#f8fafc]">{reportData.grossRevenue.toLocaleString('vi-VN')}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#0f172a]/50 border-[#f59e0b]/30 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-[#f59e0b]/5 blur-2xl rounded-full"></div>
+              <CardContent className="p-6 relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-full bg-[#f59e0b]/10 text-[#f59e0b]">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <Badge variant="default" className="border-[#f59e0b]/30 text-[#f59e0b]">Exp</Badge>
+                </div>
+                <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Tổng Chi Phí</h3>
+                <div className="text-xl lg:text-2xl font-bold text-[#f59e0b]">{reportData.totalExpense?.toLocaleString('vi-VN') || 0}</div>
               </CardContent>
             </Card>
 
@@ -172,8 +226,8 @@ export function AIFinancialReport() {
                   </div>
                   <Badge variant="default" className="border-[#8b5cf6]/30 text-[#8b5cf6]">YTD</Badge>
                 </div>
-                <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Doanh Thu Lũy Kế</h3>
-                <div className="text-2xl font-bold text-[#8b5cf6]">{reportData.ytdRevenue.toLocaleString('vi-VN')} <span className="text-sm text-[#8b5cf6]/70 font-normal">đ</span></div>
+                <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Doanh Thu YTD</h3>
+                <div className="text-xl lg:text-2xl font-bold text-[#8b5cf6]">{reportData.ytdRevenue.toLocaleString('vi-VN')}</div>
               </CardContent>
             </Card>
             
@@ -187,21 +241,21 @@ export function AIFinancialReport() {
                   <Badge variant="default" className="border-[#ef4444]/30 text-[#ef4444]">5%</Badge>
                 </div>
                 <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Thuế GTGT (VAT)</h3>
-                <div className="text-2xl font-bold text-[#ef4444]">{reportData.vatTax.toLocaleString('vi-VN')} <span className="text-sm text-[#ef4444]/70 font-normal">đ</span></div>
+                <div className="text-xl lg:text-2xl font-bold text-[#ef4444]">{reportData.vatTax.toLocaleString('vi-VN')}</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#0f172a]/50 border-[#f59e0b]/30 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-[#f59e0b]/5 blur-2xl rounded-full"></div>
+            <Card className="bg-[#0f172a]/50 border-[#ef4444]/30 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-[#ef4444]/5 blur-2xl rounded-full"></div>
               <CardContent className="p-6 relative z-10">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 rounded-full bg-[#f59e0b]/10 text-[#f59e0b]">
+                  <div className="p-3 rounded-full bg-[#ef4444]/10 text-[#ef4444]">
                     <Calculator className="w-5 h-5" />
                   </div>
-                  <Badge variant="default" className="border-[#f59e0b]/30 text-[#f59e0b]">2%</Badge>
+                  <Badge variant="default" className="border-[#ef4444]/30 text-[#ef4444]">2%</Badge>
                 </div>
                 <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Thuế TNCN (PIT)</h3>
-                <div className="text-2xl font-bold text-[#f59e0b]">{reportData.pitTax.toLocaleString('vi-VN')} <span className="text-sm text-[#f59e0b]/70 font-normal">đ</span></div>
+                <div className="text-xl lg:text-2xl font-bold text-[#ef4444]">{reportData.pitTax.toLocaleString('vi-VN')}</div>
               </CardContent>
             </Card>
 
@@ -214,8 +268,8 @@ export function AIFinancialReport() {
                   </div>
                   <Badge variant="default" className="border-[#10b981]/30 text-[#10b981]">Net</Badge>
                 </div>
-                <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Doanh Thu Ròng</h3>
-                <div className="text-2xl font-bold text-[#10b981]">{reportData.netRevenue.toLocaleString('vi-VN')} <span className="text-sm text-[#10b981]/70 font-normal">đ</span></div>
+                <h3 className="text-[#94a3b8] text-xs font-bold uppercase tracking-wider mb-1">Lợi Nhuận Ròng</h3>
+                <div className="text-xl lg:text-2xl font-bold text-[#10b981]">{reportData.netRevenue.toLocaleString('vi-VN')}</div>
               </CardContent>
             </Card>
           </div>

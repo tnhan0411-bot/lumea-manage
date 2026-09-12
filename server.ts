@@ -859,73 +859,126 @@ async function startServer() {
     }
     
     try {
-      const { invoices = [], period = "Tất cả" } = req.body;
+      const { invoices = [], expenses = [], period = "Tất cả" } = req.body;
       
-      let currentMonthRevenue = 0;
+      let currentGrossRevenue = 0;
+      let totalExpenseAmount = 0;
       let currentYTD = 0;
       let pitTax = 0;
       let vatTax = 0;
       let netRevenue = 0;
+      
+      const calculateYTDRevenue = (targetYear: number, upToMonth: number) => {
+        let ytd = 0;
+        for (let m = 1; m <= upToMonth; m++) {
+          const mStr = m.toString().padStart(2, '0');
+          const pStr = `${targetYear}-${mStr}`;
+          invoices.forEach((inv: any) => {
+            if (inv.status === 'paid' && inv.month === pStr && inv.total) {
+              ytd += Number(inv.total);
+            }
+          });
+        }
+        return ytd;
+      };
 
-      if (period !== "Tất cả" && period.length === 7) {
+      if (period.includes('Q')) {
+        // Quarter logic e.g., "2026-Q3"
+        const [yearStr, qStr] = period.split('-');
+        const targetYear = parseInt(yearStr);
+        const qNumber = parseInt(qStr.replace('Q', ''));
+        const endMonth = qNumber * 3;
+        const startMonth = endMonth - 2;
+
+        const prevYTD = calculateYTDRevenue(targetYear, startMonth - 1);
+        
+        // Sum revenue and expenses for the 3 months in quarter
+        for (let m = startMonth; m <= endMonth; m++) {
+          const mStr = m.toString().padStart(2, '0');
+          const pStr = `${targetYear}-${mStr}`;
+          invoices.forEach((inv: any) => {
+            if (inv.status === 'paid' && inv.month === pStr && inv.total) {
+              currentGrossRevenue += Number(inv.total);
+            }
+          });
+        }
+
+        expenses.forEach((exp: any) => {
+          if (exp.date) {
+            const [y, m, d] = exp.date.split('-');
+            const eYear = parseInt(y);
+            const eMonth = parseInt(m);
+            if (eYear === targetYear && eMonth >= startMonth && eMonth <= endMonth) {
+              totalExpenseAmount += Number(exp.amount);
+            }
+          }
+        });
+
+        currentYTD = prevYTD + currentGrossRevenue;
+        const prevPIT = Math.max(0, prevYTD - 1000000000) * 0.02;
+        const currentCumulativePIT = Math.max(0, currentYTD - 1000000000) * 0.02;
+
+        pitTax = Math.round(currentCumulativePIT - prevPIT);
+        vatTax = Math.round(currentGrossRevenue * 0.05);
+        netRevenue = currentGrossRevenue - vatTax - pitTax - totalExpenseAmount;
+
+      } else if (period !== "Tất cả" && period.length === 7) {
+        // Month logic e.g., "2026-09"
         const [yearStr, monthStr] = period.split('-');
         const targetYear = parseInt(yearStr);
         const targetMonth = parseInt(monthStr);
 
-        const calculateYTDRevenue = (upToMonth: number) => {
-          let ytd = 0;
-          for (let m = 1; m <= upToMonth; m++) {
-            const mStr = m.toString().padStart(2, '0');
-            const pStr = `${targetYear}-${mStr}`;
-            invoices.forEach((inv: any) => {
-              if (inv.status === 'paid' && inv.month === pStr && inv.total) {
-                ytd += Number(inv.total);
-              }
-            });
-          }
-          return ytd;
-        };
-
-        const prevYTD = calculateYTDRevenue(targetMonth - 1);
-        currentMonthRevenue = 0;
+        const prevYTD = calculateYTDRevenue(targetYear, targetMonth - 1);
+        
         invoices.forEach((inv: any) => {
             if (inv.status === 'paid' && inv.month === period && inv.total) {
-                currentMonthRevenue += Number(inv.total);
+                currentGrossRevenue += Number(inv.total);
             }
         });
-        currentYTD = prevYTD + currentMonthRevenue;
+
+        expenses.forEach((exp: any) => {
+          if (exp.date && exp.date.startsWith(period)) {
+            totalExpenseAmount += Number(exp.amount);
+          }
+        });
+
+        currentYTD = prevYTD + currentGrossRevenue;
 
         const prevPIT = Math.max(0, prevYTD - 1000000000) * 0.02;
         const currentCumulativePIT = Math.max(0, currentYTD - 1000000000) * 0.02;
 
         pitTax = Math.round(currentCumulativePIT - prevPIT);
-        vatTax = Math.round(currentMonthRevenue * 0.05);
-        netRevenue = currentMonthRevenue - vatTax - pitTax;
+        vatTax = Math.round(currentGrossRevenue * 0.05);
+        netRevenue = currentGrossRevenue - vatTax - pitTax - totalExpenseAmount;
       } else {
-        // Fallback for "Tất cả" - Not very meaningful for YTD logic, but we handle it
+        // Fallback for "Tất cả"
         invoices.forEach((inv: any) => {
           if (inv.status === 'paid' && inv.total) {
-            currentMonthRevenue += Number(inv.total);
+            currentGrossRevenue += Number(inv.total);
           }
         });
-        currentYTD = currentMonthRevenue;
-        vatTax = Math.round(currentMonthRevenue * 0.05);
-        pitTax = Math.round(Math.max(0, currentMonthRevenue - 1000000000) * 0.02);
-        netRevenue = currentMonthRevenue - vatTax - pitTax;
+        expenses.forEach((exp: any) => {
+          totalExpenseAmount += Number(exp.amount);
+        });
+        currentYTD = currentGrossRevenue;
+        vatTax = Math.round(currentGrossRevenue * 0.05);
+        pitTax = Math.round(Math.max(0, currentGrossRevenue - 1000000000) * 0.02);
+        netRevenue = currentGrossRevenue - vatTax - pitTax - totalExpenseAmount;
       }
       
       const prompt = `Bạn là một CFO (Giám đốc tài chính) cho một cơ sở cho thuê phòng trọ/căn hộ dịch vụ hộ kinh doanh cá thể.
 Dựa vào số liệu tài chính sau của kỳ [${period}]:
-- Doanh thu tháng này (Gross): ${currentMonthRevenue.toLocaleString('vi-VN')} VND
+- Tổng Doanh Thu (Gross): ${currentGrossRevenue.toLocaleString('vi-VN')} VND
+- Tổng Chi Phí: ${totalExpenseAmount.toLocaleString('vi-VN')} VND
 - Tổng doanh thu lũy kế từ đầu năm (YTD): ${currentYTD.toLocaleString('vi-VN')} VND (Mốc tính thuế TNCN là 1 tỷ đồng)
-- Thuế GTGT phải nộp trong tháng (5%): ${vatTax.toLocaleString('vi-VN')} VND
-- Thuế TNCN phải nộp phát sinh trong tháng (2% phần vượt 1 tỷ): ${pitTax.toLocaleString('vi-VN')} VND
-- Lợi nhuận gộp tháng này (Net): ${netRevenue.toLocaleString('vi-VN')} VND
+- Thuế GTGT phải nộp trong kỳ (5%): ${vatTax.toLocaleString('vi-VN')} VND
+- Thuế TNCN phải nộp phát sinh trong kỳ (2% phần vượt 1 tỷ): ${pitTax.toLocaleString('vi-VN')} VND
+- Lợi nhuận ròng (Net) sau khi trừ chi phí và thuế: ${netRevenue.toLocaleString('vi-VN')} VND
 
 Hãy viết một đoạn văn bản tóm tắt ngắn (khoảng 3-4 câu) bằng tiếng Việt bao gồm:
-1. Đánh giá tổng quan về doanh thu và tiến độ doanh thu so với mốc 1 tỷ đồng (chưa tới, sắp chạm, hay đã vượt qua mốc phải nộp thuế TNCN).
-2. Lời nhắc nhở trích lập quỹ đúng số tiền thuế (GTGT và TNCN) phải nộp cho tháng này.
-3. Gợi ý chiến lược tối ưu phòng hoặc tăng doanh thu dựa trên số liệu.
+1. Đánh giá tổng quan về doanh thu, chi phí và tiến độ doanh thu so với mốc 1 tỷ đồng (chưa tới, sắp chạm, hay đã vượt qua mốc phải nộp thuế TNCN).
+2. Lời nhắc nhở trích lập quỹ đúng số tiền thuế (GTGT và TNCN) phải nộp cho kỳ này.
+3. Gợi ý chiến lược tiết giảm chi phí hoặc tăng doanh thu dựa trên số liệu lợi nhuận.
 Đoạn văn cần chuyên nghiệp, ngắn gọn, súc tích và mạch lạc. Không sử dụng markdown kiểu danh sách, chỉ viết đoạn văn.`;
 
       const response = await getAI().models.generateContent({
@@ -936,7 +989,8 @@ Hãy viết một đoạn văn bản tóm tắt ngắn (khoảng 3-4 câu) bằn
       const insights = response.text || "Hệ thống AI không thể trả về phân tích.";
 
       res.json({
-        grossRevenue: currentMonthRevenue,
+        grossRevenue: currentGrossRevenue,
+        totalExpense: totalExpenseAmount,
         ytdRevenue: currentYTD,
         vatTax,
         pitTax,
