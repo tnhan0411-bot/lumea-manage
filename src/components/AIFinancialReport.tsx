@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Badge, Button } from './ui';
-import { Sparkles, DollarSign, Download, ArrowUpRight, Calculator, RefreshCw } from 'lucide-react';
+import { Sparkles, DollarSign, Download, ArrowUpRight, Calculator, RefreshCw, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../lib/context';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export function AIFinancialReport() {
   const { invoices, expenses } = useAppContext();
@@ -13,6 +14,32 @@ export function AIFinancialReport() {
   const [error, setError] = useState<string | null>(null);
 
   const activePeriod = periodMode === 'month' ? period : quarterStr;
+
+  const currentYear = parseInt(activePeriod.split('-')[0]) || new Date().getFullYear();
+  const chartData = Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    const pStr = `${currentYear}-${month.toString().padStart(2, '0')}`;
+    let revenue = 0;
+    let expense = 0;
+
+    invoices.forEach((inv: any) => {
+      if (inv.status === 'paid' && inv.month === pStr && inv.total) {
+        revenue += Number(inv.total);
+      }
+    });
+
+    expenses.forEach((exp: any) => {
+      if (exp.date && exp.date.startsWith(pStr)) {
+        expense += Number(exp.amount);
+      }
+    });
+
+    return {
+      name: `T${month}`,
+      'Doanh thu': revenue,
+      'Chi phí': expense
+    };
+  });
 
   const fetchAIReport = async () => {
     setLoading(true);
@@ -273,6 +300,44 @@ export function AIFinancialReport() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="bg-[#0f172a] border-[#334155]">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <BarChart3 className="w-5 h-5 text-[#38bdf8]" />
+                <h3 className="text-lg font-bold text-[#f8fafc]">Biểu đồ Doanh thu & Chi phí Năm {currentYear}</h3>
+              </div>
+              <div className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#94a3b8" 
+                      tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                      axisLine={{ stroke: '#334155' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      stroke="#94a3b8" 
+                      tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                      axisLine={{ stroke: '#334155' }}
+                      tickLine={false}
+                      tickFormatter={(value) => `${(value / 1000000).toLocaleString('vi-VN')}M`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px' }}
+                      itemStyle={{ color: '#e2e8f0' }}
+                      formatter={(value: number) => [`${value.toLocaleString('vi-VN')} đ`, undefined]}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar dataKey="Doanh thu" fill="#38bdf8" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                    <Bar dataKey="Chi phí" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] border-[#38bdf8]/20 shadow-lg shadow-[#38bdf8]/5">
             <CardContent className="p-8">
