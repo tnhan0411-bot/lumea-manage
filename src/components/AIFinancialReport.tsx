@@ -8,7 +8,7 @@ export function AIFinancialReport() {
   const { invoices, expenses } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
-  const [periodMode, setPeriodMode] = useState<'month' | 'quarter'>('month');
+  const [periodMode, setPeriodMode] = useState<'month' | 'quarter'>('quarter');
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7)); // Default current month YYYY-MM
   const [quarterStr, setQuarterStr] = useState(`${new Date().getFullYear()}-Q${Math.floor(new Date().getMonth()/3) + 1}`);
   const [error, setError] = useState<string | null>(null);
