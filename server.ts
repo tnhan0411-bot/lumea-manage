@@ -857,13 +857,7 @@ async function startServer() {
   });
 
   // API Báo cáo Doanh thu AI Tự động
-  app.all("/api/ai-financial-report", express.json({ limit: '50mb' }), async (req, res) => {
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-    if (req.method !== 'POST') {
-      console.log('Received non-POST request to ai-financial-report:', req.method);
-    }
+  app.post("/api/ai-financial-report", async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ error: "Chưa cấu hình API Key Gemini. Vui lòng mở menu Settings (biểu tượng bánh răng) > Secrets trong AI Studio và thêm khóa GEMINI_API_KEY. (Đã fix lỗi cache)" });
     }

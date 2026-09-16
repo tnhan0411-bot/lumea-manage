@@ -45,14 +45,19 @@ export function AIFinancialReport() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/ai-financial-report?_t=${Date.now()}`, {
+      const res = await fetch(`/api/ai-financial-report`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
         body: JSON.stringify({ invoices, expenses, period: activePeriod })
       });
       
       if (res.status === 404) {
-        throw new Error(`Lỗi 404: Không tìm thấy đường dẫn API (/api/ai-financial-report). Đảm bảo server đang chạy phiên bản mới nhất.`);
+        throw new Error(`Lỗi 404: Không tìm thấy đường dẫn API (/api/ai-financial-report). Nếu bạn đang xem qua link Share, vui lòng tạo lại link Share mới (Re-share).`);
       }
       
       if (res.status === 413) {
