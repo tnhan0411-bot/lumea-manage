@@ -526,6 +526,14 @@ export function AIFinancialReport() {
         </div>
       </div>
 
+      {/* Q1 Transition Note Badge */}
+      <div className="flex items-center gap-2.5 bg-[#0284c7]/10 border border-[#0284c7]/30 px-4 py-2.5 rounded-xl text-xs text-[#bae6fd]">
+        <CheckCircle2 className="w-4 h-4 text-[#38bdf8] shrink-0" />
+        <span>
+          <strong>Dữ liệu Quý I/2026:</strong> Đã ghi nhận bổ sung <strong className="text-[#f8fafc]">273.267.667 đ</strong> doanh thu Quý I (giai đoạn trước khi bắt đầu dùng app từ Quý II) vào hệ thống và lũy kế YTD, đảm bảo báo cáo tài chính & nghĩa vụ thuế được tính toán chính xác 100%.
+        </span>
+      </div>
+
       {/* 6 Key Financial & Tax Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Gross Revenue */}

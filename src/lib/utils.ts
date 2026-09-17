@@ -337,5 +337,51 @@ export const INITIAL_CONTRACTS: Contract[] = [];
 export const INITIAL_EXPENSES: Expense[] = [];
 export const INITIAL_ISSUES: Issue[] = [];
 export const INITIAL_TASKS: Task[] = [];
-export const INITIAL_INVOICES: Invoice[] = [];
+export const INITIAL_INVOICES: Invoice[] = [
+  {
+    id: 'inv-q1-2026-01',
+    roomId: 'q1-transfer',
+    tenantId: 't-q1-transfer',
+    month: '2026-01',
+    rent: 91089222,
+    water: 0,
+    other: 0,
+    total: 91089222,
+    status: 'paid',
+    paymentMethod: 'transfer',
+    paymentDate: '2026-01-31',
+    dueDate: '2026-01-31',
+    issueDate: '2026-01-01',
+  },
+  {
+    id: 'inv-q1-2026-02',
+    roomId: 'q1-transfer',
+    tenantId: 't-q1-transfer',
+    month: '2026-02',
+    rent: 91089222,
+    water: 0,
+    other: 0,
+    total: 91089222,
+    status: 'paid',
+    paymentMethod: 'transfer',
+    paymentDate: '2026-02-28',
+    dueDate: '2026-02-28',
+    issueDate: '2026-02-01',
+  },
+  {
+    id: 'inv-q1-2026-03',
+    roomId: 'q1-transfer',
+    tenantId: 't-q1-transfer',
+    month: '2026-03',
+    rent: 91089223,
+    water: 0,
+    other: 0,
+    total: 91089223,
+    status: 'paid',
+    paymentMethod: 'transfer',
+    paymentDate: '2026-03-31',
+    dueDate: '2026-03-31',
+    issueDate: '2026-03-01',
+  },
+];
 export const INITIAL_ELECTRICITY: ElectricityRecord[] = [];

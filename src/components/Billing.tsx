@@ -330,8 +330,12 @@ export function Billing() {
                     </td>
                     {role === 'landlord' && (
                       <td className="px-6 py-4">
-                        <p className="font-medium text-[#f8fafc]">Phòng {room?.number}</p>
-                        <p className="text-[#94a3b8] text-xs">{tenant?.name}</p>
+                        <p className="font-medium text-[#f8fafc]">
+                          {room ? `Phòng ${room.number}` : ((inv as any).otherDesc || 'Doanh thu chuyển tiếp Q1')}
+                        </p>
+                        <p className="text-[#94a3b8] text-xs">
+                          {tenant?.name || 'Ghi nhận doanh thu trước khi dùng web app'}
+                        </p>
                       </td>
                     )}
                     <td className="px-6 py-4 min-w-[240px]">
