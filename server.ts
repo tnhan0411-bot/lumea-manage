@@ -986,7 +986,7 @@ Hãy viết một đoạn văn bản tóm tắt ngắn (khoảng 3-4 câu) bằn
 Đoạn văn cần chuyên nghiệp, ngắn gọn, súc tích và mạch lạc. Không sử dụng markdown kiểu danh sách, chỉ viết đoạn văn.`;
 
       const response = await getAI().models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         contents: prompt
       });
 
